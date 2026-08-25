@@ -45,13 +45,13 @@ async def main() -> None:
                                 language VARCHAR(10) NOT NULL,
                                 role VARCHAR(30) NOT NULL,
                                 banned BOOLEAN NOT NULL DEFAULT FALSE,
-                                created at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                             );
                         """
                     )
                 logger.info("Table `users` was successfully created")
     except Error as db_error:
-        logger.exception("Database-specific errer: %s", db_error)
+        logger.exception("Database-specific error: %s", db_error)
     except Exception as e:
         logger.exception("Unhandled error: %s", e)
     finally:
