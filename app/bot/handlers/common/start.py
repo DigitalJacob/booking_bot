@@ -10,6 +10,7 @@ from aiogram.types import BotCommandScopeChat, Message
 from app.bot.enums.roles import UserRole
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
+from app.domain.models.user import User
 from app.infrastructure.database.repositories import Repositories
 
 
@@ -25,9 +26,8 @@ async def process_start_command(
         admin_ids: list[int],
         translations: dict,
         repos: Repositories,
+        user: User | None,
 ) -> None:
-    user = await repos.users.get_user(user_id=message.from_user.id)
-
     if user is None:
         user_role = (
             UserRole.ADMIN
@@ -56,7 +56,7 @@ async def process_start_command(
                     chat_id=message.from_user.id,
                     message_id=msg_id,
                 )
-        user_lang = await repos.users.get_user_lang(user_id=message.from_user.id)
+        user_lang = user.language if user else translations["default"]
         i18n = translations.get(user_lang) or translations[translations["default"]]
 
     await bot.set_my_commands(
@@ -75,10 +75,9 @@ async def process_start_command(
 async def process_help_command(
         message: Message,
         i18n: dict[str, str],
-        repos: Repositories,
+        user: User | None,
 ) -> None:
-    role = await repos.users.get_user_role(user_id=message.from_user.id)
-    if role == UserRole.ADMIN:
+    if user and user.role == UserRole.ADMIN:
         await message.answer(text=i18n.get("/help_admin"))
     else:
         await message.answer(text=i18n.get("/help"))

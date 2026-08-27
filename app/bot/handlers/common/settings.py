@@ -1,4 +1,5 @@
 from contextlib import suppress
+from dataclasses import replace
 
 from aiogram import Bot, F, Router
 from aiogram.enums import BotCommandScopeType
@@ -7,11 +8,13 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, CallbackQuery, Message
 
+from app.bot.enums.roles import UserRole
 from app.bot.filters.filters import LocaleFilter
 from app.bot.keyboards.keyboards import get_lang_settings_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
 from app.infrastructure.database.repositories import Repositories
+from app.domain.models.user import User
 
 
 settings_router = Router(name="settings")
@@ -54,10 +57,10 @@ async def process_lang_command(
         i18n: dict[str, str],
         state: FSMContext,
         locales: list[str],
-        repos: Repositories,
+        user: User | None,
 ) -> None:
     await state.set_state(LangSG.lang)
-    user_lang = await repos.users.get_user_lang(user_id=message.from_user.id)
+    user_lang = user.language if user else None
 
     msg = await message.answer(
         text=i18n.get("/lang"),
@@ -80,18 +83,23 @@ async def process_save_click(
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,
+        user: User | None,
+        data: dict,
 ) -> None:
-    data = await state.get_data()
-    language = data.get("user_lang")
+    fsm_data = await state.get_data()
+    language = fsm_data.get("user_lang")
     if language:
         await repos.users.change_user_lang(
             language=language,
             user_id=callback.from_user.id,
         )
+        if user is not None:
+            data["user"] = replace(user, language=language)
+            user = data["user"]
 
     await callback.message.edit_text(text=i18n.get("lang_saved"))
 
-    user_role = await repos.users.get_user_role(user_id=callback.from_user.id)
+    user_role = user.role if user else UserRole.CLIENT
     await bot.set_my_commands(
         commands=get_main_menu_commands(i18n=i18n, role=user_role),
         scope=BotCommandScopeChat(
@@ -108,9 +116,9 @@ async def process_cancel_click(
         callback: CallbackQuery,
         i18n: dict[str, str],
         state: FSMContext,
-        repos: Repositories,
+        user: User | None,
 ) -> None:
-    user_lang = await repos.users.get_user_lang(user_id=callback.from_user.id)
+    user_lang = user.language if user else None
     lang_label = i18n.get(user_lang) if user_lang else ""
     await callback.message.edit_text(
         text=i18n.get("lang_cancelled").format(lang_label),

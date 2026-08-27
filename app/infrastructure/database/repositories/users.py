@@ -77,20 +77,6 @@ class UsersRepository:
         return User.from_db_row(row) if row else None
 
 
-    async def get_user_lang(
-            self,
-            *,
-            user_id: int,
-    ) -> str | None:
-        async with self._conn.cursor() as cursor:
-            await cursor.execute(
-                query="SELECT language FROM users WHERE user_id = %s;",
-                params=(user_id, ),
-            )
-            row = await cursor.fetchone()
-        return row[0] if row else None
-
-
     async def change_user_lang(
             self,
             *,
@@ -126,16 +112,3 @@ class UsersRepository:
             )
         logger.info("Updated banned=%s for user %d", banned, user_id)
 
-
-    async def get_user_role(
-            self,
-            *,
-            user_id: int,
-    ) -> UserRole | None:
-        async with self._conn.cursor() as cursor:
-            await cursor.execute(
-                query="SELECT role FROM users WHERE user_id = %s;",
-                params=(user_id, ),
-            )
-            row = await cursor.fetchone()
-        return UserRole(row[0]) if row else None

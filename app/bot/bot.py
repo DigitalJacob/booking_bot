@@ -17,6 +17,7 @@ from app.bot.handlers.master import master_router
 from app.bot.i18n.translator import get_translations
 from app.bot.middlewares.database import DataBaseMiddleware
 from app.bot.middlewares.i18n import TranslatorMiddleware
+from app.bot.middlewares.user_context import UserContextMiddleware
 from app.bot.middlewares.lang_settings import LangSettingsMiddleware
 from app.infrastructure.database.connection import get_pg_pool
 from config.config import Config
@@ -78,6 +79,7 @@ async def main(config: Config) -> None:
 
     logger.info("Including middlewares...")
     dp.update.middleware(DataBaseMiddleware())
+    dp.update.middleware(UserContextMiddleware())
     dp.update.middleware(LangSettingsMiddleware())
     dp.update.middleware(TranslatorMiddleware())
 

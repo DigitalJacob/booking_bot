@@ -3,9 +3,9 @@ from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.fsm.context import FSMContext
-from aiogram.types import TelegramObject, User
+from aiogram.types import TelegramObject, User as TgUser
 
-from app.infrastructure.database.repositories import Repositories
+from app.domain.models.user import User
 
 
 logger = logging.getLogger(__name__)
@@ -18,25 +18,17 @@ class TranslatorMiddleware(BaseMiddleware):
             event: TelegramObject,
             data: dict[str, Any],
     ) -> Any:
-        user: User | None = data.get("event_from_user")
+        tg_user: TgUser | None = data.get("event_from_user")
 
-        if user is None:
+        if tg_user is None:
             return await handler(event, data)
 
         state: FSMContext = data["state"]
         user_context_data = await state.get_data()
 
         if (user_lang := user_context_data.get("user_lang")) is None:
-            repos: Repositories | None = data.get("repos")
-            if repos is None:
-                logger.error("Repositories not found in middleware data.")
-                raise RuntimeError(
-                    "Missing repositories for detecting the user's language."
-                )
-
-            user_lang = await repos.users.get_user_lang(user_id=user.id)
-            if user_lang is None:
-                user_lang = user.language_code
+            db_user: User | None = data.get("user")
+            user_lang = db_user.language if db_user else tg_user.language_code
 
         translations: dict = data["translations"]
         i18n = translations.get(user_lang)
