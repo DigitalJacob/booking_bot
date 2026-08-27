@@ -32,9 +32,9 @@ async def process_start_command(
         admin_ids: list[int],
         translations: dict,
 ) -> None:
-    user_row = await get_user(conn, user_id=message.from_user.id)
+    user = await get_user(conn, user_id=message.from_user.id)
 
-    if user_row is None:
+    if user is None:
         user_role = (
             UserRole.ADMIN
             if message.from_user.id in admin_ids
@@ -52,8 +52,7 @@ async def process_start_command(
             role=user_role,
         )
     else:
-        # SELECT: id, user_id, username, language, role, banned, created_at
-        user_role = UserRole(user_row[4])
+        user_role = user.role
 
     if await state.get_state() == LangSG.lang:
         data = await state.get_data()

@@ -1,8 +1,10 @@
 import logging
-from typing import Any
+
+from psycopg import AsyncConnection
+from psycopg.rows import dict_row
 
 from app.bot.enums.roles import UserRole
-from psycopg import AsyncConnection
+from app.domain.models.user import User
 
 
 logger = logging.getLogger(__name__)
@@ -50,8 +52,8 @@ async def get_user(
         conn: AsyncConnection,
         *,
         user_id: int,
-) -> tuple[Any, ...] | None:
-    async with conn.cursor() as cursor:
+) -> User | None:
+    async with conn.cursor(row_factory=dict_row) as cursor:
         await cursor.execute(
             query="""
                 SELECT
@@ -68,7 +70,7 @@ async def get_user(
             params=(user_id, ),
         )
         row = await cursor.fetchone()
-    return row
+    return User.from_db_row(row) if row else None
 
 
 async def get_user_lang(
