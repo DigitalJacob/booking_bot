@@ -5,6 +5,8 @@ from aiogram import BaseMiddleware
 from aiogram.types import Update
 from psycopg_pool import AsyncConnectionPool
 
+from app.infrastructure.database.repositories import Repositories
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class DataBaseMiddleware(BaseMiddleware):
         async with db_pool.connection() as connection:
             try:
                 async with connection.transaction():
-                    data["conn"] = connection
+                    data["repos"] = Repositories.from_connection(connection)
                     return await handler(event, data)
             except Exception as e:
                 logger.exception("Transaction rolled back due to error: %s", e)

@@ -6,17 +6,11 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, Message
-from psycopg import AsyncConnection
 
 from app.bot.enums.roles import UserRole
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
-from app.infrastructure.database.repositories.users import (
-    add_user,
-    get_user,
-    get_user_lang,
-    get_user_role,
-)
+from app.infrastructure.database.repositories import Repositories
 
 
 start_router = Router(name="start")
@@ -25,14 +19,14 @@ start_router = Router(name="start")
 @start_router.message(CommandStart())
 async def process_start_command(
         message: Message,
-        conn: AsyncConnection,
         bot: Bot,
         i18n: dict[str, str],
         state: FSMContext,
         admin_ids: list[int],
         translations: dict,
+        repos: Repositories,
 ) -> None:
-    user = await get_user(conn, user_id=message.from_user.id)
+    user = await repos.users.get_user(user_id=message.from_user.id)
 
     if user is None:
         user_role = (
@@ -44,8 +38,7 @@ async def process_start_command(
         if language not in translations or language == "default":
             language = translations["default"]
 
-        await add_user(
-            conn,
+        await repos.users.add_user(
             user_id=message.from_user.id,
             username=message.from_user.username,
             language=language,
@@ -63,7 +56,7 @@ async def process_start_command(
                     chat_id=message.from_user.id,
                     message_id=msg_id,
                 )
-        user_lang = await get_user_lang(conn, user_id=message.from_user.id)
+        user_lang = await repos.users.get_user_lang(user_id=message.from_user.id)
         i18n = translations.get(user_lang) or translations[translations["default"]]
 
     await bot.set_my_commands(
@@ -81,10 +74,10 @@ async def process_start_command(
 @start_router.message(Command(commands="help"))
 async def process_help_command(
         message: Message,
-        conn: AsyncConnection,
         i18n: dict[str, str],
+        repos: Repositories,
 ) -> None:
-    role = await get_user_role(conn, user_id=message.from_user.id)
+    role = await repos.users.get_user_role(user_id=message.from_user.id)
     if role == UserRole.ADMIN:
         await message.answer(text=i18n.get("/help_admin"))
     else:

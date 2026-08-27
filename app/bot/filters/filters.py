@@ -1,9 +1,8 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import CallbackQuery, Message
-from psycopg import AsyncConnection
 
 from app.bot.enums.roles import UserRole
-from app.infrastructure.database.repositories.users import get_user_role
+from app.infrastructure.database.repositories import Repositories
 
 
 class LocaleFilter(BaseFilter):
@@ -32,13 +31,13 @@ class UserRoleFilter(BaseFilter):
     async def __call__(
             self,
             event: Message | CallbackQuery,
-            conn: AsyncConnection,
+            repos: Repositories,
     ) -> bool:
         user = event.from_user
         if not user:
             return False
 
-        role = await get_user_role(conn, user_id=user.id)
+        role = await repos.users.get_user_role(user_id=user.id)
         if role is None:
             return False
 

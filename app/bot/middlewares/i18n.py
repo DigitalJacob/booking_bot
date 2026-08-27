@@ -4,9 +4,8 @@ from typing import Any, Awaitable, Callable
 from aiogram import BaseMiddleware
 from aiogram.fsm.context import FSMContext
 from aiogram.types import TelegramObject, User
-from psycopg import AsyncConnection
 
-from app.infrastructure.database.repositories.users import get_user_lang
+from app.infrastructure.database.repositories import Repositories
 
 
 logger = logging.getLogger(__name__)
@@ -28,14 +27,14 @@ class TranslatorMiddleware(BaseMiddleware):
         user_context_data = await state.get_data()
 
         if (user_lang := user_context_data.get("user_lang")) is None:
-            conn: AsyncConnection | None = data.get("conn")
-            if conn is None:
-                logger.error("Database connection not found in middleware data.")
+            repos: Repositories | None = data.get("repos")
+            if repos is None:
+                logger.error("Repositories not found in middleware data.")
                 raise RuntimeError(
-                    "Missing database connection for detecting the user's language."
+                    "Missing repositories for detecting the user's language."
                 )
 
-            user_lang = await get_user_lang(conn, user_id=user.id)
+            user_lang = await repos.users.get_user_lang(user_id=user.id)
             if user_lang is None:
                 user_lang = user.language_code
 
