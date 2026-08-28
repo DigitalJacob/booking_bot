@@ -1,5 +1,4 @@
 from contextlib import suppress
-from dataclasses import replace
 
 from aiogram import Bot, F, Router
 from aiogram.enums import BotCommandScopeType
@@ -84,7 +83,6 @@ async def process_save_click(
         state: FSMContext,
         repos: Repositories,
         user: User | None,
-        data: dict,
 ) -> None:
     fsm_data = await state.get_data()
     language = fsm_data.get("user_lang")
@@ -93,9 +91,6 @@ async def process_save_click(
             language=language,
             user_id=callback.from_user.id,
         )
-        if user is not None:
-            data["user"] = replace(user, language=language)
-            user = data["user"]
 
     await callback.message.edit_text(text=i18n.get("lang_saved"))
 
