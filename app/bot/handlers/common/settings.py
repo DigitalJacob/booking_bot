@@ -8,7 +8,7 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, CallbackQuery, Message
 
-from app.bot.enums.roles import UserRole
+from app.bot.enums import UserRole
 from app.bot.filters.filters import LocaleFilter
 from app.bot.keyboards.keyboards import get_lang_settings_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from app.bot.enums.roles import UserRole
+from app.bot.enums import UserRole
 
 
 @dataclass(frozen=True, slots=True)
