@@ -37,4 +37,32 @@ RU: dict[str, str] = {
     "/start_description": "Перезапустить бота",
     "/lang_description": "Настроить язык интерфейса",
     "/help_description": "Посмотреть справку",
+    "/book": "Выберите услугу",
+    "/book_description": "Записаться к мастеру",
+    "book_choose_service": "Выберите услугу",
+    "book_choose_day": "Выберите день",
+    "book_choose_slot": "Выберите время",
+    "book_confirm": (
+        "Проверьте запись:\n\n"
+        "Услуга: {title}\n"
+        "Дата и время проведения: {when}\n"
+        "Длительность: {duration} мин\n"
+        "Цена: {price}"
+    ),
+    "book_price_empty": "уточняется",
+    "book_ok": "Вы записаны. Статус: ожидает подтверждения мастера.",
+    "book_cancelled": "Запись отменена.",
+    "book_no_services": "Сейчас нет доступных услуг.",
+    "book_no_slots": "Нет свободных слотов. Выберите другой день или услугу.",
+    "book_use_buttons": "Выберите вариант кнопками ниже.",
+    "book_back_button": "← Назад",
+    "book_cancel_button": "Отмена",
+    "book_confirm_button": "Записаться",
+    "service_button": "{title} · {duration} мин",
+    "book_slot_taken": "Этот слот уже занят. Выберите другое время.",
+    "book_slot_past": "Это время уже прошло.",
+    "book_slot_not_found": "Слот не найден.",
+    "book_service_inactive": "Услуга больше недоступна.",
+    "book_service_not_found": "Услуга не найдена.",
+    "book_mismatch": "Нельзя записаться на этот слот с выбранной услугой.",
 }

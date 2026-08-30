@@ -37,4 +37,32 @@ EN: dict[str, str] = {
     "/start_description": "Restart the bot",
     "/lang_description": "Configure the interface language",
     "/help_description": "View help",
+    "/book": "Choose a service",
+    "/book_description": "Book an appointment",
+    "book_choose_service": "Choose a service",
+    "book_choose_day": "Choose a day",
+    "book_choose_slot": "Choose a time",
+    "book_confirm": (
+        "Please confirm your appointment:\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}\n"
+        "Duration: {duration} min\n"
+        "Price: {price}"
+    ),
+    "book_price_empty": "to be confirmed",
+    "book_ok": "You are booked. Status: waiting for the specialist to confirm.",
+    "book_cancelled": "Booking cancelled.",
+    "book_no_services": "No services are available right now.",
+    "book_no_slots": "No free slots. Choose another day or service.",
+    "book_use_buttons": "Please use the buttons below.",
+    "book_back_button": "← Back",
+    "book_cancel_button": "Cancel",
+    "book_confirm_button": "Book",
+    "service_button": "{title} · {duration} min",
+    "book_slot_taken": "This slot is already taken. Please choose another time.",
+    "book_slot_past": "This time has already passed.",
+    "book_slot_not_found": "Slot not found.",
+    "book_service_inactive": "This service is no longer available.",
+    "book_service_not_found": "Service not found.",
+    "book_mismatch": "This slot cannot be booked with the selected service.",
 }
