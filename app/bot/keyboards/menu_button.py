@@ -9,16 +9,24 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
             command="/start",
             description=i18n.get("/start_description"),
         ),
-        BotCommand(
-            command="/lang",
-            description=i18n.get("/lang_description"),
-        ),
-        BotCommand(
-            command="/help",
-            description=i18n.get("/help_description"),
-        ),
     ]
-
-    # role does not affect the list yet — placeholder for master/admin commands later.
-    _ = role
+    if role in (UserRole.CLIENT, UserRole.ADMIN):
+        commands.append(
+            BotCommand(
+                command='/book',
+                description=i18n.get("/book_description"),
+            )
+        )
+    commands.extend(
+        [
+            BotCommand(
+                command="/lang",
+                description=i18n.get("/lang_description"),
+            ),
+            BotCommand(
+                command="/help",
+                description=i18n.get("/help_description"),
+            ),
+        ]
+    )
     return commands

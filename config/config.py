@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class BotSettings:
     token: str
     admin_ids: list[int]
+    master_user_id: int
 
 
 @dataclass
@@ -84,6 +85,11 @@ def load_config(path: str | None = None) -> Config:
     except ValueError as e:
         raise ValueError(f"ADMIN_IDS must be integers, got: {raw_ids}") from e
 
+    try:
+        master_user_id = env.int("MASTER_USER_ID")
+    except Exception as e:
+        raise ValueError("MASTER_USER_ID must be an integer Telegram user id") from e
+
     proxy_ip = env.str("PROXY_IP", default='').strip()
 
     proxy = None
@@ -120,7 +126,11 @@ def load_config(path: str | None = None) -> Config:
     logger.info("Configuration loaded successfully")
 
     return Config(
-        bot=BotSettings(token=token, admin_ids=admin_ids),
+        bot=BotSettings(
+            token=token,
+            admin_ids=admin_ids,
+            master_user_id=master_user_id
+        ),
         db=db,
         redis=redis,
         log=logg_settings,

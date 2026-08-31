@@ -90,6 +90,7 @@ async def main(config: Config) -> None:
             translations=translations,
             locales=locales,
             admin_ids=config.bot.admin_ids,
+            master_user_id=config.bot.master_user_id,
         )
     except Exception:
         logger.exception("Bot polling failed")

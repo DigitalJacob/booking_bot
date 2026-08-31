@@ -3,6 +3,7 @@ EN: dict[str, str] = {
         "Hello!\n\n"
         "I am a booking bot for appointments with a specialist.\n\n"
         "Available commands:\n"
+        "/book — book an appointment\n"
         "/help — help\n"
         "/lang — interface language"
     ),
@@ -10,6 +11,7 @@ EN: dict[str, str] = {
         "I help you book a service and manage appointments.\n\n"
         "Commands:\n"
         "/start — restart the bot\n"
+        "/book — book an appointment\n"
         "/lang — interface language\n"
         "/help — this help"
     ),
@@ -17,6 +19,7 @@ EN: dict[str, str] = {
         "You are a bot administrator.\n\n"
         "Commands:\n"
         "/start — restart the bot\n"
+        "/book — book an appointment\n"
         "/lang — interface language\n"
         "/help — this help"
     ),
@@ -65,4 +68,5 @@ EN: dict[str, str] = {
     "book_service_inactive": "This service is no longer available.",
     "book_service_not_found": "Service not found.",
     "book_mismatch": "This slot cannot be booked with the selected service.",
+    "book_need_start": "Please send /start first",
 }
