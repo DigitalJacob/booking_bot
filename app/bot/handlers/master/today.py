@@ -120,6 +120,7 @@ async def process_confirm(
 
     await callback.message.edit_text(
         text=i18n.get("master_confirmed").format(id=appointment.id),
+        reply_markup=None,
     )
     await callback.answer()
 
@@ -150,7 +151,8 @@ async def process_cancel(
         return
 
     await callback.message.edit_text(
-        text=i18n.get("master_cancelled").format(id=appointment.id)
+        text=i18n.get("master_cancelled").format(id=appointment.id),
+        reply_markup=None,
     )
     await callback.answer()
 
