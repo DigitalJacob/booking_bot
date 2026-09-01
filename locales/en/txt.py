@@ -81,4 +81,5 @@ EN: dict[str, str] = {
     "master_confirmed": "Appointment #{id} confirmed.",
     "master_cancelled": "Appointment #{id} cancelled.",
     "master_action_failed": "Failed to perform action.",
+    "master_close_button": "Close",
 }

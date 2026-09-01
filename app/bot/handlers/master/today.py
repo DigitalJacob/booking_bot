@@ -156,3 +156,10 @@ async def process_cancel(
     )
     await callback.answer()
 
+
+@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "close"))
+async def process_close(
+        callback: CallbackQuery,
+) -> None:
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.answer()

@@ -81,4 +81,5 @@ RU: dict[str, str] = {
     "master_confirmed": "Запись #{id} подтверждена.",
     "master_cancelled": "Запись #{id} отменена.",
     "master_action_failed": "Не удалось выполнить действие.",
+    "master_close_button": "Закрыть",
 }

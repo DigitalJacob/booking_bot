@@ -15,6 +15,7 @@ def get_appointment_actions_kb(
         appointment: Appointment,
         i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
     if appointment.status == AppointmentStatus.PENDING:
         row.append(
@@ -39,4 +40,17 @@ def get_appointment_actions_kb(
                 ).pack(),
             )
         )
-    return InlineKeyboardMarkup(inline_keyboard=[row] if row else [])
+    if row:
+        rows.append(row)
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("master_close_button"),
+                callback_data=MasterAppointmentCallback(
+                    action="close",
+                    appointment_id=appointment.id,
+                ).pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
