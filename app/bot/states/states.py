@@ -10,3 +10,9 @@ class BookingSG(StatesGroup):
     choosing_day = State()
     choosing_slot = State()
     confirming = State()
+
+
+class AddSlotSG(StatesGroup):
+    date = State()
+    start_time = State()
+    duration = State()

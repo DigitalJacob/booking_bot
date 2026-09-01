@@ -82,4 +82,27 @@ EN: dict[str, str] = {
     "master_cancelled": "Appointment #{id} cancelled.",
     "master_action_failed": "Failed to perform action.",
     "master_close_button": "Close",
+    "/add_slot_description": "Add a time slot",
+    "add_slot_enter_date": (
+        "Enter the slot date as DD.MM.YYYY\n"
+        "Example: 05.09.2026\n\n"
+        "Cancel: /cancel"
+    ),
+    "add_slot_enter_time": (
+        "Enter the start time as HH:MM\n"
+        "Example: 14:30\n\n"
+        "Cancel: /cancel"
+    ),
+    "add_slot_enter_duration": (
+        "Enter the slot duration in minutes\n"
+        "Example: 60\n\n"
+        "Cancel: /cancel"
+    ),
+    "add_slot_invalid_date": "Invalid date format. Use DD.MM.YYYY",
+    "add_slot_invalid_time": "Invalid time format. Use HH:MM",
+    "add_slot_invalid_duration": "Enter a whole number of minutes greater than 0",
+    "add_slot_past": "Cannot create a slot in the past. Enter another date or time.",
+    "add_slot_duplicate": "A slot at this time already exists.",
+    "add_slot_ok": "Slot created: {when}, duration {duration} min.",
+    "add_slot_cancelled": "Adding a slot was cancelled.",
 }
