@@ -174,4 +174,5 @@ RU: dict[str, str] = {
     "add_service_invalid_price": "Неверный формат цены. Число или «-».",
     "add_service_ok": "Услуга добавлена: {title}, {duration} мин, {price}.",
     "add_service_cancelled": "Добавление услуги отменено.",
+    "/add_service_description": "Добавить услугу",
 }
