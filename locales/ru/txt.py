@@ -105,4 +105,35 @@ RU: dict[str, str] = {
     "add_slot_duplicate": "Слот на это время уже существует.",
     "add_slot_ok": "Слот создан: {when}, длительность {duration} мин.",
     "add_slot_cancelled": "Добавление слота отменено.",
+    "/services_description": "Мои услуги",
+    "services_list_header": "📋 Ваши услуги:",
+    "services_list_item": "• {title} — {duration} мин, {price} ({status})",
+    "services_price_empty": "цена уточняется",
+    "services_status_active": "активна",
+    "services_status_inactive": "неактивна",
+    "services_empty": (
+        "У вас пока нет услуг.\n\n"
+        "Добавить: /add_service"
+    ),
+    "services_add_hint": "Добавить услугу: /add_service",
+    "add_service_enter_title": (
+        "Введите название услуги\n"
+        "Например: Маникюр\n\n"
+        "Отмена: /cancel"
+    ),
+    "add_service_enter_duration": (
+        "Введите длительность в минутах\n"
+        "Например: 60\n\n"
+        "Отмена: /cancel"
+    ),
+    "add_service_enter_price": (
+        "Введите цену (число) или «-» без цены\n"
+        "Например: 1500 или 1500.50\n\n"
+        "Отмена: /cancel"
+    ),
+    "add_service_invalid_title": "Название не должно быть пустым (макс. 100 символов).",
+    "add_service_invalid_duration": "Введите целое число минут больше 0.",
+    "add_service_invalid_price": "Неверный формат цены. Число или «-».",
+    "add_service_ok": "Услуга добавлена: {title}, {duration} мин, {price}.",
+    "add_service_cancelled": "Добавление услуги отменено.",
 }

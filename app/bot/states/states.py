@@ -16,3 +16,9 @@ class AddSlotSG(StatesGroup):
     date = State()
     start_time = State()
     duration = State()
+
+
+class AddServiceSG(StatesGroup):
+    title = State()
+    duration = State()
+    price = State()

@@ -105,4 +105,35 @@ EN: dict[str, str] = {
     "add_slot_duplicate": "A slot at this time already exists.",
     "add_slot_ok": "Slot created: {when}, duration {duration} min.",
     "add_slot_cancelled": "Adding a slot was cancelled.",
+    "/services_description": "My services",
+    "services_list_header": "📋 Your services:",
+    "services_list_item": "• {title} — {duration} min, {price} ({status})",
+    "services_price_empty": "price to be confirmed",
+    "services_status_active": "active",
+    "services_status_inactive": "inactive",
+    "services_empty": (
+        "You have no services yet.\n\n"
+        "Add one: /add_service"
+    ),
+    "services_add_hint": "Add a service: /add_service",
+    "add_service_enter_title": (
+        "Enter the service name\n"
+        "Example: Manicure\n\n"
+        "Cancel: /cancel"
+    ),
+    "add_service_enter_duration": (
+        "Enter the duration in minutes\n"
+        "Example: 60\n\n"
+        "Cancel: /cancel"
+    ),
+    "add_service_enter_price": (
+        "Enter the price (number) or «-» for no price\n"
+        "Example: 1500 or 1500.50\n\n"
+        "Cancel: /cancel"
+    ),
+    "add_service_invalid_title": "Name must not be empty (max 100 characters).",
+    "add_service_invalid_duration": "Enter a whole number of minutes greater than 0.",
+    "add_service_invalid_price": "Invalid price format. Use a number or «-».",
+    "add_service_ok": "Service added: {title}, {duration} min, {price}.",
+    "add_service_cancelled": "Adding a service was cancelled.",
 }
