@@ -7,11 +7,39 @@ EN: dict[str, str] = {
         "/help — help\n"
         "/lang — interface language"
     ),
+    "/start_master": (
+        "Hello!\n\n"
+        "You are signed in as a specialist.\n\n"
+        "Commands:\n"
+        "/today — today's appointments\n"
+        "/add_slot — add a time slot\n"
+        "/services — my services\n"
+        "/add_service — add a service\n"
+        "/lang — interface language\n"
+        "/help — help"
+    ),
+    "/start_admin": (
+        "Hello!\n\n"
+        "You are a bot administrator.\n\n"
+        "Commands:\n"
+        "/book — book an appointment\n"
+        "/help — help\n"
+        "/lang — interface language"
+    ),
     "/help": (
         "I help you book a service and manage appointments.\n\n"
         "Commands:\n"
         "/start — restart the bot\n"
         "/book — book an appointment\n"
+        "/lang — interface language\n"
+        "/help — this help"
+    ),
+    "/help_master": (
+        "You are a specialist. Booking management:\n\n"
+        "/today — today's appointments (confirm / cancel)\n"
+        "/add_slot — add a free time slot\n"
+        "/services — list of services\n"
+        "/add_service — add a service\n"
         "/lang — interface language\n"
         "/help — this help"
     ),
@@ -22,6 +50,16 @@ EN: dict[str, str] = {
         "/book — book an appointment\n"
         "/lang — interface language\n"
         "/help — this help"
+    ),
+    "client_booking_confirmed": (
+        "Your appointment has been confirmed.\n\n"
+        "Service: {title}\n"
+        "When: {when}"
+    ),
+    "client_booking_cancelled_by_master": (
+        "The specialist cancelled your appointment.\n\n"
+        "Service: {title}\n"
+        "When: {when}"
     ),
     "/lang": "Select a language",
     "unsupported_message": "This type of message is not supported yet.",
