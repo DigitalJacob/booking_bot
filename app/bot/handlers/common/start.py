@@ -17,6 +17,22 @@ from app.infrastructure.database.repositories import Repositories
 start_router = Router(name="start")
 
 
+def _start_text(role: UserRole, i18n: dict[str, str]) -> str:
+    if role == UserRole.MASTER:
+        return i18n.get("/start_master")
+    if role == UserRole.ADMIN:
+        return i18n.get("/start_admin")
+    return i18n.get("/start")
+
+
+def _help_text(role: UserRole | None, i18n: dict[str, str]) -> str:
+    if role == UserRole.MASTER:
+        return i18n.get("/help_master")
+    if role == UserRole.ADMIN:
+        return i18n.get("/help_admin")
+    return i18n.get("/help")
+
+
 @start_router.message(CommandStart())
 async def process_start_command(
         message: Message,
@@ -67,7 +83,7 @@ async def process_start_command(
         ),
     )
 
-    await message.answer(text=i18n.get("/start"))
+    await message.answer(text=_start_text(user_role, i18n))
     await state.clear()
 
 
@@ -77,7 +93,5 @@ async def process_help_command(
         i18n: dict[str, str],
         user: User | None,
 ) -> None:
-    if user and user.role == UserRole.ADMIN:
-        await message.answer(text=i18n.get("/help_admin"))
-    else:
-        await message.answer(text=i18n.get("/help"))
+    role = user.role if user else None
+    await message.answer(text=_help_text(role, i18n))
