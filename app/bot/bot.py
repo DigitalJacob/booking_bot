@@ -15,6 +15,7 @@ from app.bot.handlers.common.settings import settings_router
 from app.bot.handlers.common.start import start_router
 from app.bot.handlers.master import master_router
 from app.bot.i18n.translator import get_translations
+from app.bot.middlewares.banned import BannedMiddleware
 from app.bot.middlewares.database import DataBaseMiddleware
 from app.bot.middlewares.i18n import TranslatorMiddleware
 from app.bot.middlewares.user_context import UserContextMiddleware
@@ -80,6 +81,7 @@ async def main(config: Config) -> None:
     logger.info("Including middlewares...")
     dp.update.middleware(DataBaseMiddleware())
     dp.update.middleware(UserContextMiddleware())
+    dp.update.middleware(BannedMiddleware())
     dp.update.middleware(LangSettingsMiddleware())
     dp.update.middleware(TranslatorMiddleware())
 
