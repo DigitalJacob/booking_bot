@@ -26,6 +26,10 @@ class SlotMasterMismatch(DomainError):
     pass
 
 
+class SlotTooShort(DomainError):
+    pass
+
+
 class AppointmentNotFound(DomainError):
     pass
 

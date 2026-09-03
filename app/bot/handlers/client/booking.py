@@ -24,6 +24,7 @@ from app.domain.exceptions import (
     SlotMasterMismatch,
     SlotNotFound,
     SlotTaken,
+    SlotTooShort,
 )
 from app.domain.models import Service, Slot, User
 from app.domain.services.booking import BookingService
@@ -171,7 +172,10 @@ async def process_service_choice(
         return
 
     booking = BookingService(repos)
-    slots = await booking.list_available_slots(master_user_id=master_user_id)
+    slots = await booking.list_available_slots(
+        master_user_id=master_user_id,
+        min_duration_minutes=service.duration_minutes,
+    )
     days = _unique_days(slots)
     if not days:
         await callback.answer()
@@ -179,7 +183,10 @@ async def process_service_choice(
         await state.clear()
         return
 
-    await state.update_data(service_id=service.id)
+    await state.update_data(
+        service_id=service.id,
+        service_duration=service.duration_minutes,
+    )
     await state.set_state(BookingSG.choosing_day)
     await _show_days(message=callback.message, days=days, i18n=i18n)
     await callback.answer()
@@ -198,11 +205,15 @@ async def process_day_choice(
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
+    service_duration = fsm_data["service_duration"]
     day = date.fromisoformat(callback_data.value)
 
     booking = BookingService(repos)
     slots = _slots_on_day(
-        await booking.list_available_slots(master_user_id=master_user_id),
+        await booking.list_available_slots(
+            master_user_id=master_user_id,
+            min_duration_minutes=service_duration,
+        ),
         day,
     )
     if not slots:
@@ -327,6 +338,12 @@ async def process_confirm(
             show_alert=True,
         )
         return
+    except SlotTooShort:
+        await callback.answer(
+            text=i18n.get("book_slot_too_short"),
+            show_alert=True
+        )
+        return
 
     await state.clear()
     await callback.message.edit_text(text=i18n.get("book_ok"))
@@ -365,7 +382,12 @@ async def process_back(
     if current == BookingSG.choosing_day.state:
         services = await booking.list_services(master_user_id=master_user_id)
         await state.set_state(BookingSG.choosing_service)
-        await state.update_data(service_id=None, day=None, slot_id=None)
+        await state.update_data(
+            service_id=None,
+            day=None,
+            slot_id=None,
+            service_duration=None,
+        )
         await _show_services(
             message=callback.message,
             services=services,
@@ -376,7 +398,10 @@ async def process_back(
         return
 
     if current == BookingSG.choosing_slot.state:
-        slots = await booking.list_available_slots(master_user_id=master_user_id)
+        slots = await booking.list_available_slots(
+            master_user_id=master_user_id,
+            min_duration_minutes=fsm_data["service_duration"],
+        )
         days = _unique_days(slots)
         await state.set_state(BookingSG.choosing_day)
         await state.update_data(day=None, slot_id=None)
@@ -391,7 +416,10 @@ async def process_back(
     if current == BookingSG.confirming.state:
         day = date.fromisoformat(fsm_data["day"])
         slots = _slots_on_day(
-            await booking.list_available_slots(master_user_id=master_user_id),
+            await booking.list_available_slots(
+                master_user_id=master_user_id,
+                min_duration_minutes=fsm_data["service_duration"],
+            ),
             day,
         )
         await state.set_state(BookingSG.choosing_slot)

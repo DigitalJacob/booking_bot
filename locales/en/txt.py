@@ -175,4 +175,5 @@ EN: dict[str, str] = {
     "add_service_ok": "Service added: {title}, {duration} min, {price}.",
     "add_service_cancelled": "Adding a service was cancelled.",
     "/add_service_description": "Add a service",
+    "book_slot_too_short": "This slot is shorter than the service duration. Choose another time.",
 }

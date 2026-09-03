@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from psycopg.errors import UniqueViolation
 
@@ -14,6 +14,7 @@ from app.domain.exceptions import (
     SlotMasterMismatch,
     SlotNotFound,
     SlotTaken,
+    SlotTooShort,
 )
 from app.domain.models import Appointment, Service, Slot
 from app.infrastructure.database.repositories import Repositories
@@ -37,14 +38,25 @@ class BookingService:
             *,
             master_user_id: int,
             now: datetime | None = None,
+            min_duration_minutes: int | None = None,
     ) -> list[Slot]:
         if now is None:
             now = datetime.now(timezone.utc)
-        return await self._repos.slots.list_by_master(
+
+        slots = await self._repos.slots.list_by_master(
             master_user_id=master_user_id,
             from_dt=now,
             available_only=True,
         )
+        if min_duration_minutes is None:
+            return slots
+
+        required = timedelta(minutes=min_duration_minutes)
+        return [
+            slot for slot in slots
+            if slot.ends_at - slot.starts_at >= required
+        ]
+
 
     async def book(
             self,
@@ -70,6 +82,8 @@ class BookingService:
             raise SlotMasterMismatch
         if slot.starts_at <= now:
             raise SlotInThePast
+        if slot.ends_at - slot.starts_at < timedelta(minutes=service.duration_minutes):
+            raise SlotTooShort
 
         taken = await self._repos.appointments.get_active_by_slot(slot_id=slot_id)
         if taken is not None:

@@ -175,4 +175,5 @@ RU: dict[str, str] = {
     "add_service_ok": "Услуга добавлена: {title}, {duration} мин, {price}.",
     "add_service_cancelled": "Добавление услуги отменено.",
     "/add_service_description": "Добавить услугу",
+    "book_slot_too_short": "Этот слот короче длительности услуги. Выберите другое время.",
 }
