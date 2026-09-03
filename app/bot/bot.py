@@ -72,9 +72,9 @@ async def main(config: Config) -> None:
     dp.include_routers(
         settings_router,
         start_router,
+        admin_router,
         client_router,
         master_router,
-        admin_router,
         others_router,
     )
 
