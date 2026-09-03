@@ -113,7 +113,7 @@ class AppointmentsRepository:
                         created_at
                     FROM appointments
                     WHERE slot_id = %s
-                      AND status IN (%s, %s);
+                        AND status IN (%s, %s);
                 """,
                 params=(
                     slot_id,
@@ -146,7 +146,7 @@ class AppointmentsRepository:
                     FROM appointments a
                     JOIN slots s ON s.id = a.slot_id
                     WHERE a.client_user_id = %(client_user_id)s
-                        AND (%(from_dt)s IS BULL OR s.starts_at >= %(from_dt)s)
+                        AND (%(from_dt)s IS NULL OR s.starts_at >= %(from_dt)s)
                         AND (%(to_dt)s IS NULL OR s.starts_at < %(to_dt)s)
                     ORDER BY s.starts_at;
                 """,
