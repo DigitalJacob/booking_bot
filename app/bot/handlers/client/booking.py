@@ -249,7 +249,7 @@ async def process_slot_choice(
     slot = await repos.slots.get_slot(slot_id=callback_data.slot_id)
     if service is None:
         await callback.answer(
-            text=i18n.get("book_service_not found"),
+            text=i18n.get("book_service_not_found"),
             show_alert=True,
         )
         return
