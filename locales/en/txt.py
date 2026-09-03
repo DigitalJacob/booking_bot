@@ -51,6 +51,7 @@ EN: dict[str, str] = {
         "Commands:\n"
         "/start — restart the bot\n"
         "/book — book an appointment\n"
+        "/my_bookings — my appointments\n"
         "/lang — interface language\n"
         "/help — this help"
     ),
