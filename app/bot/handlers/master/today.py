@@ -1,20 +1,19 @@
 from datetime import datetime, timedelta, timezone
-from contextlib import suppress
 
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from app.domain.enums import AppointmentStatus, UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.keyboards.master import MasterAppointmentCallback, get_appointment_actions_kb
+from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
     InvalidAppointmentStatus,
 )
-from app.domain.models import Appointment, User
+from app.domain.models import User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 
@@ -83,32 +82,6 @@ async def _send_today(
         )
 
 
-async def _notify_client(
-        *,
-        bot: Bot,
-        repos: Repositories,
-        appointment: Appointment,
-        translations: dict,
-        text_key: str,
-) -> None:
-    client = await repos.users.get_user(user_id=appointment.client_user_id)
-    lang = client.language if client else translations["default"]
-    if lang not in translations or lang == "default":
-        lang = translations["default"]
-    client_i18n = translations[lang]
-
-    service = await repos.services.get_service(service_id=appointment.service_id)
-    slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
-    title = service.title if service else "?"
-    when = slot.starts_at.strftime("%d.%m.%Y %H:%M") if slot else "?"
-
-    with suppress(TelegramBadRequest, TelegramForbiddenError):
-        await bot.send_message(
-            chat_id=appointment.client_user_id,
-            text=client_i18n.get(text_key).format(title=title, when=when),
-        )
-
-
 @today_router.message(Command(commands="today"))
 async def process_today_command(
         message: Message,
@@ -148,10 +121,11 @@ async def process_confirm(
         )
         return
 
-    await _notify_client(
+    await notify_appointment(
         bot=bot,
         repos=repos,
         appointment=appointment,
+        recipient_user_id=appointment.client_user_id,
         translations=translations,
         text_key="client_booking_confirmed",
     )
@@ -189,10 +163,11 @@ async def process_cancel(
         )
         return
 
-    await _notify_client(
+    await notify_appointment(
         bot=bot,
         repos=repos,
         appointment=appointment,
+        recipient_user_id=appointment.client_user_id,
         translations=translations,
         text_key="client_booking_cancelled_by_master",
     )
