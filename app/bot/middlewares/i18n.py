@@ -5,6 +5,7 @@ from aiogram import BaseMiddleware
 from aiogram.fsm.context import FSMContext
 from aiogram.types import TelegramObject, User as TgUser
 
+from app.bot.i18n.translator import resolve_i18n
 from app.domain.models.user import User
 
 
@@ -31,11 +32,6 @@ class TranslatorMiddleware(BaseMiddleware):
             user_lang = db_user.language if db_user else tg_user.language_code
 
         translations: dict = data["translations"]
-        i18n = translations.get(user_lang)
-
-        if i18n is None:
-            data["i18n"] = translations[translations["default"]]
-        else:
-            data["i18n"] = i18n
+        data["i18n"] = resolve_i18n(language=user_lang, translations=translations)
 
         return await handler(event, data)

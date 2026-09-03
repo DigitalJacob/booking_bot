@@ -5,12 +5,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
-
-
-def resolve_i18n(*, language: str | None, translations: dict) -> dict[str, str]:
-    if language is None or language == "default" or language not in translations:
-        language = translations["default"]
-    return translations[language]
+from app.bot.i18n.translator import resolve_i18n
 
 
 async def notify_appointment(
