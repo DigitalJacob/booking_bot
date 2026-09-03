@@ -4,6 +4,7 @@ RU: dict[str, str] = {
         "Я бот для записи к мастеру.\n\n"
         "Доступные команды:\n"
         "/book — записаться\n"
+        "/my_bookings — мои записи\n"
         "/help — справка\n"
         "/lang — язык интерфейса"
     ),
@@ -23,6 +24,7 @@ RU: dict[str, str] = {
         "Вы администратор бота.\n\n"
         "Команды:\n"
         "/book — записаться\n"
+        "/my_bookings — мои записи\n"
         "/help — справка\n"
         "/lang — язык интерфейса"
     ),
@@ -31,6 +33,7 @@ RU: dict[str, str] = {
         "Команды:\n"
         "/start — перезапуск бота\n"
         "/book — записаться к мастеру\n"
+        "/my_bookings — мои записи\n"
         "/lang — язык интерфейса\n"
         "/help — эта справка"
     ),
@@ -183,4 +186,21 @@ RU: dict[str, str] = {
     "add_service_cancelled": "Добавление услуги отменено.",
     "/add_service_description": "Добавить услугу",
     "book_slot_too_short": "Этот слот короче длительности услуги. Выберите другое время.",
+    "/my_bookings_description": "Мои записи",
+    "my_bookings_header": "🗓 Ваши записи:",
+    "my_bookings_empty": (
+        "У вас нет активных записей.\n\n"
+        "Записаться: /book"
+    ),
+    "my_bookings_item": "{when} — {title} ({status})",
+    "my_bookings_cancel_button": "❌ Отменить запись",
+    "my_bookings_close_button": "Закрыть",
+    "my_bookings_cancelled": "Запись отменена.",
+    "my_bookings_action_failed": "Не удалось отменить запись.",
+    "master_booking_cancelled_by_client": (
+        "Клиент отменил запись.\n\n"
+        "Услуга: {title}\n"
+        "Когда: {when}\n"
+        "Клиент: {client_id}"
+    ),
 }

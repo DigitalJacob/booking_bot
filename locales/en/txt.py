@@ -4,6 +4,7 @@ EN: dict[str, str] = {
         "I am a booking bot for appointments with a specialist.\n\n"
         "Available commands:\n"
         "/book — book an appointment\n"
+        "/my_bookings — my appointments\n"
         "/help — help\n"
         "/lang — interface language"
     ),
@@ -23,6 +24,7 @@ EN: dict[str, str] = {
         "You are a bot administrator.\n\n"
         "Commands:\n"
         "/book — book an appointment\n"
+        "/my_bookings — my appointments\n"
         "/help — help\n"
         "/lang — interface language"
     ),
@@ -31,6 +33,7 @@ EN: dict[str, str] = {
         "Commands:\n"
         "/start — restart the bot\n"
         "/book — book an appointment\n"
+        "/my_bookings — my appointments\n"
         "/lang — interface language\n"
         "/help — this help"
     ),
@@ -183,4 +186,21 @@ EN: dict[str, str] = {
     "add_service_cancelled": "Adding a service was cancelled.",
     "/add_service_description": "Add a service",
     "book_slot_too_short": "This slot is shorter than the service duration. Choose another time.",
+    "/my_bookings_description": "My appointments",
+    "my_bookings_header": "🗓 Your appointments:",
+    "my_bookings_empty": (
+        "You have no active appointments.\n\n"
+        "Book one: /book"
+    ),
+    "my_bookings_item": "{when} — {title} ({status})",
+    "my_bookings_cancel_button": "❌ Cancel appointment",
+    "my_bookings_close_button": "Close",
+    "my_bookings_cancelled": "Appointment cancelled.",
+    "my_bookings_action_failed": "Failed to cancel the appointment.",
+    "master_booking_cancelled_by_client": (
+        "The client cancelled an appointment.\n\n"
+        "Service: {title}\n"
+        "When: {when}\n"
+        "Client: {client_id}"
+    ),
 }
