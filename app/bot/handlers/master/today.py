@@ -8,6 +8,7 @@ from app.domain.enums import AppointmentStatus, UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.keyboards.master import MasterAppointmentCallback, get_appointment_actions_kb
 from app.bot.utils.notify import notify_appointment
+from app.bot.utils.format import status_label
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
@@ -27,15 +28,6 @@ def _today_bounds() -> tuple[datetime, datetime]:
     now = datetime.now(timezone.utc)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return start, start + timedelta(days=1)
-
-
-def _status_label(status: AppointmentStatus, i18n: dict[str, str]) -> str:
-    key = {
-        AppointmentStatus.PENDING: "master_status_pending",
-        AppointmentStatus.CONFIRMED: "master_status_confirmed",
-        AppointmentStatus.CANCELLED: "master_status_cancelled",
-    }[status]
-    return i18n.get(key)
 
 
 async def _send_today(
@@ -70,7 +62,7 @@ async def _send_today(
         text = i18n.get("master_today_item").format(
             time=when,
             title=title,
-            status=_status_label(appointment.status, i18n),
+            status=status_label(appointment.status, i18n),
             client_id=appointment.client_user_id,
         )
         await message.answer(
