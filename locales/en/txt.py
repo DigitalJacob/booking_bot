@@ -120,6 +120,13 @@ EN: dict[str, str] = {
     "master_cancelled": "Appointment #{id} cancelled.",
     "master_action_failed": "Failed to perform action.",
     "master_close_button": "Close",
+    "master_new_booking": (
+        "🔔 New booking\n\n"
+        "Service: {title}\n"
+        "When: {when}\n"
+        "Client: {client_id}\n\n"
+        "Today's appointments: /today"
+    ),
     "/add_slot_description": "Add a time slot",
     "add_slot_enter_date": (
         "Enter the slot date as DD.MM.YYYY\n"

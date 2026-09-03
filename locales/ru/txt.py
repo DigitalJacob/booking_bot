@@ -120,6 +120,13 @@ RU: dict[str, str] = {
     "master_cancelled": "Запись #{id} отменена.",
     "master_action_failed": "Не удалось выполнить действие.",
     "master_close_button": "Закрыть",
+    "master_new_booking": (
+        "🔔 Новая запись\n\n"
+        "Услуга: {title}\n"
+        "Когда: {when}\n"
+        "Клиент: {client_id}\n\n"
+        "Записи на сегодня: /today"
+    ),
     "/add_slot_description": "Добавить слот",
     "add_slot_enter_date": (
         "Введите дату слота в формате ДД.ММ.ГГГГ\n"

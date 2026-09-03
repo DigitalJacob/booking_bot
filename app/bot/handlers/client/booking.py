@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from aiogram import F, Router
+from aiogram import F, Router, Bot
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -29,6 +29,7 @@ from app.domain.exceptions import (
 from app.domain.models import Service, Slot, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
+from app.bot.utils.notify import notify_appointment
 
 
 booking_router = Router(name="client_booking")
@@ -280,6 +281,8 @@ async def process_slot_choice(
     StateFilter(BookingSG.confirming),
 )
 async def process_confirm(
+        bot: Bot,
+        translations: dict,
         callback: CallbackQuery,
         i18n: dict[str, str],
         state: FSMContext,
@@ -297,7 +300,7 @@ async def process_confirm(
     fsm_data = await state.get_data()
     booking = BookingService(repos)
     try:
-        await booking.book(
+        appointment = await booking.book(
             client_user_id=user.user_id,
             service_id=fsm_data["service_id"],
             slot_id=fsm_data["slot_id"],
@@ -345,6 +348,14 @@ async def process_confirm(
         )
         return
 
+    await notify_appointment(
+        bot=bot,
+        repos=repos,
+        appointment=appointment,
+        recipient_user_id=appointment.master_user_id,
+        translations=translations,
+        text_key="master_new_booking",
+    )
     await state.clear()
     await callback.message.edit_text(text=i18n.get("book_ok"))
     await callback.answer()
