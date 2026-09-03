@@ -51,7 +51,6 @@ class UsersRepository:
                 role,
             )
 
-
     async def get_user(
             self,
             *,
@@ -76,7 +75,6 @@ class UsersRepository:
             row = await cursor.fetchone()
         return User.from_db_row(row) if row else None
 
-
     async def change_user_lang(
             self,
             *,
@@ -93,7 +91,6 @@ class UsersRepository:
                 params=(language, user_id),
             )
         logger.info("Updated language to '%s' for user %d", language, user_id)
-
 
     async def change_user_banned_status(
             self,
@@ -112,3 +109,19 @@ class UsersRepository:
             )
         logger.info("Updated banned=%s for user %d", banned, user_id)
 
+    async def change_user_role(
+            self,
+            *,
+            user_id: int,
+            role: UserRole,
+    ) -> None:
+        async with self._conn.cursor() as cursor:
+            await cursor.execute(
+                query="""
+                    UPDATE users
+                    SET role = %s
+                    WHERE user_id = %s;
+                """,
+                params=(role, user_id),
+            )
+        logger.info("Updated role to '%s' for user %d", role, user_id)
