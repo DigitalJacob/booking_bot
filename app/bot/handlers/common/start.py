@@ -7,7 +7,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, Message
 
-from app.bot.enums import UserRole
+from app.domain.enums import UserRole
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
 from app.domain.models.user import User

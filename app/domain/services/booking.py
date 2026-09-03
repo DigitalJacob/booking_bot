@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from psycopg.errors import UniqueViolation
 
-from app.bot.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,

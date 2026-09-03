@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
-from app.bot.enums import AppointmentStatus, UserRole
+from app.domain.enums import AppointmentStatus, UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.keyboards.master import MasterAppointmentCallback, get_appointment_actions_kb
 from app.domain.exceptions import (
@@ -20,8 +20,8 @@ from app.infrastructure.database.repositories import Repositories
 
 
 today_router = Router(name="master_today")
-today_router.message.filter(UserRoleFilter(UserRole.MASTER, UserRole.ADMIN))
-today_router.callback_query.filter(UserRoleFilter(UserRole.MASTER, UserRole.ADMIN))
+today_router.message.filter(UserRoleFilter(UserRole.MASTER))
+today_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 
 def _today_bounds() -> tuple[datetime, datetime]:

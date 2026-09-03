@@ -4,7 +4,7 @@ from datetime import datetime
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 
-from app.bot.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus
 from app.domain.models.appointment import Appointment
 
 

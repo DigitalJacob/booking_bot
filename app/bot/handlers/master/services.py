@@ -5,7 +5,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from app.bot.enums import UserRole
+from app.domain.enums import UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.states.states import AddServiceSG
 from app.domain.models import Service, User
@@ -13,7 +13,7 @@ from app.infrastructure.database.repositories import Repositories
 
 
 services_router = Router(name="master_services")
-services_router.message.filter(UserRoleFilter(UserRole.MASTER, UserRole.ADMIN))
+services_router.message.filter(UserRoleFilter(UserRole.MASTER))
 
 
 def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:

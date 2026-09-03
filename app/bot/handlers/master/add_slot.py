@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from psycopg.errors import UniqueViolation
 
-from app.bot.enums import UserRole
+from app.domain.enums import UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.states.states import AddSlotSG
 from app.domain.models import User
@@ -14,8 +14,8 @@ from app.infrastructure.database.repositories import Repositories
 
 
 add_slot_router = Router(name="master_add_slot")
-add_slot_router.message.filter(UserRoleFilter(UserRole.MASTER, UserRole.ADMIN))
-add_slot_router.callback_query.filter(UserRoleFilter(UserRole.MASTER, UserRole.ADMIN))
+add_slot_router.message.filter(UserRoleFilter(UserRole.MASTER))
+add_slot_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 
 def _parse_date(value: str) -> date | None:

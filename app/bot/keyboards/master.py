@@ -1,7 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from app.bot.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus
 from app.domain.models.appointment import Appointment
 
 

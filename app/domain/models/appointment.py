@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from app.bot.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus
 
 
 @dataclass(frozen=True, slots=True)

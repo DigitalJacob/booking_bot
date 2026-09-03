@@ -3,7 +3,7 @@ import logging
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 
-from app.bot.enums import UserRole
+from app.domain.enums import UserRole
 from app.domain.models.user import User
 
 

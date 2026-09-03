@@ -1,7 +1,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.enums import UserRole
+from app.domain.enums import UserRole
 from app.domain.models.user import User
 
 
