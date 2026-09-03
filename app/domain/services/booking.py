@@ -58,6 +58,28 @@ class BookingService:
         ]
 
 
+    async def list_client_appointments(
+            self,
+            *,
+            client_user_id: int,
+            now: datetime | None = None,
+    ) -> list[Appointment]:
+        if now is None:
+            now = datetime.now(timezone.utc)
+
+        appointments = await self._repos.appointments.list_by_client(
+            client_user_id=client_user_id,
+            from_dt=now,
+        )
+        return [
+            appointment for appointment in appointments
+            if appointment.status in (
+                AppointmentStatus.PENDING,
+                AppointmentStatus.CONFIRMED,
+            )
+        ]
+
+
     async def book(
             self,
             *,

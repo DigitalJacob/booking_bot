@@ -129,23 +129,32 @@ class AppointmentsRepository:
             self,
             *,
             client_user_id: int,
+            from_dt: datetime | None = None,
+            to_dt: datetime | None = None,
     ) -> list[Appointment]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
                 query="""
                     SELECT
-                        id,
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        slot_id,
-                        status,
-                        created_at
-                    FROM appointments
-                    WHERE client_user_id = %s
-                    ORDER BY created_at;
+                        a.id,
+                        a.client_user_id,
+                        a.master_user_id,
+                        a.service_id,
+                        a.slot_id,
+                        a.status,
+                        a.created_at
+                    FROM appointments a
+                    JOIN slots s ON s.id = a.slot_id
+                    WHERE a.client_user_id = %(client_user_id)s
+                        AND (%(from_dt)s IS BULL OR s.starts_at >= %(from_dt)s)
+                        AND (%(to_dt)s IS NULL OR s.starts_at < %(to_dt)s)
+                    ORDER BY s.starts_at;
                 """,
-                params=(client_user_id, ),
+                params={
+                    "client_user_id": client_user_id,
+                    "from_dt": from_dt,
+                    "to_dt": to_dt,
+                },
             )
             rows = await cursor.fetchall()
         return [Appointment.from_db_row(row) for row in rows]
