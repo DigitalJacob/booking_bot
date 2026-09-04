@@ -48,12 +48,9 @@ def _parse_price(value: str) -> Decimal | None:
 async def process_services_command(
         message: Message,
         repos: Repositories,
-        user: User | None,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    if user is None:
-        return
-
     services = await repos.services.list_by_master(
         master_user_id=user.user_id,
         active_only=False,
@@ -73,11 +70,7 @@ async def process_add_service_command(
         message: Message,
         state: FSMContext,
         i18n: dict[str, str],
-        user: User | None,
 ) -> None:
-    if user is None:
-        return
-
     await state.clear()
     await state.set_state(AddServiceSG.title)
     await message.answer(text=i18n.get("add_service_enter_title"))
@@ -135,13 +128,9 @@ async def process_add_service_price(
         message: Message,
         state: FSMContext,
         repos: Repositories,
-        user: User | None,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    if user is None:
-        await state.clear()
-        return
-
     try:
         price = _parse_price(message.text or "")
     except InvalidOperation:

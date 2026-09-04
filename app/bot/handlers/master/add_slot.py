@@ -43,10 +43,7 @@ async def process_add_slot_command(
         message: Message,
         state: FSMContext,
         i18n: dict[str, str],
-        user: User | None,
 ) -> None:
-    if user is None:
-        return
     await state.clear()
     await state.set_state(AddSlotSG.date)
     await message.answer(text=i18n.get("add_slot_enter_date"))
@@ -97,13 +94,9 @@ async def process_add_slot_duration(
         message: Message,
         state: FSMContext,
         repos: Repositories,
-        user: User | None,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    if user is None:
-        await state.clear()
-        return
-
     text = (message.text or "").strip()
     if not text.isdigit():
         await message.answer(text=i18n.get("add_slot_invalid_duration"))

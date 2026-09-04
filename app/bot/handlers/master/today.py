@@ -78,11 +78,9 @@ async def _send_today(
 async def process_today_command(
         message: Message,
         repos: Repositories,
-        user: User | None,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    if user is None:
-        return
     await _send_today(message=message, repos=repos, user=user, i18n=i18n)
 
 
@@ -93,11 +91,9 @@ async def process_confirm(
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
         repos: Repositories,
-        user: User | None,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    if user is None:
-        return
     booking = BookingService(repos)
     try:
         appointment = await booking.confirm(
@@ -135,11 +131,9 @@ async def process_cancel(
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
         repos: Repositories,
-        user: User | None,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    if user is None:
-        return
     booking = BookingService(repos)
     try:
         appointment = await booking.cancel(
