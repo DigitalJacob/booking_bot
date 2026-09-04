@@ -1,10 +1,17 @@
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from typing import cast
 
 from app.domain.enums import AppointmentStatus
 from app.domain.models import Appointment, Service, Slot
-from app.infrastructure.database.repositories import Repositories
+from app.infrastructure.database.repositories import (
+    AppointmentsRepository,
+    Repositories,
+    ServicesRepository,
+    SlotsRepository,
+    UsersRepository,
+)
 
 
 MASTER_ID = 100
@@ -215,8 +222,17 @@ def make_repos(
 ) -> Repositories:
     slots = slots or []
     return Repositories(
-        users=None,
-        services=FakeServicesRepository(services or []),
-        slots=FakeSlotsRepository(slots, taken_slot_ids),
-        appointments=FakeAppointmentsRepository(appointments or [], slots),
+        users=cast(UsersRepository, None),
+        services=cast(
+            ServicesRepository,
+            FakeServicesRepository(services or []),
+        ),
+        slots=cast(
+            SlotsRepository,
+            FakeSlotsRepository(slots, taken_slot_ids),
+        ),
+        appointments=cast(
+            AppointmentsRepository,
+            FakeAppointmentsRepository(appointments or [], slots),
+        ),
     )
