@@ -11,3 +11,7 @@ venv
 __pycache__
 *.pyc
 README.md
+tests/
+**/tests/
+requirements-dev.txt
+pyproject.toml
