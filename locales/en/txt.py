@@ -25,8 +25,12 @@ EN: dict[str, str] = {
         "Commands:\n"
         "/book — book an appointment\n"
         "/my_bookings — my appointments\n"
-        "/help — help\n"
-        "/lang — interface language"
+        "/user — user profile\n"
+        "/set_role — change role\n"
+        "/ban — ban user\n"
+        "/unban — unban user\n"
+        "/lang — interface language\n"
+        "/help — help"
     ),
     "/help": (
         "I help you book a service and manage appointments.\n\n"
@@ -52,6 +56,10 @@ EN: dict[str, str] = {
         "/start — restart the bot\n"
         "/book — book an appointment\n"
         "/my_bookings — my appointments\n"
+        "/user <id> — user profile\n"
+        "/set_role <id> <role> — change role\n"
+        "/ban <id> — ban user\n"
+        "/unban <id> — unban user\n"
         "/lang — interface language\n"
         "/help — this help"
     ),
@@ -204,4 +212,35 @@ EN: dict[str, str] = {
         "When: {when}\n"
         "Client: {client_id}"
     ),
+    "/user_description": "User card",
+    "/set_role_description": "Change role",
+    "/ban_description": "Ban a user",
+    "/unban_description": "Unban a user",
+    "admin_usage_user": "Usage: /user <user_id>",
+    "admin_usage_ban": "Usage: /ban <user_id>",
+    "admin_usage_unban": "Usage: /unban <user_id>",
+    "admin_usage_set_role": "Usage: /set_role <user_id> <role>",
+    "admin_user_not_found": "User {user_id} not found.",
+    "admin_user_card": (
+        "👤 User {user_id}\n\n"
+        "Username: {username}\n"
+        "Role: {role}\n"
+        "Language: {language}\n"
+        "Banned: {banned}\n"
+        "Registered: {created_at}"
+    ),
+    "admin_no_username": "not set",
+    "admin_yes": "yes",
+    "admin_no": "no",
+    "admin_ban_self": "You cannot ban yourself.",
+    "admin_ban_staff": "You cannot ban an administrator or a specialist.",
+    "admin_already_banned": "User {user_id} is already banned.",
+    "admin_not_banned": "User {user_id} is not banned.",
+    "admin_banned": "User {user_id} has been banned.",
+    "admin_unbanned": "User {user_id} has been unbanned.",
+    "admin_invalid_role": "Unknown role. Available: {roles}",
+    "admin_demote_self": "You cannot remove your own administrator role.",
+    "admin_role_unchanged": "User {user_id} already has the role {role}.",
+    "admin_role_set": "User {user_id} now has the role {role}.",
+    "admin_role_changed_notice": "Your role has been changed to {role}.",
 }

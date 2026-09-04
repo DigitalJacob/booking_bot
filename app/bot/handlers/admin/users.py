@@ -1,13 +1,18 @@
 import logging
+from contextlib import suppress
 
-from aiogram import Router
+from aiogram import Bot, Router
+from aiogram.enums import BotCommandScopeType
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import Command, CommandObject
-from aiogram.types import Message
+from aiogram.types import Message, BotCommandScopeChat
 
 from app.bot.filters.filters import UserRoleFilter
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
+from app.bot.i18n.translator import resolve_i18n
+from app.bot.keyboards.menu_button import get_main_menu_commands
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +29,18 @@ def _parse_user_id(command: CommandObject) -> int | None:
         return None
     try:
         return int(parts[0])
+    except ValueError:
+        return None
+
+
+def _parse_role(command: CommandObject) -> UserRole | None:
+    if command.args is None:
+        return None
+    parts = command.args.split()
+    if len(parts) < 2:
+        return None
+    try:
+        return UserRole(parts[1].lower())
     except ValueError:
         return None
 
@@ -153,4 +170,81 @@ async def process_unban_command(
     logger.info("Admin %d unbanned user %d", user.user_id, target.user_id)
     await message.answer(
         text=i18n.get("admin_unbanned").format(user_id=target.user_id),
+    )
+
+
+@admin_users_router.message(Command(commands="set_role"))
+async def process_set_role_command(
+        message: Message,
+        command: CommandObject,
+        bot: Bot,
+        translations: dict,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    target = await _get_target(
+        message=message,
+        command=command,
+        repos=repos,
+        i18n=i18n,
+        usage_key="admin_usage_set_role",
+    )
+    if target is None:
+        return
+
+    role = _parse_role(command)
+    if role is None:
+        await message.answer(
+            text=i18n.get("admin_invalid_role").format(
+                roles=", ".join(item.value for item in UserRole),
+            ),
+        )
+        return
+
+    if target.user_id == user.user_id and role != UserRole.ADMIN:
+        await message.answer(text=i18n.get("admin_demote_self"))
+        return
+
+    if target.role == role:
+        await message.answer(
+            text=i18n.get("admin_role_unchanged").format(
+                user_id=target.user_id,
+                role=role.value,
+            ),
+        )
+        return
+
+    await repos.users.change_user_role(user_id=target.user_id, role=role)
+    logger.info(
+        "Admin %d changed role of user %d to '%s'",
+        user.user_id,
+        target.user_id,
+        role,
+    )
+
+    target_i18n = resolve_i18n(
+        language=target.language,
+        translations=translations,
+    )
+    with suppress(TelegramBadRequest, TelegramForbiddenError):
+        await bot.set_my_commands(
+            commands=get_main_menu_commands(i18n=target_i18n, role=role),
+            scope=BotCommandScopeChat(
+                type=BotCommandScopeType.CHAT,
+                chat_id=target.user_id,
+            ),
+        )
+        await bot.send_message(
+            chat_id=target.user_id,
+            text=target_i18n.get("admin_role_changed_notice").format(
+                role=role.value,
+            ),
+        )
+
+    await message.answer(
+        text=i18n.get("admin_role_set").format(
+            user_id=target.user_id,
+            role=role.value,
+        ),
     )

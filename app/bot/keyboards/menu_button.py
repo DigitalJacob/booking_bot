@@ -52,6 +52,27 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
                 description=i18n.get("/add_service_description")
             ),
         )
+    if role == UserRole.ADMIN:
+        commands.extend(
+            [
+                BotCommand(
+                    command="/user",
+                    description=i18n.get("/user_description"),
+                ),
+                BotCommand(
+                    command="/set_role",
+                    description=i18n.get("/set_role_description"),
+                ),
+                BotCommand(
+                    command="/ban",
+                    description=i18n.get("/ban_description"),
+                ),
+                BotCommand(
+                    command="/unban",
+                    description=i18n.get("/unban_description"),
+                ),
+            ]
+        )
     commands.extend(
         [
             BotCommand(

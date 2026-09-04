@@ -25,8 +25,12 @@ RU: dict[str, str] = {
         "Команды:\n"
         "/book — записаться\n"
         "/my_bookings — мои записи\n"
-        "/help — справка\n"
-        "/lang — язык интерфейса"
+        "/user — карточка пользователя\n"
+        "/set_role — изменить роль\n"
+        "/ban — забанить\n"
+        "/unban — разбанить\n"
+        "/lang — язык интерфейса\n"
+        "/help — справка"
     ),
     "/help": (
         "Я помогаю записаться на услугу и управлять визитами.\n\n"
@@ -52,6 +56,10 @@ RU: dict[str, str] = {
         "/start — перезапуск бота\n"
         "/book — записаться к мастеру\n"
         "/my_bookings — мои записи\n"
+        "/user <id> — карточка пользователя\n"
+        "/set_role <id> <роль> — изменить роль\n"
+        "/ban <id> — забанить\n"
+        "/unban <id> — разбанить\n"
         "/lang — язык интерфейса\n"
         "/help — эта справка"
     ),
@@ -204,4 +212,35 @@ RU: dict[str, str] = {
         "Когда: {when}\n"
         "Клиент: {client_id}"
     ),
+    "/user_description": "Карточка пользователя",
+    "/set_role_description": "Изменить роль",
+    "/ban_description": "Забанить",
+    "/unban_description": "Разбанить",
+    "admin_usage_user": "Использование: /user <user_id>",
+    "admin_usage_ban": "Использование: /ban <user_id>",
+    "admin_usage_unban": "Использование: /unban <user_id>",
+    "admin_usage_set_role": "Использование: /set_role <user_id> <роль>",
+    "admin_user_not_found": "Пользователь {user_id} не найден.",
+    "admin_user_card": (
+        "👤 Пользователь {user_id}\n\n"
+        "Username: {username}\n"
+        "Роль: {role}\n"
+        "Язык: {language}\n"
+        "Забанен: {banned}\n"
+        "Регистрация: {created_at}"
+    ),
+    "admin_no_username": "не указан",
+    "admin_yes": "да",
+    "admin_no": "нет",
+    "admin_ban_self": "Нельзя забанить самого себя.",
+    "admin_ban_staff": "Нельзя забанить администратора или мастера.",
+    "admin_already_banned": "Пользователь {user_id} уже забанен.",
+    "admin_not_banned": "Пользователь {user_id} не забанен.",
+    "admin_banned": "Пользователь {user_id} забанен.",
+    "admin_unbanned": "Пользователь {user_id} разбанен.",
+    "admin_invalid_role": "Неизвестная роль. Доступные: {roles}",
+    "admin_demote_self": "Нельзя снять с себя роль администратора.",
+    "admin_role_unchanged": "У пользователя {user_id} уже роль {role}.",
+    "admin_role_set": "Пользователю {user_id} установлена роль {role}.",
+    "admin_role_changed_notice": "Ваша роль изменена на {role}.",
 }
