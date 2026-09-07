@@ -281,9 +281,9 @@ async def process_slot_choice(
     StateFilter(BookingSG.confirming),
 )
 async def process_confirm(
+        callback: CallbackQuery,
         bot: Bot,
         translations: dict,
-        callback: CallbackQuery,
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,

@@ -64,10 +64,10 @@ async def process_my_bookings_command(
     ClientAppointmentCallback.filter(F.action == "cancel"),
 )
 async def process_client_cancel(
-        bot: Bot,
-        translations: dict,
         callback: CallbackQuery,
         callback_data: ClientAppointmentCallback,
+        bot: Bot,
+        translations: dict,
         repos: Repositories,
         user: User | None,
         i18n: dict[str, str],

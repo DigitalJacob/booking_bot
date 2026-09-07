@@ -86,10 +86,10 @@ async def process_today_command(
 
 @today_router.callback_query(MasterAppointmentCallback.filter(F.action == "confirm"))
 async def process_confirm(
-        bot: Bot,
-        translations: dict,
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
+        bot: Bot,
+        translations: dict,
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
@@ -126,10 +126,10 @@ async def process_confirm(
 
 @today_router.callback_query(MasterAppointmentCallback.filter(F.action == "cancel"))
 async def process_cancel(
-        bot: Bot,
-        translations: dict,
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
+        bot: Bot,
+        translations: dict,
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
