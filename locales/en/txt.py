@@ -56,10 +56,10 @@ EN: dict[str, str] = {
         "/start — restart the bot\n"
         "/book — book an appointment\n"
         "/my_bookings — my appointments\n"
-        "/user <id> — user profile\n"
-        "/set_role <id> <role> — change role\n"
-        "/ban <id> — ban user\n"
-        "/unban <id> — unban user\n"
+        "/user &lt;id&gt; — user profile\n"
+        "/set_role &lt;id&gt; &lt;role&gt; — change role\n"
+        "/ban &lt;id&gt; — ban user\n"
+        "/unban &lt;id&gt; — unban user\n"
         "/lang — interface language\n"
         "/help — this help"
     ),
@@ -216,10 +216,10 @@ EN: dict[str, str] = {
     "/set_role_description": "Change role",
     "/ban_description": "Ban a user",
     "/unban_description": "Unban a user",
-    "admin_usage_user": "Usage: /user <user_id>",
-    "admin_usage_ban": "Usage: /ban <user_id>",
-    "admin_usage_unban": "Usage: /unban <user_id>",
-    "admin_usage_set_role": "Usage: /set_role <user_id> <role>",
+    "admin_usage_user": "Usage: /user &lt;user_id&gt;",
+    "admin_usage_ban": "Usage: /ban &lt;user_id&gt;",
+    "admin_usage_unban": "Usage: /unban &lt;user_id&gt;",
+    "admin_usage_set_role": "Usage: /set_role &lt;user_id&gt; &lt;role&gt;",
     "admin_user_not_found": "User {user_id} not found.",
     "admin_user_card": (
         "👤 User {user_id}\n\n"

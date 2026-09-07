@@ -56,10 +56,10 @@ RU: dict[str, str] = {
         "/start — перезапуск бота\n"
         "/book — записаться к мастеру\n"
         "/my_bookings — мои записи\n"
-        "/user <id> — карточка пользователя\n"
-        "/set_role <id> <роль> — изменить роль\n"
-        "/ban <id> — забанить\n"
-        "/unban <id> — разбанить\n"
+        "/user &lt;id&gt; — карточка пользователя\n"
+        "/set_role &lt;id&gt; &lt;роль&gt; — изменить роль\n"
+        "/ban &lt;id&gt; — забанить\n"
+        "/unban &lt;id&gt; — разбанить\n"
         "/lang — язык интерфейса\n"
         "/help — эта справка"
     ),
@@ -216,10 +216,10 @@ RU: dict[str, str] = {
     "/set_role_description": "Изменить роль",
     "/ban_description": "Забанить",
     "/unban_description": "Разбанить",
-    "admin_usage_user": "Использование: /user <user_id>",
-    "admin_usage_ban": "Использование: /ban <user_id>",
-    "admin_usage_unban": "Использование: /unban <user_id>",
-    "admin_usage_set_role": "Использование: /set_role <user_id> <роль>",
+    "admin_usage_user": "Использование: /user &lt;user_id&gt;",
+    "admin_usage_ban": "Использование: /ban &lt;user_id&gt;",
+    "admin_usage_unban": "Использование: /unban &lt;user_id&gt;",
+    "admin_usage_set_role": "Использование: /set_role &lt;user_id&gt; &lt;роль&gt;",
     "admin_user_not_found": "Пользователь {user_id} не найден.",
     "admin_user_card": (
         "👤 Пользователь {user_id}\n\n"
