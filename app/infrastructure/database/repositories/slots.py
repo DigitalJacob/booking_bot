@@ -99,7 +99,7 @@ class SlotsRepository:
                         s.created_at
                     FROM slots s
                     WHERE s.master_user_id = %(master_user_id)s
-                      AND (%(from_dt)s IS NULL OR s.starts_at >= %(from_dt)s)
+                      AND (%(from_dt)s::timestamptz IS NULL OR s.starts_at >= %(from_dt)s)
                       AND (
                           %(available_only)s = FALSE
                           OR NOT EXISTS (
