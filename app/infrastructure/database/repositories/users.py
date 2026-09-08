@@ -66,6 +66,9 @@ class UsersRepository:
                         language,
                         role,
                         banned,
+                        first_name,
+                        last_name,
+                        phone,
                         created_at
                     FROM users
                     WHERE user_id = %s;

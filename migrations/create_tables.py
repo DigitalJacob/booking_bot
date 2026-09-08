@@ -45,6 +45,9 @@ async def main() -> None:
                                 language VARCHAR(10) NOT NULL,
                                 role VARCHAR(30) NOT NULL,
                                 banned BOOLEAN NOT NULL DEFAULT FALSE,
+                                first_name VARCHAR(100),
+                                last_name VARCHAR(100),
+                                phone VARCHAR(32),
                                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                             );
                             
