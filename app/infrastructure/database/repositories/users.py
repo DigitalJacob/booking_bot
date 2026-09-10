@@ -128,3 +128,24 @@ class UsersRepository:
                 params=(role, user_id),
             )
         logger.info("Updated role to '%s' for user %d", role, user_id)
+
+    async def update_profile(
+            self,
+            *,
+            user_id: int,
+            first_name: str,
+            last_name: str,
+            phone: str,
+    ) -> None:
+        async with self._conn.cursor() as cursor:
+            await cursor.execute(
+                query="""
+                    UPDATE users
+                    SET first_name = %s,
+                        last_name = %s,
+                        phone = %s
+                    WHERE user_id = %s;    
+                """,
+                params=(first_name, last_name, phone, user_id),
+            )
+        logger.info("Updated profile for user %d", user_id)

@@ -3,6 +3,7 @@ RU: dict[str, str] = {
         "Привет!\n\n"
         "Я бот для записи к мастеру.\n\n"
         "Доступные команды:\n"
+        "/profile - авторизация\n"
         "/book — записаться\n"
         "/my_bookings — мои записи\n"
         "/help — справка\n"
@@ -36,6 +37,7 @@ RU: dict[str, str] = {
         "Я помогаю записаться на услугу и управлять визитами.\n\n"
         "Команды:\n"
         "/start — перезапуск бота\n"
+        "/profile - авторизация\n"
         "/book — записаться к мастеру\n"
         "/my_bookings — мои записи\n"
         "/lang — язык интерфейса\n"
@@ -243,4 +245,27 @@ RU: dict[str, str] = {
     "admin_role_unchanged": "У пользователя {user_id} уже роль {role}.",
     "admin_role_set": "Пользователю {user_id} установлена роль {role}.",
     "admin_role_changed_notice": "Ваша роль изменена на {role}.",
+    "/profile_description": "Мой профиль",
+    "profile_ask_first_name": "Как вас зовут? (имя)",
+    "profile_ask_last_name": "Ваша фамилия?",
+    "profile_ask_phone": (
+        "Укажите телефон для связи.\n"
+        "Можно нажать кнопку ниже или ввести номер вручную (+7...)."
+    ),
+    "profile_share_phone_button": "📱 Отправить телефон",
+    "profile_invalid_name": "Слишком короткое значение. Введите ещё раз.",
+    "profile_invalid_phone": (
+        "Не удалось распознать номер. "
+        "Отправьте контакт кнопкой или номер в формате +79001234567."
+    ),
+    "profile_saved": "Профиль сохранён.",
+    "profile_saved_continue_book": "Теперь можно записаться: /book",
+    "profile_cancelled": "Заполнение профиля отменено.",
+    "profile_card": (
+        "Ваш профиль:\n\n"
+        "Имя: {first_name}\n"
+        "Фамилия: {last_name}\n"
+        "Телефон: {phone}"
+    ),
+    "profile_edit_hint": "Чтобы изменить данные, отправьте: /edit_profile",
 }

@@ -21,6 +21,10 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
                     command="/my_bookings",
                     description=i18n.get("/my_bookings_description"),
                 ),
+                BotCommand(
+                    command="/profile",
+                    description=i18n.get("/profile_description"),
+                ),
             ]
         )
     if role == UserRole.MASTER:

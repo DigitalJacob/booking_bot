@@ -3,6 +3,7 @@ EN: dict[str, str] = {
         "Hello!\n\n"
         "I am a booking bot for appointments with a specialist.\n\n"
         "Available commands:\n"
+        "/profile - authorization\n"
         "/book — book an appointment\n"
         "/my_bookings — my appointments\n"
         "/help — help\n"
@@ -36,6 +37,7 @@ EN: dict[str, str] = {
         "I help you book a service and manage appointments.\n\n"
         "Commands:\n"
         "/start — restart the bot\n"
+        "/profile - authorization\n"
         "/book — book an appointment\n"
         "/my_bookings — my appointments\n"
         "/lang — interface language\n"
@@ -243,4 +245,27 @@ EN: dict[str, str] = {
     "admin_role_unchanged": "User {user_id} already has the role {role}.",
     "admin_role_set": "User {user_id} now has the role {role}.",
     "admin_role_changed_notice": "Your role has been changed to {role}.",
+    "/profile_description": "My profile",
+    "profile_ask_first_name": "What is your first name?",
+    "profile_ask_last_name": "What is your last name?",
+    "profile_ask_phone": (
+        "Share a phone number so the specialist can contact you.\n"
+        "Tap the button below or type the number manually (+1...)."
+    ),
+    "profile_share_phone_button": "📱 Share phone number",
+    "profile_invalid_name": "That value is too short. Please try again.",
+    "profile_invalid_phone": (
+        "Could not read that number. "
+        "Share a contact via the button or type it like +79001234567."
+    ),
+    "profile_saved": "Profile saved.",
+    "profile_saved_continue_book": "You can book now: /book",
+    "profile_cancelled": "Profile setup cancelled.",
+    "profile_card": (
+        "Your profile:\n\n"
+        "First name: {first_name}\n"
+        "Last name: {last_name}\n"
+        "Phone: {phone}"
+    ),
+    "profile_edit_hint": "To update your details, send: /edit_profile",
 }

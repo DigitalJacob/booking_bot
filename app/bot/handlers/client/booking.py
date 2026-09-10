@@ -30,6 +30,7 @@ from app.domain.models import Service, Slot, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 from app.bot.utils.notify import notify_appointment
+from app.bot.handlers.client.profile import start_profile_flow
 
 
 booking_router = Router(name="client_booking")
@@ -118,6 +119,15 @@ async def process_book_command(
 ) -> None:
     if user is None:
         await message.answer(text=i18n.get("book_need_start"))
+        return
+
+    if not user.profile_complete:
+        await start_profile_flow(
+            message=message,
+            state=state,
+            i18n=i18n,
+            resume_book=True,
+        )
         return
 
     await state.clear()
