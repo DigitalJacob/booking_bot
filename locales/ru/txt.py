@@ -144,6 +144,7 @@ RU: dict[str, str] = {
     "master_cancelled": "Запись #{id} отменена.",
     "master_action_failed": "Не удалось выполнить действие.",
     "master_close_button": "Закрыть",
+    "master_action_past": "Нельзя изменить запись: время уже прошло.",
     "master_new_booking": (
         "🔔 Новая запись\n\n"
         "Услуга: {title}\n"

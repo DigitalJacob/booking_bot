@@ -144,6 +144,7 @@ EN: dict[str, str] = {
     "master_cancelled": "Appointment #{id} cancelled.",
     "master_action_failed": "Failed to perform action.",
     "master_close_button": "Close",
+    "master_action_past": "Cannot change this appointment: the time has already passed.",
     "master_new_booking": (
         "🔔 New booking\n\n"
         "Service: {title}\n"

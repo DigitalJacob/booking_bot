@@ -1,12 +1,15 @@
 from contextlib import suppress
+from datetime import datetime, timezone
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.types import InlineKeyboardMarkup
 
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.utils.format import client_contact
+from app.bot.keyboards.master import get_appointment_actions_kb
 
 
 async def notify_appointment(
@@ -17,6 +20,7 @@ async def notify_appointment(
         recipient_user_id: int,
         translations: dict,
         text_key: str,
+        with_master_actions: bool = False,
 ) -> None:
     recipient = await repos.users.get_user(user_id=recipient_user_id)
     i18n = resolve_i18n(
@@ -29,6 +33,15 @@ async def notify_appointment(
     client = await repos.users.get_user(user_id=appointment.client_user_id)
     client_name, client_phone = client_contact(client)
 
+    reply_markup: InlineKeyboardMarkup | None = None
+    if with_master_actions:
+        reply_markup = get_appointment_actions_kb(
+            appointment=appointment,
+            i18n=i18n,
+            now=datetime.now(timezone.utc),
+            slot_ends_at=slot.ends_at if slot else None,
+        )
+
     with suppress(TelegramBadRequest, TelegramForbiddenError):
         await bot.send_message(
             chat_id=recipient_user_id,
@@ -39,4 +52,5 @@ async def notify_appointment(
                 client_phone=client_phone,
                 client_id=appointment.client_user_id,
             ),
+            reply_markup=reply_markup,
         )

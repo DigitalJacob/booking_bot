@@ -365,6 +365,7 @@ async def process_confirm(
         recipient_user_id=appointment.master_user_id,
         translations=translations,
         text_key="master_new_booking",
+        with_master_actions=True,
     )
     await state.clear()
     await callback.message.edit_text(text=i18n.get("book_ok"))

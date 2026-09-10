@@ -1,6 +1,8 @@
+from contextlib import suppress
 from datetime import datetime, timedelta, timezone
 
 from aiogram import Bot, F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
@@ -89,6 +91,38 @@ async def _send_today(
         )
 
 
+async def _reject_if_slot_past(
+        *,
+        callback: CallbackQuery,
+        repos: Repositories,
+        appointment_id: int,
+        i18n: dict[str, str],
+) -> bool:
+    appointment = await repos.appointments.get_appointment(
+        appointment_id=appointment_id,
+    )
+    if appointment is None:
+        await callback.answer(
+            text=i18n.get("master_action_failed"),
+            show_alert=True,
+        )
+        return True # Return True if the handler should stop
+
+    slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
+    if is_slot_past(
+        slot_ends_at=slot.ends_at if slot else None,
+        now=datetime.now(timezone.utc),
+    ):
+        await callback.answer(
+            text=i18n.get("master_action_past"),
+            show_alert=True,
+        )
+        with suppress(TelegramBadRequest):
+            await callback.message.edit_reply_markup(reply_markup=None)
+        return True
+    return False
+
+
 @today_router.message(Command(commands="today"))
 async def process_today_command(
         message: Message,
@@ -109,6 +143,14 @@ async def process_confirm(
         user: User,
         i18n: dict[str, str],
 ) -> None:
+    if await _reject_if_slot_past(
+        callback=callback,
+        repos=repos,
+        appointment_id=callback_data.appointment_id,
+        i18n=i18n,
+    ):
+        return
+
     booking = BookingService(repos)
     try:
         appointment = await booking.confirm(
@@ -149,6 +191,14 @@ async def process_cancel(
         user: User,
         i18n: dict[str, str],
 ) -> None:
+    if await _reject_if_slot_past(
+        callback=callback,
+        repos=repos,
+        appointment_id=callback_data.appointment_id,
+        i18n=i18n,
+    ):
+        return
+
     booking = BookingService(repos)
     try:
         appointment = await booking.cancel(
