@@ -129,6 +129,12 @@ RU: dict[str, str] = {
         "Клиент: {client_name}\n"
         "Телефон: {client_phone}"
     ),
+    "master_today_item_past": (
+        "{time} — {title} ({status})\n"
+        "Клиент: {client_name}\n"
+        "Телефон: {client_phone}\n"
+        "✓ Время записи уже прошло"
+    ),
     "status_pending": "ожидает",
     "status_confirmed": "подтверждена",
     "status_cancelled": "отменена",

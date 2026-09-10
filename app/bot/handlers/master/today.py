@@ -6,7 +6,11 @@ from aiogram.types import CallbackQuery, Message
 
 from app.domain.enums import AppointmentStatus, UserRole
 from app.bot.filters.filters import UserRoleFilter
-from app.bot.keyboards.master import MasterAppointmentCallback, get_appointment_actions_kb
+from app.bot.keyboards.master import (
+    MasterAppointmentCallback,
+    get_appointment_actions_kb,
+    is_slot_past,
+)
 from app.bot.utils.notify import notify_appointment
 from app.bot.utils.format import client_contact, status_label
 from app.domain.exceptions import (
@@ -38,6 +42,7 @@ async def _send_today(
         i18n: dict[str, str],
 ) -> None:
     from_dt, to_dt = _today_bounds()
+    now = datetime.now(timezone.utc)
     appointments = await repos.appointments.list_by_master(
         master_user_id=user.user_id,
         from_dt=from_dt,
@@ -61,7 +66,12 @@ async def _send_today(
         when = slot.starts_at.strftime("%H:%M") if slot else "?"
         client = await repos.users.get_user(user_id=appointment.client_user_id)
         client_name, client_phone = client_contact(client)
-        text = i18n.get("master_today_item").format(
+
+        slot_ends_at = slot.ends_at if slot else None
+        past = is_slot_past(slot_ends_at=slot_ends_at, now=now)
+        item_key = "master_today_item_past" if past else "master_today_item"
+
+        text = i18n.get(item_key).format(
             time=when,
             title=title,
             status=status_label(appointment.status, i18n),
@@ -73,6 +83,8 @@ async def _send_today(
             reply_markup=get_appointment_actions_kb(
                 appointment=appointment,
                 i18n=i18n,
+                now=now,
+                slot_ends_at=slot_ends_at,
             ),
         )
 

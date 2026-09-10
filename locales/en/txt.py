@@ -129,6 +129,12 @@ EN: dict[str, str] = {
         "Client: {client_name}\n"
         "Phone: {client_phone}"
     ),
+    "master_today_item_past": (
+        "{time} — {title} ({status})\n"
+        "Client: {client_name}\n"
+        "Phone: {client_phone}\n"
+        "✓ Appointment time has already passed"
+    ),
     "status_pending": "pending",
     "status_confirmed": "confirmed",
     "status_cancelled": "cancelled",
