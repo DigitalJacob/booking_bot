@@ -50,7 +50,6 @@ async def notify_appointment(
                 when=slot.starts_at.strftime("%d.%m.%Y %H:%M") if slot else "?",
                 client_name=client_name,
                 client_phone=client_phone,
-                client_id=appointment.client_user_id,
             ),
             reply_markup=reply_markup,
         )
