@@ -8,7 +8,7 @@ from app.domain.enums import AppointmentStatus, UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.keyboards.master import MasterAppointmentCallback, get_appointment_actions_kb
 from app.bot.utils.notify import notify_appointment
-from app.bot.utils.format import status_label
+from app.bot.utils.format import client_contact, status_label
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
@@ -59,11 +59,14 @@ async def _send_today(
         slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
         title = service.title if service else "?"
         when = slot.starts_at.strftime("%H:%M") if slot else "?"
+        client = await repos.users.get_user(user_id=appointment.client_user_id)
+        client_name, client_phone = client_contact(client)
         text = i18n.get("master_today_item").format(
             time=when,
             title=title,
             status=status_label(appointment.status, i18n),
-            client_id=appointment.client_user_id,
+            client_name=client_name,
+            client_phone=client_phone,
         )
         await message.answer(
             text=text,

@@ -6,6 +6,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
 from app.bot.i18n.translator import resolve_i18n
+from app.bot.utils.format import client_contact
 
 
 async def notify_appointment(
@@ -25,6 +26,8 @@ async def notify_appointment(
 
     service = await repos.services.get_service(service_id=appointment.service_id)
     slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
+    client = await repos.users.get_user(user_id=appointment.client_user_id)
+    client_name, client_phone = client_contact(client)
 
     with suppress(TelegramBadRequest, TelegramForbiddenError):
         await bot.send_message(
@@ -32,6 +35,8 @@ async def notify_appointment(
             text=i18n.get(text_key).format(
                 title=service.title if service else "?",
                 when=slot.starts_at.strftime("%d.%m.%Y %H:%M") if slot else "?",
+                client_name=client_name,
+                client_phone=client_phone,
                 client_id=appointment.client_user_id,
             ),
         )

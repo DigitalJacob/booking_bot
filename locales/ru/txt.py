@@ -124,7 +124,11 @@ RU: dict[str, str] = {
     "/today_description": "Записи на сегодня",
     "master_today_header": "📅 Записи на сегодня:",
     "master_today_empty": "На сегодня записей нет.",
-    "master_today_item": "{time} — {title} ({status})\nКлиент: {client_id}",
+    "master_today_item": (
+        "{time} — {title} ({status})\n"
+        "Клиент: {client_name}\n"
+        "Телефон: {client_phone}"
+    ),
     "status_pending": "ожидает",
     "status_confirmed": "подтверждена",
     "status_cancelled": "отменена",
@@ -137,8 +141,9 @@ RU: dict[str, str] = {
     "master_new_booking": (
         "🔔 Новая запись\n\n"
         "Услуга: {title}\n"
-        "Когда: {when}\n"
-        "Клиент: {client_id}\n\n"
+        "Дата и время: {when}\n"
+        "Клиент: {client_name}\n"
+        "Телефон: {client_phone}\n\n"
         "Записи на сегодня: /today"
     ),
     "/add_slot_description": "Добавить слот",
@@ -211,8 +216,9 @@ RU: dict[str, str] = {
     "master_booking_cancelled_by_client": (
         "Клиент отменил запись.\n\n"
         "Услуга: {title}\n"
-        "Когда: {when}\n"
-        "Клиент: {client_id}"
+        "Дата и время: {when}\n"
+        "Клиент: {client_name}\n"
+        "Телефон: {client_phone}"
     ),
     "/user_description": "Карточка пользователя",
     "/set_role_description": "Изменить роль",
@@ -226,6 +232,9 @@ RU: dict[str, str] = {
     "admin_user_card": (
         "👤 Пользователь {user_id}\n\n"
         "Username: {username}\n"
+        "Имя: {first_name}\n"
+        "Фамилия: {last_name}\n"
+        "Телефон: {phone}\n"
         "Роль: {role}\n"
         "Язык: {language}\n"
         "Забанен: {banned}\n"

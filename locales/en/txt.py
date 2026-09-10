@@ -68,12 +68,12 @@ EN: dict[str, str] = {
     "client_booking_confirmed": (
         "Your appointment has been confirmed.\n\n"
         "Service: {title}\n"
-        "When: {when}"
+        "Date and time: {when}"
     ),
     "client_booking_cancelled_by_master": (
         "The specialist cancelled your appointment.\n\n"
         "Service: {title}\n"
-        "When: {when}"
+        "Date and time: {when}"
     ),
     "/lang": "Select a language",
     "unsupported_message": "This type of message is not supported yet.",
@@ -124,7 +124,11 @@ EN: dict[str, str] = {
     "/today_description": "Today's appointments",
     "master_today_header": "📅 Today's appointments:",
     "master_today_empty": "No appointments for today.",
-    "master_today_item": "{time} — {title} ({status})\nClient: {client_id}",
+    "master_today_item": (
+        "{time} — {title} ({status})\n"
+        "Client: {client_name}\n"
+        "Phone: {client_phone}"
+    ),
     "status_pending": "pending",
     "status_confirmed": "confirmed",
     "status_cancelled": "cancelled",
@@ -137,8 +141,9 @@ EN: dict[str, str] = {
     "master_new_booking": (
         "🔔 New booking\n\n"
         "Service: {title}\n"
-        "When: {when}\n"
-        "Client: {client_id}\n\n"
+        "Date and time: {when}\n"
+        "Client: {client_name}\n"
+        "Phone: {client_phone}\n\n"
         "Today's appointments: /today"
     ),
     "/add_slot_description": "Add a time slot",
@@ -211,8 +216,9 @@ EN: dict[str, str] = {
     "master_booking_cancelled_by_client": (
         "The client cancelled an appointment.\n\n"
         "Service: {title}\n"
-        "When: {when}\n"
-        "Client: {client_id}"
+        "Date and time: {when}\n"
+        "Client: {client_name}\n"
+        "Phone: {client_phone}"
     ),
     "/user_description": "User card",
     "/set_role_description": "Change role",
@@ -226,6 +232,9 @@ EN: dict[str, str] = {
     "admin_user_card": (
         "👤 User {user_id}\n\n"
         "Username: {username}\n"
+        "First name: {first_name}\n"
+        "Last name: {last_name}\n"
+        "Phone: {phone}\n"
         "Role: {role}\n"
         "Language: {language}\n"
         "Banned: {banned}\n"

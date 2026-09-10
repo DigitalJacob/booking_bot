@@ -72,6 +72,9 @@ def _user_card(target: User, i18n: dict[str, str]) -> str:
         user_id=target.user_id,
         username=f"@{target.username}" if target.username
         else i18n.get("admin_no_username"),
+        first_name=target.first_name or "-",
+        last_name=target.last_name or "-",
+        phone=target.phone or "-",
         role=target.role.value,
         language=target.language,
         banned=i18n.get("admin_yes") if target.banned else i18n.get("admin_no"),
