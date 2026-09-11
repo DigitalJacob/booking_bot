@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
@@ -19,5 +20,13 @@ class UserContextMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         repos: Repositories = data["repos"]
-        data["user"] = await repos.users.get_user_by_id(user_id=tg_user.id)
+        user = await repos.users.get_user_by_id(user_id=tg_user.id)
+        if user is not None and user.username != tg_user.username:
+            await repos.users.update_username(
+                user_id=tg_user.id,
+                username=tg_user.username,
+            )
+            user = replace(user, username=tg_user.username)
+
+        data["user"] = user
         return await handler(event, data)
