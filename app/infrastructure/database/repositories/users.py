@@ -172,7 +172,7 @@ class UsersRepository:
                     SET first_name = %s,
                         last_name = %s,
                         phone = %s
-                    WHERE user_id = %s;    
+                    WHERE user_id = %s;   
                 """,
                 params=(first_name, last_name, phone, user_id),
             )

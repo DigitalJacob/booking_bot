@@ -98,6 +98,7 @@ async def _reject_if_slot_past(
         appointment_id: int,
         i18n: dict[str, str],
 ) -> bool:
+    """Return True if the handler should stop"""
     appointment = await repos.appointments.get_appointment(
         appointment_id=appointment_id,
     )
@@ -106,7 +107,7 @@ async def _reject_if_slot_past(
             text=i18n.get("master_action_failed"),
             show_alert=True,
         )
-        return True # Return True if the handler should stop
+        return True
 
     slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
     if is_slot_past(

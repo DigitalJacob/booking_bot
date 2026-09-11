@@ -50,7 +50,7 @@ async def main() -> None:
                                 phone VARCHAR(32),
                                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                             );
-                            
+
                             CREATE TABLE IF NOT EXISTS services(
                                 id SERIAL PRIMARY KEY,
                                 master_user_id BIGINT NOT NULL
@@ -61,7 +61,7 @@ async def main() -> None:
                                 is_active BOOLEAN NOT NULL DEFAULT TRUE,
                                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                             );
-                            
+
                             CREATE TABLE IF NOT EXISTS slots(
                                 id SERIAL PRIMARY KEY,
                                 master_user_id BIGINT NOT NULL
@@ -72,7 +72,7 @@ async def main() -> None:
                                 CHECK (ends_at > starts_at),
                                 UNIQUE (master_user_id, starts_at)
                             );
-                            
+
                             CREATE TABLE IF NOT EXISTS appointments(
                                 id SERIAL PRIMARY KEY,
                                 client_user_id BIGINT NOT NULL
@@ -87,10 +87,10 @@ async def main() -> None:
                                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                                 CHECK (status IN ('pending', 'confirmed', 'cancelled'))
                             );
-                            
+
                             CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_active_slot
                                 ON appointments(slot_id)
-                                WHERE status IN ('pending', 'confirmed');                                
+                                WHERE status IN ('pending', 'confirmed');                               
                         """
                     )
                 logger.info("Tables `users`, `services`, `slots`, and `appointments` was successfully created")
