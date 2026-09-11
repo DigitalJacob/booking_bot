@@ -9,6 +9,7 @@ from psycopg.errors import UniqueViolation
 from app.domain.enums import UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.states.states import AddSlotSG
+from app.bot.utils.format import combine_local, format_dt
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
@@ -96,6 +97,7 @@ async def process_add_slot_duration(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     text = (message.text or "").strip()
     if not text.isdigit():
@@ -110,7 +112,7 @@ async def process_add_slot_duration(
     data = await state.get_data()
     day = datetime.fromisoformat(data["day"]).date()
     time_part = datetime.strptime(data["start_time"], "%H:%M").time()
-    starts_at = datetime.combine(day, time_part, tzinfo=timezone.utc)
+    starts_at = combine_local(day, time_part, bot_timezone)
     ends_at = starts_at + timedelta(minutes=duration_minutes)
 
     if starts_at <= datetime.now(timezone.utc):
@@ -130,7 +132,7 @@ async def process_add_slot_duration(
     await state.clear()
     await message.answer(
         text=i18n.get("add_slot_ok").format(
-            when=slot.starts_at.strftime("%d.%m.%Y %H:%M"),
+            when=format_dt(slot.starts_at, bot_timezone),
             duration=duration_minutes,
         ),
     )

@@ -6,7 +6,7 @@ from app.bot.keyboards.client import (
     ClientAppointmentCallback,
     get_my_booking_actions_kb,
 )
-from app.bot.utils.format import status_label
+from app.bot.utils.format import format_dt, status_label
 from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
     AppointmentNotFound,
@@ -27,6 +27,7 @@ async def process_my_bookings_command(
         repos: Repositories,
         user: User | None,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     if user is None:
         await message.answer(text=i18n.get("book_need_start"))
@@ -47,7 +48,10 @@ async def process_my_bookings_command(
         )
         slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
         text = i18n.get("my_bookings_item").format(
-            when=slot.starts_at.strftime("%d.%m.%Y %H:%M") if slot else "?",
+            when=(
+                format_dt(slot.starts_at, bot_timezone)
+                if slot else "?"
+            ),
             title=service.title if service else "?",
             status=status_label(appointment.status, i18n),
         )
@@ -71,6 +75,7 @@ async def process_client_cancel(
         repos: Repositories,
         user: User | None,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     if user is None:
         await callback.answer(
@@ -101,6 +106,7 @@ async def process_client_cancel(
         recipient_user_id=appointment.master_user_id,
         translations=translations,
         text_key="master_booking_cancelled_by_client",
+        bot_timezone=bot_timezone,
     )
     await callback.message.edit_text(
         text=i18n.get("my_bookings_cancelled"),

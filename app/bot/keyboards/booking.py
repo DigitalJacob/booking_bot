@@ -3,6 +3,7 @@ from datetime import date
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from app.bot.utils.format import format_time
 from app.domain.models import Service, Slot
 
 
@@ -89,13 +90,14 @@ def get_slots_kb(
         *,
         slots: list[Slot],
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
     for slot in slots:
         row.append(
             InlineKeyboardButton(
-                text=slot.starts_at.strftime("%H:%M"),
+                text=format_time(slot.starts_at, bot_timezone),
                 callback_data=SlotCallback(slot_id=slot.id).pack(),
             )
         )

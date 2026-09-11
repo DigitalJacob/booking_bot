@@ -30,6 +30,7 @@ from app.domain.models import Service, Slot, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 from app.bot.utils.notify import notify_appointment
+from app.bot.utils.format import format_dt, to_local
 from app.bot.handlers.client.profile import start_profile_flow
 
 
@@ -42,12 +43,22 @@ def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
     return f"{price:.2f}"
 
 
-def _unique_days(slots: list[Slot]) -> list[date]:
-    return sorted({slot.starts_at.date() for slot in slots})
+def _unique_days(slots: list[Slot], bot_timezone: str) -> list[date]:
+    return sorted({
+        to_local(slot.starts_at, bot_timezone).date()
+        for slot in slots
+    })
 
 
-def _slots_on_day(slots: list[Slot], day: date) -> list[Slot]:
-    return [slot for slot in slots if slot.starts_at.date() == day]
+def _slots_on_day(
+        slots: list[Slot],
+        day: date,
+        bot_timezone: str,
+) -> list[Slot]:
+    return [
+        slot for slot in slots
+        if to_local(slot.starts_at, bot_timezone).date() == day
+    ]
 
 
 async def _show_services(
@@ -82,10 +93,15 @@ async def _show_slots(
         message: Message,
         slots: list[Slot],
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     await message.edit_text(
         text=i18n.get("book_choose_slot"),
-        reply_markup=get_slots_kb(slots=slots, i18n=i18n),
+        reply_markup=get_slots_kb(
+            slots=slots,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+        ),
     )
 
 
@@ -95,10 +111,11 @@ async def _show_confirm(
         service: Service,
         slot: Slot,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     text = i18n.get("book_confirm").format(
         title=service.title,
-        when=slot.starts_at.strftime("%d.%m.%Y %H:%M"),
+        when=format_dt(slot.starts_at, bot_timezone),
         duration=service.duration_minutes,
         price=_format_price(service.price, i18n),
     )
@@ -166,6 +183,7 @@ async def process_service_choice(
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,
+        bot_timezone: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -187,7 +205,7 @@ async def process_service_choice(
         master_user_id=master_user_id,
         min_duration_minutes=service.duration_minutes,
     )
-    days = _unique_days(slots)
+    days = _unique_days(slots, bot_timezone)
     if not days:
         await callback.answer()
         await callback.message.edit_text(text=i18n.get("book_no_slots"))
@@ -213,6 +231,7 @@ async def process_day_choice(
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,
+        bot_timezone: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -226,6 +245,7 @@ async def process_day_choice(
             min_duration_minutes=service_duration,
         ),
         day,
+        bot_timezone,
     )
     if not slots:
         await callback.answer(
@@ -236,7 +256,12 @@ async def process_day_choice(
 
     await state.update_data(day=day.isoformat())
     await state.set_state(BookingSG.choosing_slot)
-    await _show_slots(message=callback.message, slots=slots, i18n=i18n)
+    await _show_slots(
+        message=callback.message,
+        slots=slots,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
     await callback.answer()
 
 
@@ -250,6 +275,7 @@ async def process_slot_choice(
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,
+        bot_timezone: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -267,7 +293,7 @@ async def process_slot_choice(
     if (
         slot is None
         or slot.master_user_id != master_user_id
-        or slot.starts_at.date() != day
+        or to_local(slot.starts_at, bot_timezone).date() != day
     ):
         await callback.answer(
             text=i18n.get("book_slot_not_found"),
@@ -282,6 +308,7 @@ async def process_slot_choice(
         service=service,
         slot=slot,
         i18n=i18n,
+        bot_timezone=bot_timezone,
     )
     await callback.answer()
 
@@ -298,6 +325,7 @@ async def process_confirm(
         state: FSMContext,
         repos: Repositories,
         user: User | None,
+        bot_timezone: str,
 ) -> None:
     if user is None:
         await callback.answer(
@@ -366,6 +394,7 @@ async def process_confirm(
         translations=translations,
         text_key="master_new_booking",
         with_master_actions=True,
+        bot_timezone=bot_timezone,
     )
     await state.clear()
     await callback.message.edit_text(text=i18n.get("book_ok"))
@@ -395,6 +424,7 @@ async def process_back(
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,
+        bot_timezone: str,
 ) -> None:
     current = await state.get_state()
     fsm_data = await state.get_data()
@@ -424,7 +454,7 @@ async def process_back(
             master_user_id=master_user_id,
             min_duration_minutes=fsm_data["service_duration"],
         )
-        days = _unique_days(slots)
+        days = _unique_days(slots, bot_timezone)
         await state.set_state(BookingSG.choosing_day)
         await state.update_data(day=None, slot_id=None)
         if not days:
@@ -443,13 +473,19 @@ async def process_back(
                 min_duration_minutes=fsm_data["service_duration"],
             ),
             day,
+            bot_timezone,
         )
         await state.set_state(BookingSG.choosing_slot)
         await state.update_data(slot_id=None)
         if not slots:
             await callback.answer(text=i18n.get("book_no_slots"), show_alert=True)
             return
-        await _show_slots(message=callback.message, slots=slots, i18n=i18n)
+        await _show_slots(
+            message=callback.message,
+            slots=slots,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+        )
         await callback.answer()
         return
 

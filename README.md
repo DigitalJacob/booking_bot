@@ -244,6 +244,7 @@ All settings come from `.env`. Start from `.env.example`.
 | `BOT_TOKEN` | Telegram bot token from [@BotFather](https://t.me/BotFather) |
 | `ADMIN_IDS` | Comma-separated Telegram ids granted the admin role on first `/start` |
 | `MASTER_USER_ID` | Telegram id of the master whose services clients can book |
+| `TIMEZONE` | IANA timezone for display and slot input (default `Europe/Moscow`); storage stays UTC |
 | `LOG_LEVEL` | `DEBUG` for development, `INFO` for production |
 | `LOG_FORMAT` | Python logging format string |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Database credentials |
@@ -352,7 +353,7 @@ booking_bot/
 
 ## Roadmap
 
-- Per-master timezone support instead of bot-wide UTC
+- Per-master timezone setting (today: bot-wide `TIMEZONE` in `.env`)
 - Versioned migrations instead of a single idempotent schema script
 - Working-hours scheduling — generate availability from a daily schedule and
   time-off blocks, replacing manually created slots

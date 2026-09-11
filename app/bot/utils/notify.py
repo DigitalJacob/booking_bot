@@ -8,7 +8,7 @@ from aiogram.types import InlineKeyboardMarkup
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
 from app.bot.i18n.translator import resolve_i18n
-from app.bot.utils.format import client_contact
+from app.bot.utils.format import client_contact, format_dt
 from app.bot.keyboards.master import get_appointment_actions_kb
 
 
@@ -20,6 +20,7 @@ async def notify_appointment(
         recipient_user_id: int,
         translations: dict,
         text_key: str,
+        bot_timezone: str,
         with_master_actions: bool = False,
 ) -> None:
     recipient = await repos.users.get_user_by_id(user_id=recipient_user_id)
@@ -47,7 +48,10 @@ async def notify_appointment(
             chat_id=recipient_user_id,
             text=i18n.get(text_key).format(
                 title=service.title if service else "?",
-                when=slot.starts_at.strftime("%d.%m.%Y %H:%M") if slot else "?",
+                when=format_dt(
+                    slot.starts_at if slot else None,
+                    bot_timezone,
+                ),
                 client_name=client_name,
                 client_phone=client_phone,
             ),

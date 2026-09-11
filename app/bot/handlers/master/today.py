@@ -1,5 +1,5 @@
 from contextlib import suppress
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -14,7 +14,12 @@ from app.bot.keyboards.master import (
     is_slot_past,
 )
 from app.bot.utils.notify import notify_appointment
-from app.bot.utils.format import client_contact, status_label
+from app.bot.utils.format import (
+    client_contact,
+    format_time,
+    local_today_bounds,
+    status_label,
+)
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
@@ -30,20 +35,15 @@ today_router.message.filter(UserRoleFilter(UserRole.MASTER))
 today_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 
-def _today_bounds() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    return start, start + timedelta(days=1)
-
-
 async def _send_today(
         *,
         message: Message,
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
-    from_dt, to_dt = _today_bounds()
+    from_dt, to_dt = local_today_bounds(bot_timezone)
     now = datetime.now(timezone.utc)
     appointments = await repos.appointments.list_by_master(
         master_user_id=user.user_id,
@@ -65,7 +65,7 @@ async def _send_today(
         )
         slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
         title = service.title if service else "?"
-        when = slot.starts_at.strftime("%H:%M") if slot else "?"
+        when = format_time(slot.starts_at if slot else None, bot_timezone)
         client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
         client_name, client_phone = client_contact(client)
 
@@ -130,8 +130,15 @@ async def process_today_command(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
-    await _send_today(message=message, repos=repos, user=user, i18n=i18n)
+    await _send_today(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
 
 
 @today_router.callback_query(MasterAppointmentCallback.filter(F.action == "confirm"))
@@ -143,6 +150,7 @@ async def process_confirm(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     if await _reject_if_slot_past(
         callback=callback,
@@ -174,6 +182,7 @@ async def process_confirm(
         recipient_user_id=appointment.client_user_id,
         translations=translations,
         text_key="client_booking_confirmed",
+        bot_timezone=bot_timezone,
     )
     await callback.message.edit_text(
         text=i18n.get("master_confirmed").format(id=appointment.id),
@@ -191,6 +200,7 @@ async def process_cancel(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     if await _reject_if_slot_past(
         callback=callback,
@@ -222,6 +232,7 @@ async def process_cancel(
         recipient_user_id=appointment.client_user_id,
         translations=translations,
         text_key="client_booking_cancelled_by_master",
+        bot_timezone=bot_timezone,
     )
     await callback.message.edit_text(
         text=i18n.get("master_cancelled").format(id=appointment.id),
