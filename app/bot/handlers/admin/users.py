@@ -13,6 +13,7 @@ from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.keyboards.menu_button import get_main_menu_commands
+from app.bot.utils.format import format_dt
 
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ async def _get_target(
     return target
 
 
-def _user_card(target: User, i18n: dict[str, str]) -> str:
+def _user_card(target: User, i18n: dict[str, str], bot_timezone: str) -> str:
     return i18n.get("admin_user_card").format(
         user_id=target.user_id,
         username=f"@{target.username}" if target.username
@@ -80,7 +81,7 @@ def _user_card(target: User, i18n: dict[str, str]) -> str:
         role=target.role.value,
         language=target.language,
         banned=i18n.get("admin_yes") if target.banned else i18n.get("admin_no"),
-        created_at=target.created_at.strftime("%d.%m.%Y %H:%M"),
+        created_at=format_dt(target.created_at, bot_timezone),
     )
 
 
@@ -90,6 +91,7 @@ async def process_user_command(
         command: CommandObject,
         repos: Repositories,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     target = await _get_target(
         message=message,
@@ -101,7 +103,7 @@ async def process_user_command(
     if target is None:
         return
 
-    await message.answer(text=_user_card(target, i18n))
+    await message.answer(text=_user_card(target, i18n, bot_timezone))
 
 
 @admin_users_router.message(Command(commands="ban"))
