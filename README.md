@@ -9,10 +9,11 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Telegram bot that runs appointment booking for a small service business — a barber,
-a nail studio, a private tutor. Clients pick a service, see only the time slots that
-actually fit it, and book in four taps. The master manages services, opens time slots,
-and confirms or declines requests without leaving Telegram. Both sides get notified on
-every status change.
+a nail studio, a private tutor. Clients leave a short contact profile once, pick a
+service, see only the time slots that actually fit it, and book in a few taps. The
+master manages services and slots, sees the client's name and phone on every card, and
+confirms or declines either from `/today` or straight from the new-booking
+notification. Both sides get notified on every status change.
 
 Built on a layered architecture with the business logic isolated from Telegram and SQL,
 and covered by unit tests.
@@ -53,6 +54,7 @@ app/
     ├── keyboards/    # Inline keyboards and typed CallbackData
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
+    ├── utils/        # Notifications and shared formatting
     └── i18n/         # Locale resolution
 ```
 
@@ -72,6 +74,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ### For clients
 
+- **Contact profile** — first name, last name and phone collected once before the
+  first booking, via a share-contact button or manual input; editable later
 - **Guided booking** — step-by-step dialog: service → day → time → confirmation
 - **Only bookable slots are shown** — slots shorter than the chosen service, already
   taken, or in the past are filtered out before the client ever sees them
@@ -82,19 +86,23 @@ failure halfway through a booking cannot leave a half-written appointment behind
 ### For the master
 
 - **`/today`** — every appointment for the current day as a card with inline actions
-- **One-tap confirm / decline** — the keyboard is removed after the action, so a
-  finished card cannot be tapped twice by accident
+- **Client name and phone on every card and notification** — not just a Telegram id,
+  so the master can actually call the person
+- **One-tap confirm / decline** — from `/today` or directly from the new-booking
+  message; the keyboard is removed after the action, so a finished card cannot be
+  tapped twice by accident
+- **Past appointments are read-only** — once the slot has ended the action buttons
+  disappear and the card is marked as past, and a stale button is rejected server-side
 - **Service catalogue** — title, duration and price per service, with soft
   deactivation instead of deletion
 - **Time slot management** — open slots by date, start time and duration
-- **New booking notifications** — delivered the moment a client books
 
 ### For admins
 
-- **`/user`** — look up a user card by `@username` or numeric id
-- **`/set_role`** — promote or demote between client, master and admin
-- **`/ban` / `/unban`** — shadow ban: banned users get no reply at all, so they cannot
-  tell they were blocked and cannot probe the bot for a reaction
+- **User lookup and moderation** — `/user`, `/set_role`, `/ban` and `/unban` all accept
+  either a numeric id or `@username`; `/user` shows the contact profile when filled in
+- **Shadow ban** — banned users get no reply at all, so they cannot tell they were
+  blocked and cannot probe the bot for a reaction
 - **Guard rails** — an admin cannot ban themselves, demote themselves, or ban other staff
 - **Live menu refresh** — the affected user's command menu updates on role change
 
@@ -103,6 +111,10 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Bilingual interface** — Russian and English, switchable at runtime via `/lang`
 - **Role-aware command menu** — Telegram shows each user only the commands they may run
 - **Language resolution chain** — explicit choice → Telegram client language → default
+- **Profile gate** — `/book` asks for the contact profile first; everything else stays
+  available without it
+- **Username sync** — a changed Telegram `@username` is picked up automatically, so
+  admin lookups by username keep working
 - **Concurrency safety** — a database unique constraint, not an application check,
   guarantees two clients can never take the same slot
 - **UTC everywhere** — all timestamps stored as `TIMESTAMPTZ`
@@ -115,17 +127,19 @@ failure halfway through a booking cannot leave a half-written appointment behind
 | `/start` | everyone | Register, get the role-specific greeting and menu |
 | `/help` | everyone | Command reference for your role |
 | `/lang` | everyone | Switch interface language (RU / EN) |
-| `/book` | client | Book an appointment |
+| `/book` | client | Book an appointment (asks for the profile first if empty) |
 | `/my_bookings` | client | View and cancel your upcoming appointments |
+| `/profile` | client | Show your contact profile |
+| `/edit_profile` | client | Update your name and phone |
 | `/today` | master | Today's appointments with confirm / decline actions |
 | `/services` | master | List your services |
 | `/add_service` | master | Add a service (title, duration, price) |
 | `/add_slot` | master | Open a time slot (date, start time, duration) |
-| `/cancel` | master | Abort the current `/add_service` or `/add_slot` dialog |
-| `/user <@username\|id>` | admin | Show a user card |
-| `/set_role <id> <role>` | admin | Change a user's role |
-| `/ban <@username\|id>` | admin | Ban a user |
-| `/unban <@username\|id>` | admin | Lift a ban |
+| `/cancel` | master / client | Abort `/add_service`, `/add_slot` or profile setup |
+| `/user <id\|@username>` | admin | Show a user card |
+| `/set_role <id\|@username> <role>` | admin | Change a user's role |
+| `/ban <id\|@username>` | admin | Ban a user |
+| `/unban <id\|@username>` | admin | Lift a ban |
 
 ## Roles
 
@@ -133,7 +147,7 @@ Three roles, all stored in the database — nothing is hardcoded in the source.
 
 | Role | Gets |
 |------|------|
-| `client` | Booking and managing their own appointments. Default for new users. |
+| `client` | Contact profile, booking, and managing their own appointments. Default for new users. |
 | `master` | Service catalogue, time slots, and the daily appointment list. |
 | `admin` | User management and role assignment, plus the client commands. |
 
@@ -143,8 +157,7 @@ A fresh database has no master, so nobody can create services yet. Set it up onc
 
 1. Put your own Telegram id in `ADMIN_IDS` in `.env`.
 2. Send `/start` — you are registered as an **admin**.
-3. Ask the master to send `/start` too, then take their id from the `users` table
-   (or from `/user @their_username`).
+3. Ask the master to send `/start` too, then look them up with `/user @their_username`.
 4. Promote them: `/set_role <master_id> master`
 5. Put that same id in `MASTER_USER_ID` in `.env` and restart the bot.
 
@@ -185,7 +198,7 @@ At minimum set `BOT_TOKEN` (from [@BotFather](https://t.me/BotFather)), `ADMIN_I
 docker compose up -d --build
 ```
 
-This starts PostgreSQL, Redis, pgAdmin and the bot. Database migrations run
+This starts PostgreSQL, Redis, pgAdmin and the bot. Database tables are created
 automatically on bot startup.
 
 ### 5. Check the logs
@@ -261,7 +274,7 @@ Four tables, created automatically by `migrations/create_tables.py` on startup.
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Telegram id, username, language, role, ban flag |
+| `users` | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone) |
 | `services` | Master's offerings: title, duration, price, active flag |
 | `slots` | Bookable time ranges owned by a master |
 | `appointments` | Links a client, a service and a slot with a status |
@@ -275,6 +288,21 @@ instead of a duplicate row.
 
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
+### Upgrading an existing database
+
+`create_tables.py` uses `CREATE TABLE IF NOT EXISTS`, which creates missing tables but
+never alters existing ones. Fresh installs need nothing extra; an existing database
+created before the contact profile was added needs the columns once:
+
+```sql
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS last_name VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
+```
+
+Versioned migrations are on the roadmap and will remove this manual step.
+
 ## Tests
 
 The domain layer is covered by unit tests that use in-memory fake repositories, so
@@ -287,7 +315,7 @@ pytest
 
 ```
 ...................                                       [100%]
-19 passed in 0.10s
+19 passed in 0.16s
 ```
 
 The suite covers the rules in `BookingService`: rejecting inactive or unknown
@@ -324,12 +352,14 @@ booking_bot/
 
 ## Roadmap
 
-- Editing and deactivating services and slots from the bot
 - Per-master timezone support instead of bot-wide UTC
-- Working-hours scheduling — generate availability from a daily schedule and a break
-  interval, replacing manually created slots
+- Versioned migrations instead of a single idempotent schema script
+- Working-hours scheduling — generate availability from a daily schedule and
+  time-off blocks, replacing manually created slots
+- Editing and deactivating services and slots from the bot
 - Multi-master support, letting clients pick a master first
 - Appointment reminders ahead of the scheduled time
+- Per-language service titles set by the master
 - Fetching appointment details in a single joined query to remove N+1 reads
 
 ## Feedback
