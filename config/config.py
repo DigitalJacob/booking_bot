@@ -1,6 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from environs import Env
 
@@ -13,6 +14,7 @@ class BotSettings:
     token: str
     admin_ids: list[int]
     master_user_id: int
+    timezone: str
 
 
 @dataclass
@@ -74,12 +76,10 @@ def load_config(path: str | None = None) -> Config:
     env.read_env(path)
 
     token = env("BOT_TOKEN")
-
     if not token:
         raise ValueError("BOT_TOKEN must not be empty")
 
     raw_ids = env.list("ADMIN_IDS", default=[])
-
     try:
         admin_ids = [int(x) for x in raw_ids]
     except ValueError as e:
@@ -90,8 +90,15 @@ def load_config(path: str | None = None) -> Config:
     except Exception as e:
         raise ValueError("MASTER_USER_ID must be an integer Telegram user id") from e
 
-    proxy_ip = env.str("PROXY_IP", default='').strip()
+    timezone_name = env.str("TIMEZONE", default="Europe/Moscow").strip()
+    try:
+        ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError as e:
+        raise ValueError(
+            f"TIMEZONE must be a valid IANA name, got: {timezone_name!r}"
+        ) from e
 
+    proxy_ip = env.str("PROXY_IP", default='').strip()
     proxy = None
     if proxy_ip:
         proxy = ProxySettings(
@@ -129,7 +136,8 @@ def load_config(path: str | None = None) -> Config:
         bot=BotSettings(
             token=token,
             admin_ids=admin_ids,
-            master_user_id=master_user_id
+            master_user_id=master_user_id,
+            timezone=timezone_name,
         ),
         db=db,
         redis=redis,
