@@ -66,7 +66,7 @@ async def _send_today(
         slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
         title = service.title if service else "?"
         when = slot.starts_at.strftime("%H:%M") if slot else "?"
-        client = await repos.users.get_user(user_id=appointment.client_user_id)
+        client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
         client_name, client_phone = client_contact(client)
 
         slot_ends_at = slot.ends_at if slot else None

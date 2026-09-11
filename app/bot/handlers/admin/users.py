@@ -21,16 +21,13 @@ admin_users_router = Router(name="admin_users")
 admin_users_router.message.filter(UserRoleFilter(UserRole.ADMIN))
 
 
-def _parse_user_id(command: CommandObject) -> int | None:
+def _parse_target_ref(command: CommandObject) -> str | None:
     if command.args is None:
         return None
     parts = command.args.split()
     if not parts:
         return None
-    try:
-        return int(parts[0])
-    except ValueError:
-        return None
+    return parts[0].strip()
 
 
 def _parse_role(command: CommandObject) -> UserRole | None:
@@ -53,15 +50,20 @@ async def _get_target(
         i18n: dict[str, str],
         usage_key: str,
 ) -> User | None:
-    target_id = _parse_user_id(command)
-    if target_id is None:
+    raw_user_info = _parse_target_ref(command)
+    if raw_user_info is None:
         await message.answer(text=i18n.get(usage_key))
         return None
 
-    target = await repos.users.get_user(user_id=target_id)
+    target: User | None
+    if raw_user_info.isdigit():
+        target = await repos.users.get_user_by_id(user_id=int(raw_user_info))
+    else:
+        target = await repos.users.get_user_by_username(username=raw_user_info)
+
     if target is None:
         await message.answer(
-            text=i18n.get("admin_user_not_found").format(user_id=target_id),
+            text=i18n.get("admin_user_not_found").format(target=raw_user_info),
         )
         return None
     return target

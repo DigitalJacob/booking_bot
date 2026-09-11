@@ -51,7 +51,7 @@ class UsersRepository:
                 role,
             )
 
-    async def get_user(
+    async def get_user_by_id(
             self,
             *,
             user_id: int,
@@ -74,6 +74,34 @@ class UsersRepository:
                     WHERE user_id = %s;
                 """,
                 params=(user_id, ),
+            )
+            row = await cursor.fetchone()
+        return User.from_db_row(row) if row else None
+
+    async def get_user_by_username(
+            self,
+            *,
+            username: str,
+    ) -> User | None:
+        normalized_username = username.lstrip("@").lower()
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query="""
+                    SELECT
+                        id,
+                        user_id,
+                        username,
+                        language,
+                        role,
+                        banned,
+                        first_name,
+                        last_name,
+                        phone,
+                        created_at
+                    FROM users
+                    WHERE lower(username) = %s;
+                """,
+                params=(normalized_username, ),
             )
             row = await cursor.fetchone()
         return User.from_db_row(row) if row else None

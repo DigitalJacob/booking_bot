@@ -19,5 +19,5 @@ class UserContextMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         repos: Repositories = data["repos"]
-        data["user"] = await repos.users.get_user(user_id=tg_user.id)
+        data["user"] = await repos.users.get_user_by_id(user_id=tg_user.id)
         return await handler(event, data)

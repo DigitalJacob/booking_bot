@@ -231,11 +231,11 @@ EN: dict[str, str] = {
     "/set_role_description": "Change role",
     "/ban_description": "Ban a user",
     "/unban_description": "Unban a user",
-    "admin_usage_user": "Usage: /user &lt;user_id&gt;",
-    "admin_usage_ban": "Usage: /ban &lt;user_id&gt;",
-    "admin_usage_unban": "Usage: /unban &lt;user_id&gt;",
-    "admin_usage_set_role": "Usage: /set_role &lt;user_id&gt; &lt;role&gt;",
-    "admin_user_not_found": "User {user_id} not found.",
+    "admin_usage_user": "Usage: /user &lt;id|@username&gt;",
+    "admin_usage_ban": "Usage: /ban &lt;id|@username&gt;",
+    "admin_usage_unban": "Usage: /unban &lt;id|@username&gt;",
+    "admin_usage_set_role": "Usage: /set_role &lt;id|@username&gt; &lt;role&gt;",
+    "admin_user_not_found": "User {target} not found.",
     "admin_user_card": (
         "👤 User {user_id}\n\n"
         "Username: {username}\n"

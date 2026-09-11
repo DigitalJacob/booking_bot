@@ -22,7 +22,7 @@ async def notify_appointment(
         text_key: str,
         with_master_actions: bool = False,
 ) -> None:
-    recipient = await repos.users.get_user(user_id=recipient_user_id)
+    recipient = await repos.users.get_user_by_id(user_id=recipient_user_id)
     i18n = resolve_i18n(
         language=recipient.language if recipient else None,
         translations=translations,
@@ -30,7 +30,7 @@ async def notify_appointment(
 
     service = await repos.services.get_service(service_id=appointment.service_id)
     slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
-    client = await repos.users.get_user(user_id=appointment.client_user_id)
+    client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
     client_name, client_phone = client_contact(client)
 
     reply_markup: InlineKeyboardMarkup | None = None

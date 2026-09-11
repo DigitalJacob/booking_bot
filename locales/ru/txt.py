@@ -231,11 +231,11 @@ RU: dict[str, str] = {
     "/set_role_description": "Изменить роль",
     "/ban_description": "Забанить",
     "/unban_description": "Разбанить",
-    "admin_usage_user": "Использование: /user &lt;user_id&gt;",
-    "admin_usage_ban": "Использование: /ban &lt;user_id&gt;",
-    "admin_usage_unban": "Использование: /unban &lt;user_id&gt;",
-    "admin_usage_set_role": "Использование: /set_role &lt;user_id&gt; &lt;роль&gt;",
-    "admin_user_not_found": "Пользователь {user_id} не найден.",
+    "admin_usage_user": "Использование: /user &lt;id|@username&gt;",
+    "admin_usage_ban": "Использование: /ban &lt;id|@username&gt;",
+    "admin_usage_unban": "Использование: /unban &lt;id|@username&gt;",
+    "admin_usage_set_role": "Использование: /set_role &lt;id|@username&gt; &lt;роль&gt;",
+    "admin_user_not_found": "Пользователь {target} не найден.",
     "admin_user_card": (
         "👤 Пользователь {user_id}\n\n"
         "Username: {username}\n"
