@@ -80,7 +80,7 @@ async def _mark_applied(conn: AsyncConnection, version: str) -> None:
                 VALUES (%s)
                 ON CONFLICT (version) DO NOTHING;
             """,
-            params= (version, ),
+            params=(version, ),
         )
 
 
