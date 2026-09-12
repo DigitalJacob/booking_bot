@@ -271,8 +271,9 @@ Use `PROXY_TYPE=socks5` for SOCKS. Leave the lines commented to connect directly
 
 ## Database Schema
 
-Four tables (plus `schema_migrations`). Schema is applied by versioned SQL files in
-`migrations/versions/`, run via `python -m migrations.migrate` on startup.
+Core booking tables (plus `schema_migrations` and `master_settings`). Schema is applied
+by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
+on startup.
 
 | Table | Purpose |
 |-------|---------|
@@ -280,6 +281,7 @@ Four tables (plus `schema_migrations`). Schema is applied by versioned SQL files
 | `services` | Master's offerings: title, duration, price, active flag |
 | `slots` | Bookable time ranges owned by a master |
 | `appointments` | Links a client, a service and a slot with a status |
+| `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon |
 
 `appointments.status` is one of `pending`, `confirmed`, `cancelled`.
 
@@ -287,6 +289,10 @@ Double booking is prevented at the database level: a partial unique index allows
 most one non-cancelled appointment per slot. Two clients tapping the same slot at the
 same moment cannot both win — the loser gets a clean "slot already taken" message
 instead of a duplicate row.
+
+`master_settings.gap_minutes` defaults to `0` (back-to-back). `slot_step_minutes` is
+`NULL` until customized and means “step equals the chosen service duration”.
+Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads this table.
 
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
