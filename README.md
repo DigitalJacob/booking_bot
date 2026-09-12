@@ -198,8 +198,8 @@ At minimum set `BOT_TOKEN` (from [@BotFather](https://t.me/BotFather)), `ADMIN_I
 docker compose up -d --build
 ```
 
-This starts PostgreSQL, Redis, pgAdmin and the bot. Database tables are created
-automatically on bot startup.
+This starts PostgreSQL, Redis, pgAdmin and the bot. Pending schema migrations run
+automatically on bot startup (`python -m migrations.migrate`).
 
 ### 5. Check the logs
 
@@ -229,7 +229,7 @@ The bot can also run on the host while the databases stay in containers:
 docker compose up -d postgres redis
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python3 -m migrations.create_tables
+python3 -m migrations.migrate
 python3 main.py
 ```
 
@@ -271,7 +271,8 @@ Use `PROXY_TYPE=socks5` for SOCKS. Leave the lines commented to connect directly
 
 ## Database Schema
 
-Four tables, created automatically by `migrations/create_tables.py` on startup.
+Four tables (plus `schema_migrations`). Schema is applied by versioned SQL files in
+`migrations/versions/`, run via `python -m migrations.migrate` on startup.
 
 | Table | Purpose |
 |-------|---------|
@@ -289,20 +290,15 @@ instead of a duplicate row.
 
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
-### Upgrading an existing database
+### Schema migrations
 
-`create_tables.py` uses `CREATE TABLE IF NOT EXISTS`, which creates missing tables but
-never alters existing ones. Fresh installs need nothing extra; an existing database
-created before the contact profile was added needs the columns once:
+Schema changes live in `migrations/versions/*.sql` (ordered by filename:
+`001_…`, `002_…`, …). On startup the bot runs `python -m migrations.migrate`,
+which applies only versions not yet recorded in `schema_migrations`.
 
-```sql
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS last_name VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
-```
-
-Versioned migrations are on the roadmap and will remove this manual step.
+Existing databases created before versioned migrations are handled automatically:
+if the `users` table already exists and `001_initial` is not in the journal, the
+runner baselines it (marks applied without re-running `CREATE TABLE`).
 
 ## Tests
 
@@ -342,7 +338,7 @@ booking_bot/
 │   └── infrastructure/     # Connection pool and repositories
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
-├── migrations/             # Schema creation
+├── migrations/             # Versioned SQL migrations and runner
 ├── tests/                  # Unit tests and fake repositories
 ├── docker-compose.yml
 ├── Dockerfile
@@ -354,7 +350,6 @@ booking_bot/
 ## Roadmap
 
 - Per-master timezone setting (today: bot-wide `TIMEZONE` in `.env`)
-- Versioned migrations instead of a single idempotent schema script
 - Working-hours scheduling — generate availability from a daily schedule and
   time-off blocks, replacing manually created slots
 - Editing and deactivating services and slots from the bot

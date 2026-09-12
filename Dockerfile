@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["sh", "-c", "python -m migrations.create_tables && python main.py"]
+CMD ["sh", "-c", "python -m migrations.migrate && python main.py"]
