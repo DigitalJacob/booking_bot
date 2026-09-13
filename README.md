@@ -271,8 +271,8 @@ Use `PROXY_TYPE=socks5` for SOCKS. Leave the lines commented to connect directly
 
 ## Database Schema
 
-Core booking tables (plus `schema_migrations`, `master_settings`, and `working_hours`). Schema is applied
-by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
+Core booking tables (plus `schema_migrations`, `master_settings`, `working_hours` and `time_off`).
+Schema is applied by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
 on startup.
 
 | Table | Purpose |
@@ -283,6 +283,7 @@ on startup.
 | `appointments` | Links a client, a service and a slot with a status |
 | `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon |
 | `working_hours` | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master |
+| `time_off` | Absolute blocked intervals (day off, break, vacation) per master |
 
 `appointments.status` is one of `pending`, `confirmed`, `cancelled`.
 
@@ -297,7 +298,10 @@ Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads th
 
 `working_hours` stores repeating weekly intervals as local wall-clock `TIME` values;
 the master's timezone (settings / `.env`) interprets them when computing availability.
-Day-off and breaks are not stored here — they will use a separate `time_off` table.
+Day-off and breaks are intentionally kept out of this table — they live in the separate `time_off` table.
+
+`time_off` holds concrete `TIMESTAMPTZ` blocks that remove availability; lunch and
+cancelled hours use the same table. Weekly open hours stay in `working_hours`.
 
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
