@@ -189,6 +189,7 @@ async def process_set_role_command(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     target = await _get_target(
         message=message,
@@ -223,6 +224,13 @@ async def process_set_role_command(
         return
 
     await repos.users.change_user_role(user_id=target.user_id, role=role)
+
+    if role == UserRole.MASTER:
+        await repos.master_settings.ensure_defaults(
+            master_user_id=target.user_id,
+            timezone=bot_timezone,
+        )
+
     logger.info(
         "Admin %d changed role of user %d to '%s'",
         user.user_id,
