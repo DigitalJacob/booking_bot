@@ -10,6 +10,7 @@ from app.infrastructure.database.repositories.master_settings import (
     MasterSettingsRepository,
 )
 from app.infrastructure.database.repositories.working_hours import WorkingHoursRepository
+from app.infrastructure.database.repositories.time_off import TimeOffRepository
 
 
 @dataclass
@@ -20,6 +21,7 @@ class Repositories:
     appointments: AppointmentsRepository
     master_settings: MasterSettingsRepository
     working_hours: WorkingHoursRepository
+    time_off: TimeOffRepository
 
     @classmethod
     def from_connection(cls, conn: AsyncConnection) -> "Repositories":
@@ -30,6 +32,7 @@ class Repositories:
             appointments=AppointmentsRepository(conn),
             master_settings=MasterSettingsRepository(conn),
             working_hours=WorkingHoursRepository(conn),
+            time_off=TimeOffRepository(conn),
         )
 
 
@@ -41,4 +44,5 @@ __all__ = [
     "UsersRepository",
     "MasterSettingsRepository",
     "WorkingHoursRepository",
+    "TimeOffRepository",
 ]

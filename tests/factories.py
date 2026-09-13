@@ -13,6 +13,7 @@ from app.infrastructure.database.repositories import (
     UsersRepository,
     MasterSettingsRepository,
     WorkingHoursRepository,
+    TimeOffRepository,
 )
 
 
@@ -239,4 +240,5 @@ def make_repos(
         ),
         master_settings=cast(MasterSettingsRepository, None),
         working_hours=cast(WorkingHoursRepository, None),
+        time_off=cast(TimeOffRepository, None),
     )
