@@ -78,7 +78,7 @@ def _user_card(target: User, i18n: dict[str, str], bot_timezone: str) -> str:
         first_name=target.first_name or "-",
         last_name=target.last_name or "-",
         phone=target.phone or "-",
-        role=target.role.value,
+        role=target.role,
         language=target.language,
         banned=i18n.get("admin_yes") if target.banned else i18n.get("admin_no"),
         created_at=format_dt(target.created_at, bot_timezone),
@@ -205,7 +205,7 @@ async def process_set_role_command(
     if role is None:
         await message.answer(
             text=i18n.get("admin_invalid_role").format(
-                roles=", ".join(item.value for item in UserRole),
+                roles=", ".join(UserRole),
             ),
         )
         return
@@ -218,7 +218,7 @@ async def process_set_role_command(
         await message.answer(
             text=i18n.get("admin_role_unchanged").format(
                 user_id=target.user_id,
-                role=role.value,
+                role=role,
             ),
         )
         return
@@ -253,13 +253,13 @@ async def process_set_role_command(
         await bot.send_message(
             chat_id=target.user_id,
             text=target_i18n.get("admin_role_changed_notice").format(
-                role=role.value,
+                role=role,
             ),
         )
 
     await message.answer(
         text=i18n.get("admin_role_set").format(
             user_id=target.user_id,
-            role=role.value,
+            role=role,
         ),
     )
