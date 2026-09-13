@@ -6,6 +6,9 @@ from app.infrastructure.database.repositories.appointments import AppointmentsRe
 from app.infrastructure.database.repositories.services import ServicesRepository
 from app.infrastructure.database.repositories.slots import SlotsRepository
 from app.infrastructure.database.repositories.users import UsersRepository
+from app.infrastructure.database.repositories.master_settings import (
+    MasterSettingsRepository,
+)
 
 
 @dataclass
@@ -14,6 +17,7 @@ class Repositories:
     services: ServicesRepository
     slots: SlotsRepository
     appointments: AppointmentsRepository
+    master_settings: MasterSettingsRepository
 
     @classmethod
     def from_connection(cls, conn: AsyncConnection) -> "Repositories":
@@ -22,6 +26,7 @@ class Repositories:
             services=ServicesRepository(conn),
             slots=SlotsRepository(conn),
             appointments=AppointmentsRepository(conn),
+            master_settings=MasterSettingsRepository(conn),
         )
 
 
@@ -31,4 +36,5 @@ __all__ = [
     "ServicesRepository",
     "SlotsRepository",
     "UsersRepository",
+    "MasterSettingsRepository",
 ]
