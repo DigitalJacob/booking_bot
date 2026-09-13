@@ -271,7 +271,7 @@ Use `PROXY_TYPE=socks5` for SOCKS. Leave the lines commented to connect directly
 
 ## Database Schema
 
-Core booking tables (plus `schema_migrations` and `master_settings`). Schema is applied
+Core booking tables (plus `schema_migrations`, `master_settings`, and `working_hours`). Schema is applied
 by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
 on startup.
 
@@ -282,6 +282,7 @@ on startup.
 | `slots` | Bookable time ranges owned by a master |
 | `appointments` | Links a client, a service and a slot with a status |
 | `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon |
+| `working_hours` | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master |
 
 `appointments.status` is one of `pending`, `confirmed`, `cancelled`.
 
@@ -293,6 +294,10 @@ instead of a duplicate row.
 `master_settings.gap_minutes` defaults to `0` (back-to-back). `slot_step_minutes` is
 `NULL` until customized and means “step equals the chosen service duration”.
 Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads this table.
+
+`working_hours` stores repeating weekly intervals as local wall-clock `TIME` values;
+the master's timezone (settings / `.env`) interprets them when computing availability.
+Day-off and breaks are not stored here — they will use a separate `time_off` table.
 
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
