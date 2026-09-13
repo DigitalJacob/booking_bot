@@ -12,6 +12,7 @@ from app.infrastructure.database.repositories import (
     SlotsRepository,
     UsersRepository,
     MasterSettingsRepository,
+    WorkingHoursRepository,
 )
 
 
@@ -237,4 +238,5 @@ def make_repos(
             FakeAppointmentsRepository(appointments or [], slots),
         ),
         master_settings=cast(MasterSettingsRepository, None),
+        working_hours=cast(WorkingHoursRepository, None),
     )
