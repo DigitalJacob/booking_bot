@@ -280,7 +280,7 @@ on startup.
 | `users` | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone) |
 | `services` | Master's offerings: title, duration, price, active flag |
 | `slots` | Bookable time ranges owned by a master |
-| `appointments` | Links a client, a service and a slot with a status |
+| `appointments` | Links a client, a service and a slot with a status and concrete time range |
 | `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon |
 | `working_hours` | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master |
 | `time_off` | Absolute blocked intervals (day off, break, vacation) per master |
@@ -291,6 +291,12 @@ Double booking is prevented at the database level: a partial unique index allows
 most one non-cancelled appointment per slot. Two clients tapping the same slot at the
 same moment cannot both win — the loser gets a clean "slot already taken" message
 instead of a duplicate row.
+
+Appointments also store `starts_at` / `ends_at` (backfilled from the linked slot).
+Active appointments for the same master cannot overlap in time: a GiST `EXCLUDE`
+constraint on `tstzrange(starts_at, ends_at, '[)')` enforces that, in addition to
+the existing per-slot unique index. `slot_id` remains during the transition away
+from manually created slots.
 
 `master_settings.gap_minutes` defaults to `0` (back-to-back). `slot_step_minutes` is
 `NULL` until customized and means “step equals the chosen service duration”.
