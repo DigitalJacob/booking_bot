@@ -64,16 +64,24 @@ def make_appointment(
         appointment_id: int = 1,
         client_user_id: int = CLIENT_ID,
         master_user_id: int = MASTER_ID,
-        service_id = 1,
+        service_id: int = 1,
         slot_id: int = 1,
+        starts_at: datetime | None = None,
+        ends_at: datetime | None = None,
         status: AppointmentStatus = AppointmentStatus.PENDING,
 ) -> Appointment:
+    if starts_at is None:
+        starts_at = NOW + timedelta(hours=2)
+    if ends_at is None:
+        ends_at = starts_at + timedelta(minutes=60)
     return Appointment(
         id=appointment_id,
         client_user_id=client_user_id,
         master_user_id=master_user_id,
         service_id=service_id,
         slot_id=slot_id,
+        starts_at=starts_at,
+        ends_at=ends_at,
         status=status,
         created_at=NOW,
     )
@@ -144,6 +152,8 @@ class FakeAppointmentsRepository:
             master_user_id: int,
             service_id: int,
             slot_id: int,
+            starts_at: datetime,
+            ends_at: datetime,
             status: AppointmentStatus = AppointmentStatus.PENDING,
     ) -> Appointment:
         appointment = make_appointment(
@@ -152,6 +162,8 @@ class FakeAppointmentsRepository:
             master_user_id=master_user_id,
             service_id=service_id,
             slot_id=slot_id,
+            starts_at=starts_at,
+            ends_at=ends_at,
             status=status,
         )
         self._appointments[appointment.id] = appointment
@@ -189,17 +201,14 @@ class FakeAppointmentsRepository:
         for appointment in self._appointments.values():
             if appointment.client_user_id != client_user_id:
                 continue
-            slot = self._slots.get(appointment.slot_id)
-            if slot is None:
+            if from_dt is not None and appointment.starts_at < from_dt:
                 continue
-            if from_dt is not None and slot.starts_at < from_dt:
-                continue
-            if to_dt is not None and slot.starts_at >= to_dt:
+            if to_dt is not None and appointment.starts_at >= to_dt:
                 continue
             result.append(appointment)
         return sorted(
             result,
-            key=lambda item: self._slots[item.slot_id].starts_at,
+            key=lambda item: item.starts_at,
         )
 
     async def change_status(

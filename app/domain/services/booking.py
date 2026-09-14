@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta
 
-from psycopg.errors import UniqueViolation
+from psycopg.errors import UniqueViolation, ExclusionViolation
 
 from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
@@ -117,9 +117,11 @@ class BookingService:
                 master_user_id=slot.master_user_id,
                 service_id=service_id,
                 slot_id=slot_id,
+                starts_at=slot.starts_at,
+                ends_at=slot.ends_at,
                 status=AppointmentStatus.PENDING,
             )
-        except UniqueViolation as e:
+        except (UniqueViolation, ExclusionViolation) as e:
             raise SlotTaken from e
 
         logger.info(

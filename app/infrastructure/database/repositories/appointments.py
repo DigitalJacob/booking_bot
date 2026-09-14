@@ -22,6 +22,8 @@ class AppointmentsRepository:
             master_user_id: int,
             service_id: int,
             slot_id: int,
+            starts_at: datetime,
+            ends_at: datetime,
             status: AppointmentStatus = AppointmentStatus.PENDING,
     ) -> Appointment:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -32,6 +34,8 @@ class AppointmentsRepository:
                         master_user_id,
                         service_id,
                         slot_id,
+                        starts_at,
+                        ends_at,
                         status
                     )
                     VALUES(
@@ -39,6 +43,8 @@ class AppointmentsRepository:
                         %(master_user_id)s,
                         %(service_id)s,
                         %(slot_id)s,
+                        %(starts_at)s,
+                        %(ends_at)s,
                         %(status)s
                     )
                     RETURNING
@@ -47,6 +53,8 @@ class AppointmentsRepository:
                         master_user_id,
                         service_id,
                         slot_id,
+                        starts_at,
+                        ends_at,
                         status,
                         created_at;
                 """,
@@ -55,6 +63,8 @@ class AppointmentsRepository:
                     "master_user_id": master_user_id,
                     "service_id": service_id,
                     "slot_id": slot_id,
+                    "starts_at": starts_at,
+                    "ends_at": ends_at,
                     "status": status,
                 },
             )
@@ -84,6 +94,8 @@ class AppointmentsRepository:
                         master_user_id,
                         service_id,
                         slot_id,
+                        starts_at,
+                        ends_at,
                         status,
                         created_at
                     FROM appointments
@@ -109,6 +121,8 @@ class AppointmentsRepository:
                         master_user_id,
                         service_id,
                         slot_id,
+                        starts_at,
+                        ends_at,
                         status,
                         created_at
                     FROM appointments
@@ -136,19 +150,20 @@ class AppointmentsRepository:
             await cursor.execute(
                 query="""
                     SELECT
-                        a.id,
-                        a.client_user_id,
-                        a.master_user_id,
-                        a.service_id,
-                        a.slot_id,
-                        a.status,
-                        a.created_at
-                    FROM appointments a
-                    JOIN slots s ON s.id = a.slot_id
-                    WHERE a.client_user_id = %(client_user_id)s
-                        AND (%(from_dt)s::timestamptz IS NULL OR s.starts_at >= %(from_dt)s)
-                        AND (%(to_dt)s::timestamptz IS NULL OR s.starts_at < %(to_dt)s)
-                    ORDER BY s.starts_at;
+                        id,
+                        client_user_id,
+                        master_user_id,
+                        service_id,
+                        slot_id,
+                        starts_at,
+                        ends_at,
+                        status,
+                        created_at
+                    FROM appointments
+                    WHERE client_user_id = %(client_user_id)s
+                        AND (%(from_dt)s::timestamptz IS NULL OR starts_at >= %(from_dt)s)
+                        AND (%(to_dt)s::timestamptz IS NULL OR starts_at < %(to_dt)s)
+                    ORDER BY starts_at;
                 """,
                 params={
                     "client_user_id": client_user_id,
@@ -171,19 +186,20 @@ class AppointmentsRepository:
             await cursor.execute(
                 query="""
                     SELECT
-                        a.id,
-                        a.client_user_id,
-                        a.master_user_id,
-                        a.service_id,
-                        a.slot_id,
-                        a.status,
-                        a.created_at
-                    FROM appointments a
-                    JOIN slots s ON s.id = a.slot_id
-                    WHERE a.master_user_id = %(master_user_id)s
-                      AND (%(from_dt)s::timestamptz IS NULL OR s.starts_at >= %(from_dt)s)
-                      AND (%(to_dt)s::timestamptz IS NULL OR s.starts_at < %(to_dt)s)
-                    ORDER BY s.starts_at;
+                        id,
+                        client_user_id,
+                        master_user_id,
+                        service_id,
+                        slot_id,
+                        starts_at,
+                        ends_at,
+                        status,
+                        created_at
+                    FROM appointments
+                    WHERE master_user_id = %(master_user_id)s
+                        AND (%(from_dt)s::timestamptz IS NULL OR starts_at >= %(from_dt)s)
+                        AND (%(to_dt)s::timestamptz IS NULL OR starts_at < %(to_dt)s)
+                    ORDER BY starts_at;
                 """,
                 params={
                     "master_user_id": master_user_id,
@@ -213,6 +229,8 @@ class AppointmentsRepository:
                         master_user_id,
                         service_id,
                         slot_id,
+                        starts_at,
+                        ends_at,
                         status,
                         created_at;
                 """,

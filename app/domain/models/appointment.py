@@ -12,6 +12,8 @@ class Appointment:
     master_user_id: int
     service_id: int
     slot_id: int
+    starts_at: datetime
+    ends_at: datetime
     status: AppointmentStatus
     created_at: datetime
 
@@ -23,6 +25,8 @@ class Appointment:
             master_user_id=row["master_user_id"],
             service_id=row["service_id"],
             slot_id=row["slot_id"],
+            starts_at=row["starts_at"],
+            ends_at=row["ends_at"],
             status=AppointmentStatus(row["status"]),
             created_at=row["created_at"]
         )

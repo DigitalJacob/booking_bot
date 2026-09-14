@@ -271,14 +271,23 @@ async def test_list_client_appointments_excludes_cancelled():
 
 
 async def test_list_client_appointments_excludes_past():
+    past_slot = make_slot(slot_id=1, starts_in_hours=-3)
+    future_slot = make_slot(slot_id=2, starts_in_hours=3)
     repos = make_repos(
-        slots=[
-            make_slot(slot_id=1, starts_in_hours=-3),
-            make_slot(slot_id=2, starts_in_hours=3),
-        ],
+        slots=[past_slot, future_slot],
         appointments=[
-            make_appointment(appointment_id=1, slot_id=1),
-            make_appointment(appointment_id=2, slot_id=2),
+            make_appointment(
+                appointment_id=1,
+                slot_id=1,
+                starts_at=past_slot.starts_at,
+                ends_at=past_slot.ends_at,
+            ),
+            make_appointment(
+                appointment_id=2,
+                slot_id=2,
+                starts_at=future_slot.starts_at,
+                ends_at=future_slot.ends_at,
+            ),
         ],
     )
     booking = BookingService(repos)
