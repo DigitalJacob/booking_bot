@@ -5,6 +5,7 @@ from app.domain.models.user import User
 from app.domain.models.master_settings import MasterSettings
 from app.domain.models.working_hours import WorkingHours
 from app.domain.models.time_off import TimeOff
+from app.domain.models.time_window import TimeWindow
 
 
 __all__ = [
@@ -15,4 +16,5 @@ __all__ = [
     "MasterSettings",
     "WorkingHours",
     "TimeOff",
+    "TimeWindow",
 ]
