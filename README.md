@@ -376,6 +376,8 @@ booking_bot/
 - Appointment reminders ahead of the scheduled time
 - Per-language service titles set by the master
 - Fetching appointment details in a single joined query to remove N+1 reads
+- Replace BotCommands menu with a single hub message and inline buttons
+  (keep slash commands as deep links / fallbacks)
 
 ## Feedback
 
