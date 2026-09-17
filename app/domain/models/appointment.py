@@ -11,7 +11,7 @@ class Appointment:
     client_user_id: int
     master_user_id: int
     service_id: int
-    slot_id: int
+    slot_id: int | None
     starts_at: datetime
     ends_at: datetime
     status: AppointmentStatus

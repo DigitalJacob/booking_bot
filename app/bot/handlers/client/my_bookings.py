@@ -46,12 +46,8 @@ async def process_my_bookings_command(
         service = await repos.services.get_service(
             service_id=appointment.service_id,
         )
-        slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
         text = i18n.get("my_bookings_item").format(
-            when=(
-                format_dt(slot.starts_at, bot_timezone)
-                if slot else "?"
-            ),
+            when=format_dt(appointment.starts_at, bot_timezone),
             title=service.title if service else "?",
             status=status_label(appointment.status, i18n),
         )

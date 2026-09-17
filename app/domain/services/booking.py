@@ -113,7 +113,7 @@ class BookingService:
                 client_user_id=client_user_id,
                 master_user_id=service.master_user_id,
                 service_id=service_id,
-                slot_id=0,
+                slot_id=None,
                 starts_at=match.starts_at,
                 ends_at=match.ends_at,
                 status=AppointmentStatus.PENDING,

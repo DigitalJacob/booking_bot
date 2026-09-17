@@ -21,7 +21,7 @@ class AppointmentsRepository:
             client_user_id: int,
             master_user_id: int,
             service_id: int,
-            slot_id: int,
+            slot_id: int | None,
             starts_at: datetime,
             ends_at: datetime,
             status: AppointmentStatus = AppointmentStatus.PENDING,
@@ -70,7 +70,7 @@ class AppointmentsRepository:
             )
             row = await cursor.fetchone()
         logger.info(
-            "Appointment added. client=%d, master=%d, service=%d, slot=%d, status=%s",
+            "Appointment added. client=%d, master=%d, service=%d, slot_id=%s, status=%s",
             client_user_id,
             master_user_id,
             service_id,

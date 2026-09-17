@@ -30,7 +30,6 @@ async def notify_appointment(
     )
 
     service = await repos.services.get_service(service_id=appointment.service_id)
-    slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
     client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
     client_name, client_phone = client_contact(client)
 
@@ -40,7 +39,7 @@ async def notify_appointment(
             appointment=appointment,
             i18n=i18n,
             now=datetime.now(timezone.utc),
-            slot_ends_at=slot.ends_at if slot else None,
+            slot_ends_at=appointment.ends_at,
         )
 
     with suppress(TelegramBadRequest, TelegramForbiddenError):
@@ -48,10 +47,7 @@ async def notify_appointment(
             chat_id=recipient_user_id,
             text=i18n.get(text_key).format(
                 title=service.title if service else "?",
-                when=format_dt(
-                    slot.starts_at if slot else None,
-                    bot_timezone,
-                ),
+                when=format_dt(appointment.starts_at, bot_timezone),
                 client_name=client_name,
                 client_phone=client_phone,
             ),

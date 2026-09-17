@@ -77,7 +77,7 @@ async def test_book_window_creates_pending_appointment():
     assert appointment.status == AppointmentStatus.PENDING
     assert appointment.starts_at == starts
     assert appointment.ends_at == datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)
-    assert appointment.slot_id == 0
+    assert appointment.slot_id is None
 
 
 @pytest.mark.asyncio
@@ -129,7 +129,7 @@ async def test_book_window_rejects_when_already_taken():
         _repos_with_schedule(
             appointments=[
                 make_appointment(
-                    slot_id=0,
+                    slot_id=None,
                     starts_at=taken_start,
                     ends_at=taken_end,
                 ),

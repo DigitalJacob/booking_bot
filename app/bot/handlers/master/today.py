@@ -63,13 +63,12 @@ async def _send_today(
         service = await repos.services.get_service(
             service_id=appointment.service_id,
         )
-        slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
         title = service.title if service else "?"
-        when = format_time(slot.starts_at if slot else None, bot_timezone)
+        when = format_time(appointment.starts_at, bot_timezone)
         client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
         client_name, client_phone = client_contact(client)
 
-        slot_ends_at = slot.ends_at if slot else None
+        slot_ends_at = appointment.ends_at
         past = is_slot_past(slot_ends_at=slot_ends_at, now=now)
         item_key = "master_today_item_past" if past else "master_today_item"
 
@@ -109,9 +108,8 @@ async def _reject_if_slot_past(
         )
         return True
 
-    slot = await repos.slots.get_slot(slot_id=appointment.slot_id)
     if is_slot_past(
-        slot_ends_at=slot.ends_at if slot else None,
+        slot_ends_at=appointment.ends_at,
         now=datetime.now(timezone.utc),
     ):
         await callback.answer(
