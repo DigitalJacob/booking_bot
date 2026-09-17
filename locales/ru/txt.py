@@ -14,6 +14,7 @@ RU: dict[str, str] = {
         "Вы вошли как мастер.\n\n"
         "Команды:\n"
         "/today — записи на сегодня\n"
+        "/schedule — недельный график\n"
         "/add_slot — добавить слот\n"
         "/services — мои услуги\n"
         "/add_service — добавить услугу\n"
@@ -46,6 +47,7 @@ RU: dict[str, str] = {
     "/help_master": (
         "Вы мастер. Управление записью:\n\n"
         "/today — записи на сегодня (подтвердить / отменить)\n"
+        "/schedule — недельный график\n"
         "/add_slot — добавить свободный слот\n"
         "/services — список услуг\n"
         "/add_service — добавить услугу\n"
@@ -281,4 +283,21 @@ RU: dict[str, str] = {
         "Телефон: {phone}"
     ),
     "profile_edit_hint": "Чтобы изменить данные, отправьте: /edit_profile",
+    "/schedule_description": "Мой график",
+    "schedule_header": "🗓 Ваш недельный график:",
+    "schedule_list_item": "• {weekday} {starts}–{ends}",
+    "schedule_empty": (
+        "График ещё не задан.\n\n"
+        "Добавьте интервал кнопкой ниже."
+    ),
+    "schedule_add_button": "➕ Добавить",
+    "schedule_close_button": "Закрыть",
+    "schedule_closed": "График закрыт.",
+    "schedule_weekday_1": "Пн",
+    "schedule_weekday_2": "Вт",
+    "schedule_weekday_3": "Ср",
+    "schedule_weekday_4": "Чт",
+    "schedule_weekday_5": "Пт",
+    "schedule_weekday_6": "Сб",
+    "schedule_weekday_7": "Вс",
 }

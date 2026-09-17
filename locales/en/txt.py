@@ -14,6 +14,7 @@ EN: dict[str, str] = {
         "You are signed in as a specialist.\n\n"
         "Commands:\n"
         "/today — today's appointments\n"
+        "/schedule — weekly working hours\n"
         "/add_slot — add a time slot\n"
         "/services — my services\n"
         "/add_service — add a service\n"
@@ -46,6 +47,7 @@ EN: dict[str, str] = {
     "/help_master": (
         "You are a specialist. Booking management:\n\n"
         "/today — today's appointments (confirm / cancel)\n"
+        "/schedule — weekly working hours\n"
         "/add_slot — add a free time slot\n"
         "/services — list of services\n"
         "/add_service — add a service\n"
@@ -281,4 +283,21 @@ EN: dict[str, str] = {
         "Phone: {phone}"
     ),
     "profile_edit_hint": "To update your details, send: /edit_profile",
+    "/schedule_description": "My working hours",
+    "schedule_header": "🗓 Your weekly schedule:",
+    "schedule_list_item": "• {weekday} {starts}–{ends}",
+    "schedule_empty": (
+        "No working hours yet.\n\n"
+        "Add an interval with the button below."
+    ),
+    "schedule_add_button": "➕ Add",
+    "schedule_close_button": "Close",
+    "schedule_closed": "Schedule closed.",
+    "schedule_weekday_1": "Mon",
+    "schedule_weekday_2": "Tue",
+    "schedule_weekday_3": "Wed",
+    "schedule_weekday_4": "Thu",
+    "schedule_weekday_5": "Fri",
+    "schedule_weekday_6": "Sat",
+    "schedule_weekday_7": "Sun",
 }

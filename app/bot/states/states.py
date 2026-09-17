@@ -28,3 +28,9 @@ class ProfileSG(StatesGroup):
     first_name = State()
     last_name = State()
     phone = State()
+
+
+class ScheduleSG(StatesGroup):
+    starts_time = State()
+    ends_time = State()
+    weekdays = State()
