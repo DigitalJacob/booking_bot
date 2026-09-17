@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from aiogram import F, Router, Bot
@@ -10,23 +10,20 @@ from app.bot.keyboards.booking import (
     BookingNavCallback,
     DayCallback,
     ServiceCallback,
-    SlotCallback,
+    WindowCallback,
     get_confirm_kb,
     get_days_kb,
     get_services_kb,
-    get_slots_kb,
+    get_windows_kb,
 )
 from app.bot.states.states import BookingSG
 from app.domain.exceptions import (
     ServiceInactive,
     ServiceNotFound,
-    SlotInThePast,
-    SlotMasterMismatch,
-    SlotNotFound,
     SlotTaken,
-    SlotTooShort,
+    WindowNotAvailable,
 )
-from app.domain.models import Service, Slot, User
+from app.domain.models import Service, TimeWindow, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 from app.bot.utils.notify import notify_appointment
@@ -43,21 +40,21 @@ def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
     return f"{price:.2f}"
 
 
-def _unique_days(slots: list[Slot], bot_timezone: str) -> list[date]:
+def _unique_days(windows: list[TimeWindow], bot_timezone: str) -> list[date]:
     return sorted({
-        to_local(slot.starts_at, bot_timezone).date()
-        for slot in slots
+        to_local(window.starts_at, bot_timezone).date()
+        for window in windows
     })
 
 
-def _slots_on_day(
-        slots: list[Slot],
+def _windows_on_day(
+        windows: list[TimeWindow],
         day: date,
         bot_timezone: str,
-) -> list[Slot]:
+) -> list[TimeWindow]:
     return [
-        slot for slot in slots
-        if to_local(slot.starts_at, bot_timezone).date() == day
+        window for window in windows
+        if to_local(window.starts_at, bot_timezone).date() == day
     ]
 
 
@@ -88,17 +85,17 @@ async def _show_days(
     )
 
 
-async def _show_slots(
+async def _show_windows(
         *,
         message: Message,
-        slots: list[Slot],
+        windows: list[TimeWindow],
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
     await message.edit_text(
         text=i18n.get("book_choose_slot"),
-        reply_markup=get_slots_kb(
-            slots=slots,
+        reply_markup=get_windows_kb(
+            windows=windows,
             i18n=i18n,
             bot_timezone=bot_timezone,
         ),
@@ -109,13 +106,13 @@ async def _show_confirm(
         *,
         message: Message,
         service: Service,
-        slot: Slot,
+        starts_at: datetime,
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
     text = i18n.get("book_confirm").format(
         title=service.title,
-        when=format_dt(slot.starts_at, bot_timezone),
+        when=format_dt(starts_at, bot_timezone),
         duration=service.duration_minutes,
         price=_format_price(service.price, i18n),
     )
@@ -201,11 +198,11 @@ async def process_service_choice(
         return
 
     booking = BookingService(repos)
-    slots = await booking.list_available_slots(
+    windows = await booking.list_available_windows(
         master_user_id=master_user_id,
-        min_duration_minutes=service.duration_minutes,
+        duration_minutes=service.duration_minutes,
     )
-    days = _unique_days(slots, bot_timezone)
+    days = _unique_days(windows, bot_timezone)
     if not days:
         await callback.answer()
         await callback.message.edit_text(text=i18n.get("book_no_slots"))
@@ -239,15 +236,15 @@ async def process_day_choice(
     day = date.fromisoformat(callback_data.value)
 
     booking = BookingService(repos)
-    slots = _slots_on_day(
-        await booking.list_available_slots(
+    windows = _windows_on_day(
+        await booking.list_available_windows(
             master_user_id=master_user_id,
-            min_duration_minutes=service_duration,
+            duration_minutes=service_duration,
         ),
         day,
         bot_timezone,
     )
-    if not slots:
+    if not windows:
         await callback.answer(
             text=i18n.get("book_no_slots"),
             show_alert=True,
@@ -256,9 +253,9 @@ async def process_day_choice(
 
     await state.update_data(day=day.isoformat())
     await state.set_state(BookingSG.choosing_slot)
-    await _show_slots(
+    await _show_windows(
         message=callback.message,
-        slots=slots,
+        windows=windows,
         i18n=i18n,
         bot_timezone=bot_timezone,
     )
@@ -266,12 +263,12 @@ async def process_day_choice(
 
 
 @booking_router.callback_query(
-    SlotCallback.filter(),
+    WindowCallback.filter(),
     StateFilter(BookingSG.choosing_slot),
 )
 async def process_slot_choice(
         callback: CallbackQuery,
-        callback_data: SlotCallback,
+        callback_data: WindowCallback,
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,
@@ -281,32 +278,46 @@ async def process_slot_choice(
     master_user_id = fsm_data["master_user_id"]
     service_id = fsm_data["service_id"]
     day = date.fromisoformat(fsm_data["day"])
+    starts_at = datetime.fromisoformat(callback_data.starts_at)
 
     service = await repos.services.get_service(service_id=service_id)
-    slot = await repos.slots.get_slot(slot_id=callback_data.slot_id)
     if service is None:
         await callback.answer(
             text=i18n.get("book_service_not_found"),
             show_alert=True,
         )
         return
-    if (
-        slot is None
-        or slot.master_user_id != master_user_id
-        or to_local(slot.starts_at, bot_timezone).date() != day
-    ):
+
+    booking = BookingService(repos)
+    windows = _windows_on_day(
+        await booking.list_available_windows(
+            master_user_id=master_user_id,
+            duration_minutes=service.duration_minutes,
+        ),
+        day,
+        bot_timezone,
+    )
+    match = next(
+        (
+            window for window in windows
+            if window.starts_at == starts_at
+            or window.starts_at.isoformat() == callback_data.starts_at
+        ),
+        None
+    )
+    if match is None:
         await callback.answer(
             text=i18n.get("book_slot_not_found"),
             show_alert=True,
         )
         return
 
-    await state.update_data(slot_id=slot.id)
+    await state.update_data(starts_at=match.starts_at.isoformat())
     await state.set_state(BookingSG.confirming)
     await _show_confirm(
         message=callback.message,
         service=service,
-        slot=slot,
+        starts_at=match.starts_at,
         i18n=i18n,
         bot_timezone=bot_timezone,
     )
@@ -338,20 +349,14 @@ async def process_confirm(
     fsm_data = await state.get_data()
     booking = BookingService(repos)
     try:
-        appointment = await booking.book(
+        appointment = await booking.book_window(
             client_user_id=user.user_id,
             service_id=fsm_data["service_id"],
-            slot_id=fsm_data["slot_id"],
+            starts_at=datetime.fromisoformat(fsm_data["starts_at"]),
         )
-    except SlotTaken:
+    except (SlotTaken, WindowNotAvailable):
         await callback.answer(
             text=i18n.get("book_slot_taken"),
-            show_alert=True
-        )
-        return
-    except SlotInThePast:
-        await callback.answer(
-            text=i18n.get("book_slot_past"),
             show_alert=True
         )
         return
@@ -365,24 +370,6 @@ async def process_confirm(
         await callback.answer(
             text=i18n.get("book_service_not_found"),
             show_alert=True,
-        )
-        return
-    except SlotNotFound:
-        await callback.answer(
-            text=i18n.get("book_slot_not_found"),
-            show_alert=True,
-        )
-        return
-    except SlotMasterMismatch:
-        await callback.answer(
-            text=i18n.get("book_mismatch"),
-            show_alert=True,
-        )
-        return
-    except SlotTooShort:
-        await callback.answer(
-            text=i18n.get("book_slot_too_short"),
-            show_alert=True
         )
         return
 
@@ -437,7 +424,7 @@ async def process_back(
         await state.update_data(
             service_id=None,
             day=None,
-            slot_id=None,
+            starts_at=None,
             service_duration=None,
         )
         await _show_services(
@@ -450,13 +437,13 @@ async def process_back(
         return
 
     if current == BookingSG.choosing_slot.state:
-        slots = await booking.list_available_slots(
+        windows = await booking.list_available_windows(
             master_user_id=master_user_id,
-            min_duration_minutes=fsm_data["service_duration"],
+            duration_minutes=fsm_data["service_duration"],
         )
-        days = _unique_days(slots, bot_timezone)
+        days = _unique_days(windows, bot_timezone)
         await state.set_state(BookingSG.choosing_day)
-        await state.update_data(day=None, slot_id=None)
+        await state.update_data(day=None, starts_at=None)
         if not days:
             await callback.message.edit_text(text=i18n.get("book_no_slots"))
             await state.clear()
@@ -467,22 +454,22 @@ async def process_back(
 
     if current == BookingSG.confirming.state:
         day = date.fromisoformat(fsm_data["day"])
-        slots = _slots_on_day(
-            await booking.list_available_slots(
+        windows = _windows_on_day(
+            await booking.list_available_windows(
                 master_user_id=master_user_id,
-                min_duration_minutes=fsm_data["service_duration"],
+                duration_minutes=fsm_data["service_duration"],
             ),
             day,
             bot_timezone,
         )
         await state.set_state(BookingSG.choosing_slot)
-        await state.update_data(slot_id=None)
-        if not slots:
+        await state.update_data(starts_at=None)
+        if not windows:
             await callback.answer(text=i18n.get("book_no_slots"), show_alert=True)
             return
-        await _show_slots(
+        await _show_windows(
             message=callback.message,
-            slots=slots,
+            windows=windows,
             i18n=i18n,
             bot_timezone=bot_timezone,
         )

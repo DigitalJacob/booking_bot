@@ -4,7 +4,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.bot.utils.format import format_time
-from app.domain.models import Service, Slot, TimeWindow
+from app.domain.models import Service, TimeWindow
 
 
 class ServiceCallback(CallbackData, prefix="svc"):
@@ -15,15 +15,11 @@ class DayCallback(CallbackData, prefix="bday"):
     value: str
 
 
-class SlotCallback(CallbackData, prefix="slot"):
-    slot_id: int
-
-
 class BookingNavCallback(CallbackData, prefix="bk"):
     action: str
 
 
-class WindowCallback(CallbackData, prefix="win"):
+class WindowCallback(CallbackData, prefix="win", sep="|"):
     starts_at: str  # ISO datetime UTC
 
 
@@ -90,30 +86,6 @@ def get_days_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def get_slots_kb(
-        *,
-        slots: list[Slot],
-        i18n: dict[str, str],
-        bot_timezone: str,
-) -> InlineKeyboardMarkup:
-    buttons: list[list[InlineKeyboardButton]] = []
-    row: list[InlineKeyboardButton] = []
-    for slot in slots:
-        row.append(
-            InlineKeyboardButton(
-                text=format_time(slot.starts_at, bot_timezone),
-                callback_data=SlotCallback(slot_id=slot.id).pack(),
-            )
-        )
-        if len(row) == 3:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
-    buttons.append(_nav_row(i18n, with_back=True))
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
 def get_confirm_kb(*, i18n: dict[str, str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -152,4 +124,3 @@ def get_windows_kb(
         buttons.append(row)
     buttons.append(_nav_row(i18n, with_back=True))
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
