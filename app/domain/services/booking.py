@@ -15,9 +15,11 @@ from app.domain.exceptions import (
     SlotNotFound,
     SlotTaken,
     SlotTooShort,
+    WindowNotAvailable,
 )
-from app.domain.models import Appointment, Service, Slot
+from app.domain.models import Appointment, Service, Slot, TimeWindow
 from app.infrastructure.database.repositories import Repositories
+from app.domain.services.availability import AvailabilityService
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +59,76 @@ class BookingService:
             if slot.ends_at - slot.starts_at >= required
         ]
 
+    async def list_available_windows(
+            self,
+            *,
+            master_user_id: int,
+            duration_minutes: int,
+            now: datetime | None = None,
+    ) -> list[TimeWindow]:
+        return await AvailabilityService(self._repos).list_windows(
+            master_user_id=master_user_id,
+            duration_minutes=duration_minutes,
+            now=now,
+        )
+
+    async def book_window(
+            self,
+            *,
+            client_user_id: int,
+            service_id: int,
+            starts_at: datetime,
+            now: datetime | None = None
+    ) -> Appointment:
+        if now is None:
+            now = datetime.now(timezone.utc)
+        if starts_at.tzinfo is None:
+            starts_at = starts_at.replace(tzinfo=timezone.utc)
+        else:
+            starts_at = starts_at.astimezone(timezone.utc)
+
+        service = await self._repos.services.get_service(service_id=service_id)
+        if service is None:
+            raise ServiceNotFound
+        if not service.is_active:
+            raise ServiceInactive
+
+        windows = await self.list_available_windows(
+            master_user_id=service.master_user_id,
+            duration_minutes=service.duration_minutes,
+            now=now,
+        )
+        match = next(
+            (
+                window for window in windows
+                if window.starts_at.astimezone(timezone.utc) == starts_at
+            ),
+            None,
+        )
+        if match is None:
+            raise WindowNotAvailable
+
+        try:
+            appointment = await self._repos.appointments.add_appointment(
+                client_user_id=client_user_id,
+                master_user_id=service.master_user_id,
+                service_id=service_id,
+                slot_id=0,
+                starts_at=match.starts_at,
+                ends_at=match.ends_at,
+                status=AppointmentStatus.PENDING,
+            )
+        except (UniqueViolation, ExclusionViolation) as e:
+            raise SlotTaken from e
+
+        logger.info(
+            "Booked appointment %d via window: client=%d, master=%d, starts_at=%s",
+            appointment.id,
+            client_user_id,
+            service.master_user_id,
+            match.starts_at,
+        )
+        return appointment
 
     async def list_client_appointments(
             self,
@@ -78,7 +150,6 @@ class BookingService:
                 AppointmentStatus.CONFIRMED,
             )
         ]
-
 
     async def book(
             self,

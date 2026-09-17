@@ -3,8 +3,17 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import cast
 
+from psycopg.errors import ExclusionViolation
+
 from app.domain.enums import AppointmentStatus
-from app.domain.models import Appointment, Service, Slot
+from app.domain.models import (
+    Appointment,
+    Service,
+    Slot,
+    MasterSettings,
+    WorkingHours,
+    TimeOff,
+)
 from app.infrastructure.database.repositories import (
     AppointmentsRepository,
     Repositories,
@@ -135,6 +144,57 @@ class FakeSlotsRepository:
         return sorted(result, key=lambda slot: slot.starts_at)
 
 
+class FakeMasterSettingsRepository:
+    def __init__(self, settings: MasterSettings | None) -> None:
+        self._settings = settings
+
+    async def get_by_master(self, *, master_user_id: int) -> MasterSettings | None:
+        if self._settings and self._settings.master_user_id == master_user_id:
+            return self._settings
+        return None
+
+
+class FakeWorkingHoursRepository:
+    def __init__(self, rows: list[WorkingHours]) -> None:
+        self._rows = rows
+
+    async def list_by_master(
+            self,
+            *,
+            master_user_id: int,
+            weekday: int | None = None,
+    ) -> list[WorkingHours]:
+        result = [
+            row for row in self._rows
+            if row.master_user_id == master_user_id
+            and (weekday is None or row.weekday == weekday)
+        ]
+        return sorted(result, key=lambda row: (row.weekday, row.starts_time))
+
+
+class FakeTimeOffRepository:
+    def __init__(self, rows: list[TimeOff]) -> None:
+        self._rows = rows
+
+    async def list_by_master(
+            self,
+            *,
+            master_user_id: int,
+            from_dt: datetime | None = None,
+            to_dt: datetime | None = None,
+    ) -> list[TimeOff]:
+        result = []
+        for row in self._rows:
+            if row.master_user_id != master_user_id:
+                continue
+            if from_dt is not None and row.ends_at <= from_dt:
+                continue
+            if to_dt is not None and row.starts_at >= to_dt:
+                continue
+            result.append(row)
+        return sorted(result, key=lambda row: row.starts_at)
+
+
 class FakeAppointmentsRepository:
     def __init__(
             self,
@@ -156,6 +216,17 @@ class FakeAppointmentsRepository:
             ends_at: datetime,
             status: AppointmentStatus = AppointmentStatus.PENDING,
     ) -> Appointment:
+        for existing in self._appointments.values():
+            if existing.master_user_id != master_user_id:
+                continue
+            if existing.status not in (
+                AppointmentStatus.PENDING,
+                AppointmentStatus.CONFIRMED,
+            ):
+                continue
+            if starts_at < existing.ends_at and ends_at > existing.starts_at:
+                raise ExclusionViolation("Overlapping appointment")
+
         appointment = make_appointment(
             appointment_id=self._next_id,
             client_user_id=client_user_id,
@@ -211,6 +282,24 @@ class FakeAppointmentsRepository:
             key=lambda item: item.starts_at,
         )
 
+    async def list_by_master(
+            self,
+            *,
+            master_user_id: int,
+            from_dt: datetime | None = None,
+            to_dt: datetime | None = None,
+    ) -> list[Appointment]:
+        result = []
+        for appointment in self._appointments.values():
+            if appointment.master_user_id != master_user_id:
+                continue
+            if from_dt is not None and appointment.starts_at < from_dt:
+                continue
+            if to_dt is not None and appointment.starts_at >= to_dt:
+                continue
+            result.append(appointment)
+        return sorted(result, key=lambda item: item.starts_at)
+
     async def change_status(
             self,
             *,
@@ -231,6 +320,9 @@ def make_repos(
         slots: list[Slot] | None = None,
         appointments: list[Appointment] | None = None,
         taken_slot_ids: set[int] | None = None,
+        settings: MasterSettings | None = None,
+        working_hours: list[WorkingHours] | None = None,
+        time_offs: list[TimeOff] | None = None,
 ) -> Repositories:
     slots = slots or []
     return Repositories(
@@ -247,7 +339,16 @@ def make_repos(
             AppointmentsRepository,
             FakeAppointmentsRepository(appointments or [], slots),
         ),
-        master_settings=cast(MasterSettingsRepository, None),
-        working_hours=cast(WorkingHoursRepository, None),
-        time_off=cast(TimeOffRepository, None),
+        master_settings=cast(
+            MasterSettingsRepository,
+            FakeMasterSettingsRepository(settings),
+        ),
+        working_hours=cast(
+            WorkingHoursRepository,
+            FakeWorkingHoursRepository(working_hours or []),
+        ),
+        time_off=cast(
+            TimeOffRepository,
+            FakeTimeOffRepository(time_offs or []),
+        ),
     )

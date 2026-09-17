@@ -40,3 +40,7 @@ class InvalidAppointmentStatus(DomainError):
 
 class ForbiddenBookingAction(DomainError):
     pass
+
+
+class WindowNotAvailable(DomainError):
+    pass
