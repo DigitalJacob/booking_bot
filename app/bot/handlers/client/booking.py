@@ -93,7 +93,7 @@ async def _show_windows(
         bot_timezone: str,
 ) -> None:
     await message.edit_text(
-        text=i18n.get("book_choose_slot"),
+        text=i18n.get("book_choose_window"),
         reply_markup=get_windows_kb(
             windows=windows,
             i18n=i18n,
@@ -205,7 +205,7 @@ async def process_service_choice(
     days = _unique_days(windows, bot_timezone)
     if not days:
         await callback.answer()
-        await callback.message.edit_text(text=i18n.get("book_no_slots"))
+        await callback.message.edit_text(text=i18n.get("book_no_windows"))
         await state.clear()
         return
 
@@ -246,13 +246,13 @@ async def process_day_choice(
     )
     if not windows:
         await callback.answer(
-            text=i18n.get("book_no_slots"),
+            text=i18n.get("book_no_windows"),
             show_alert=True,
         )
         return
 
     await state.update_data(day=day.isoformat())
-    await state.set_state(BookingSG.choosing_slot)
+    await state.set_state(BookingSG.choosing_window)
     await _show_windows(
         message=callback.message,
         windows=windows,
@@ -264,9 +264,9 @@ async def process_day_choice(
 
 @booking_router.callback_query(
     WindowCallback.filter(),
-    StateFilter(BookingSG.choosing_slot),
+    StateFilter(BookingSG.choosing_window),
 )
-async def process_slot_choice(
+async def process_window_choice(
         callback: CallbackQuery,
         callback_data: WindowCallback,
         i18n: dict[str, str],
@@ -307,7 +307,7 @@ async def process_slot_choice(
     )
     if match is None:
         await callback.answer(
-            text=i18n.get("book_slot_not_found"),
+            text=i18n.get("book_window_not_found"),
             show_alert=True,
         )
         return
@@ -356,7 +356,7 @@ async def process_confirm(
         )
     except (SlotTaken, WindowNotAvailable):
         await callback.answer(
-            text=i18n.get("book_slot_taken"),
+            text=i18n.get("book_window_taken"),
             show_alert=True
         )
         return
@@ -436,7 +436,7 @@ async def process_back(
         await callback.answer()
         return
 
-    if current == BookingSG.choosing_slot.state:
+    if current == BookingSG.choosing_window.state:
         windows = await booking.list_available_windows(
             master_user_id=master_user_id,
             duration_minutes=fsm_data["service_duration"],
@@ -445,7 +445,7 @@ async def process_back(
         await state.set_state(BookingSG.choosing_day)
         await state.update_data(day=None, starts_at=None)
         if not days:
-            await callback.message.edit_text(text=i18n.get("book_no_slots"))
+            await callback.message.edit_text(text=i18n.get("book_no_windows"))
             await state.clear()
         else:
             await _show_days(message=callback.message, days=days, i18n=i18n)
@@ -462,10 +462,10 @@ async def process_back(
             day,
             bot_timezone,
         )
-        await state.set_state(BookingSG.choosing_slot)
+        await state.set_state(BookingSG.choosing_window)
         await state.update_data(starts_at=None)
         if not windows:
-            await callback.answer(text=i18n.get("book_no_slots"), show_alert=True)
+            await callback.answer(text=i18n.get("book_no_windows"), show_alert=True)
             return
         await _show_windows(
             message=callback.message,

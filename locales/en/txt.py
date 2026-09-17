@@ -96,7 +96,7 @@ EN: dict[str, str] = {
     "/book_description": "Book an appointment",
     "book_choose_service": "Choose a service",
     "book_choose_day": "Choose a day",
-    "book_choose_slot": "Choose a time",
+    "book_choose_window": "Choose a time",
     "book_confirm": (
         "Please confirm your appointment:\n\n"
         "Service: {title}\n"
@@ -108,18 +108,16 @@ EN: dict[str, str] = {
     "book_ok": "You are booked. Status: waiting for the specialist to confirm.",
     "book_cancelled": "Booking cancelled.",
     "book_no_services": "No services are available right now.",
-    "book_no_slots": "No free slots. Choose another day or service.",
+    "book_no_windows": "No available times. Choose another day or service.",
     "book_use_buttons": "Please use the buttons below.",
     "book_back_button": "← Back",
     "book_cancel_button": "Cancel",
     "book_confirm_button": "Book",
     "service_button": "{title} · {duration} min",
-    "book_slot_taken": "This slot is already taken. Please choose another time.",
-    "book_slot_past": "This time has already passed.",
-    "book_slot_not_found": "Slot not found.",
+    "book_window_taken": "This time is already taken. Please choose another.",
+    "book_window_not_found": "This time is no longer available.",
     "book_service_inactive": "This service is no longer available.",
     "book_service_not_found": "Service not found.",
-    "book_mismatch": "This slot cannot be booked with the selected service.",
     "book_need_start": "Please send /start first",
     "/today_description": "Today's appointments",
     "master_today_header": "📅 Today's appointments:",
@@ -208,7 +206,6 @@ EN: dict[str, str] = {
     "add_service_ok": "Service added: {title}, {duration} min, {price}.",
     "add_service_cancelled": "Adding a service was cancelled.",
     "/add_service_description": "Add a service",
-    "book_slot_too_short": "This slot is shorter than the service duration. Choose another time.",
     "/my_bookings_description": "My appointments",
     "my_bookings_header": "🗓 Your appointments:",
     "my_bookings_empty": (

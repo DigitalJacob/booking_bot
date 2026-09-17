@@ -8,7 +8,7 @@ class LangSG(StatesGroup):
 class BookingSG(StatesGroup):
     choosing_service = State()
     choosing_day = State()
-    choosing_slot = State()
+    choosing_window = State()
     confirming = State()
 
 
