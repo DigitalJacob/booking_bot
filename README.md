@@ -10,8 +10,8 @@
 
 A Telegram bot that runs appointment booking for a small service business — a barber,
 a nail studio, a private tutor. Clients leave a short contact profile once, pick a
-service, see only the time slots that actually fit it, and book in a few taps. The
-master manages services and a weekly schedule, sees the client's name and phone on every card, and
+service, see only the times that actually fit it, and book in a few taps. The
+master manages services, a weekly schedule and time off, sees the client's name and phone on every card, and
 confirms or declines either from `/today` or straight from the new-booking
 notification. Both sides get notified on every status change.
 
@@ -20,18 +20,18 @@ and covered by unit tests.
 
 ## Tech Stack
 
-| Technology                  | Purpose                                                        |
-|-----------------------------|----------------------------------------------------------------|
-| **Python 3.13**             | Core language                                                  |
-| **aiogram 3.20**            | Telegram Bot API framework                                     |
-| **PostgreSQL 17**           | Persistent storage for users, services, slots and appointments |
-| **Redis 7.4**               | FSM state storage for multi-step dialogs                       |
-| **psycopg 3**               | Async PostgreSQL driver with connection pooling                |
-| **Docker Compose**          | Runs the bot and all infrastructure services                   |
-| **pytest / pytest-asyncio** | Unit tests for the domain layer                                |
-| **pgAdmin**                 | Visual database management                                     |
-| **environs**                | Typed environment variable parsing                             |
-| **aiohttp-socks**           | Optional HTTP/SOCKS5 proxy for the Telegram session            |
+| Technology                  | Purpose                                                           |
+|-----------------------------|-------------------------------------------------------------------|
+| **Python 3.13**             | Core language                                                     |
+| **aiogram 3.20**            | Telegram Bot API framework                                        |
+| **PostgreSQL 17**           | Persistent storage for users, services, schedule and appointments |
+| **Redis 7.4**               | FSM state storage for multi-step dialogs                          |
+| **psycopg 3**               | Async PostgreSQL driver with connection pooling                   |
+| **Docker Compose**          | Runs the bot and all infrastructure services                      |
+| **pytest / pytest-asyncio** | Unit tests for the domain layer                                   |
+| **pgAdmin**                 | Visual database management                                        |
+| **environs**                | Typed environment variable parsing                                |
+| **aiohttp-socks**           | Optional HTTP/SOCKS5 proxy for the Telegram session               |
 
 ## Architecture
 
@@ -41,10 +41,10 @@ outer layers know about inner ones, never the reverse.
 ```
 app/
 ├── domain/           # Business logic. No aiogram, no SQL, no I/O.
-│   ├── models/       # Immutable dataclasses: User, Service, Slot, Appointment
+│   ├── models/       # Immutable dataclasses: User, Service, Appointment
 │   ├── enums/        # UserRole, AppointmentStatus
-│   ├── exceptions.py # SlotTaken, SlotTooShort, ForbiddenBookingAction, ...
-│   └── services/     # BookingService — all booking rules live here
+│   ├── exceptions.py # TimeConflict, WindowNotAvailable, ForbiddenBookingAction, ...
+│   └── services/     # BookingService, AvailabilityService
 │
 ├── infrastructure/   # Everything that talks to the outside world.
 │   └── database/     # Connection pool and repositories (raw SQL only)
@@ -64,7 +64,7 @@ rules testable without a database, a Redis instance or a Telegram token: the tes
 suite swaps in in-memory fakes and runs in well under a second.
 
 Repositories hold **only** SQL. Handlers hold **only** dialog flow and formatting.
-A rule like "a slot must be long enough for the chosen service" is written once, in
+A rule like "only free windows from the master's schedule are offered" is written once, in
 the domain, and applies no matter which handler triggers it.
 
 Each update is wrapped in a single database transaction by `DataBaseMiddleware`, so a
@@ -77,8 +77,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Contact profile** — first name, last name and phone collected once before the
   first booking, via a share-contact button or manual input; editable later
 - **Guided booking** — step-by-step dialog: service → day → time → confirmation
-- **Only bookable slots are shown** — slots shorter than the chosen service, already
-  taken, or in the past are filtered out before the client ever sees them
+- **Only bookable times are shown** — windows outside working hours, blocked by
+  time off, already taken, or in the past are filtered out before the client sees them
 - **`/my_bookings`** — upcoming appointments with their current status
 - **Self-service cancellation** — cancel your own booking; the master is notified
 - **Status notifications** — a message arrives when the master confirms or declines
@@ -91,17 +91,18 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **One-tap confirm / decline** — from `/today` or directly from the new-booking
   message; the keyboard is removed after the action, so a finished card cannot be
   tapped twice by accident
-- **Past appointments are read-only** — once the slot has ended the action buttons
+- **Past appointments are read-only** — once the appointment has ended the action buttons
   disappear and the card is marked as past, and a stale button is rejected server-side
 - **Service catalogue** — title, duration and price per service, with soft
   deactivation instead of deletion
-- **Weekly schedule** — weekly schedule via /schedule
+- **Weekly schedule** — `/schedule` for repeating working hours
+- **Time off** — `/time_off` to block full days (vacation, days off)
 
 ### For admins
 
 - **User lookup and moderation** — `/user`, `/set_role`, `/ban` and `/unban` all accept
   either a numeric id or `@username`; `/user` shows the contact profile when filled in
-- **Shadow ban** — banned users get no reply at all, so they cannot tell they were
+- **Shadowban** — banned users get no reply at all, so they cannot tell they were
   blocked and cannot probe the bot for a reaction
 - **Guard rails** — an admin cannot ban themselves, demote themselves, or ban other staff
 - **Live menu refresh** — the affected user's command menu updates on role change
@@ -115,8 +116,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
   available without it
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
   admin lookups by username keep working
-- **Concurrency safety** — a database unique constraint, not an application check,
-  guarantees two clients can never take the same slot
+- **Concurrency safety** — a database exclusion constraint, not an application check,
+  guarantees two clients can never book overlapping times for the same master
 - **UTC everywhere** — all timestamps stored as `TIMESTAMPTZ`
 - **Structured logging** with a configurable level and rotating Docker log files
 
@@ -240,20 +241,20 @@ Keep `POSTGRES_HOST=localhost` and `REDIS_HOST=localhost` in `.env` for this mod
 
 All settings come from `.env`. Start from `.env.example`.
 
-| Variable                                                              | Description                                                                           |
-|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| `BOT_TOKEN`                                                           | Telegram bot token from [@BotFather](https://t.me/BotFather)                          |
-| `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                 |
-| `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                             |
-| `TIMEZONE`                                                            | IANA timezone for display and slot input (default `Europe/Moscow`); storage stays UTC |
-| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                        |
-| `LOG_FORMAT`                                                          | Python logging format string                                                          |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                  |
-| `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                    |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                      |
-| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                     |
-| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                        |
-| `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                       |
+| Variable                                                              | Description                                                                                     |
+|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `BOT_TOKEN`                                                           | Telegram bot token from [@BotFather](https://t.me/BotFather)                                    |
+| `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                           |
+| `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                                       |
+| `TIMEZONE`                                                            | IANA timezone for display and local schedule input (default `Europe/Moscow`); storage stays UTC |
+| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                  |
+| `LOG_FORMAT`                                                          | Python logging format string                                                                    |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                            |
+| `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                              |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                                |
+| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                               |
+| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                  |
+| `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                                 |
 
 ### Optional: proxy
 
@@ -280,22 +281,20 @@ on startup.
 |-------------------|-------------------------------------------------------------------------------------------------|
 | `users`           | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone) |
 | `services`        | Master's offerings: title, duration, price, active flag                                         |
-| `slots`           | Bookable time ranges owned by a master                                                          |
-| `appointments`    | Client, service, optional slot link, status, and concrete time range                            |
+| `appointments`    | Client, service, status, and concrete time range (`starts_at` / `ends_at`)                      |
 | `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon                              |
 | `working_hours`   | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                     |
 | `time_off`        | Absolute blocked intervals (day off, break, vacation) per master                                |
 
 `appointments.status` is one of `pending`, `confirmed`, `cancelled`.
 
-Double booking on a legacy slot is still blocked by a partial unique index on
-`slot_id` (only where `slot_id IS NOT NULL` and status is `pending` or
-`confirmed`). Schedule-based bookings omit `slot_id` (`NULL`).
+Appointments store `starts_at` / `ends_at`. Active appointments for the same master
+cannot overlap in time: a GiST `EXCLUDE` on `tstzrange(starts_at, ends_at, '[)')`
+enforces that.
 
-Appointments always store `starts_at` / `ends_at`. Active appointments for the
-same master cannot overlap in time: a GiST `EXCLUDE` on
-`tstzrange(starts_at, ends_at, '[)')` enforces that for every booking, with or
-without a slot.
+Availability for `/book` is computed from `working_hours`, minus `time_off` and
+existing appointments (`AvailabilityService`), using `master_settings` for step, gap,
+lead time and horizon.
 
 `master_settings.gap_minutes` defaults to `0` (back-to-back). `slot_step_minutes` is
 `NULL` until customized and means “step equals the chosen service duration”.
@@ -331,14 +330,12 @@ pytest
 ```
 
 ```
-...................                                       [100%]
-19 passed in 0.16s
+.....................                                       [100%]
+21 passed in 0.16s
 ```
 
-The suite covers the rules in `BookingService`: rejecting inactive or unknown
-services, slots that are taken, in the past, owned by another master or too short for
-the chosen service; the confirm and cancel transitions with their permission checks;
-and the filtering behind the available-slot and client-appointment listings.
+The suite covers `BookingService` and `AvailabilityService`: window booking rules,
+confirm and cancel transitions with permission checks, and client appointment listing filters.
 
 ## Project Structure
 
@@ -370,9 +367,8 @@ booking_bot/
 ## Roadmap
 
 - Per-master timezone setting (today: bot-wide `TIMEZONE` in `.env`)
-- Working-hours scheduling — generate availability from a daily schedule and
-  time-off blocks, replacing manually created slots
-- Editing and deactivating services and slots from the bot
+- Editing and deactivating services from the bot
+- Partial-day time off (hours, not only full days)
 - Multi-master support, letting clients pick a master first
 - Appointment reminders ahead of the scheduled time
 - Per-language service titles set by the master
@@ -387,3 +383,5 @@ Have ideas or found a bug? Open a GitHub Issue.
 ## License
 
 MIT License — free to use, modify, and distribute. See [LICENSE](LICENSE).
+
+Made with ❤️ by [DigitalJacob](https://github.com/DigitalJacob)
