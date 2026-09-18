@@ -8,7 +8,7 @@ from app.domain.models import TimeOff
 
 
 class TimeOffNavCallback(CallbackData, prefix="toff"):
-    action: str  # add | close
+    action: str  # add | close | cancel
 
 
 def format_time_off_line(
