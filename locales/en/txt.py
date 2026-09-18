@@ -15,6 +15,7 @@ EN: dict[str, str] = {
         "Commands:\n"
         "/today — today's appointments\n"
         "/schedule — weekly working hours\n"
+        "/time_off — days off / absences\n"
         "/services — my services\n"
         "/add_service — add a service\n"
         "/lang — interface language\n"
@@ -47,6 +48,7 @@ EN: dict[str, str] = {
         "You are a specialist. Booking management:\n\n"
         "/today — today's appointments (confirm / cancel)\n"
         "/schedule — weekly working hours\n"
+        "/time_off — block days off (absences)\n"
         "/services — list of services\n"
         "/add_service — add a service\n"
         "/lang — interface language\n"
@@ -303,4 +305,14 @@ EN: dict[str, str] = {
     "schedule_confirm_no": "No",
     "schedule_deleted": "Interval removed.",
     "schedule_delete_not_found": "Interval not found.",
+    "/time_off_description": "Time off / absences",
+    "time_off_header": "🚫 Upcoming time off:",
+    "time_off_list_item": "• {when}{note}",
+    "time_off_empty": (
+        "No upcoming time off.\n\n"
+        "Block days with the button below."
+    ),
+    "time_off_add_button": "➕ Add",
+    "time_off_close_button": "Close",
+    "time_off_closed": "Time off list closed.",
 }

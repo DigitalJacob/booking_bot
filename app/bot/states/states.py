@@ -28,3 +28,8 @@ class ScheduleSG(StatesGroup):
     starts_time = State()
     ends_time = State()
     weekdays = State()
+
+
+class TimeOffSG(StatesGroup):
+    starts_date = State()
+    ends_date = State()

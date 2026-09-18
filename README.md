@@ -135,7 +135,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
 | `/services`                        | master          | List your services                                        |
 | `/add_service`                     | master          | Add a service (title, duration, price)                    |
 | `/schedule`                        | master          | Weekly working hours (add / delete intervals)             |
-| `/cancel`                          | master / client | Abort `/add_service`, `/schedule` or profile setup        |
+| `/time_off`                        | master          | Upcoming absences (full days off)                         |
+| `/cancel`                          | master / client | Abort service / schedule / time off / profile setup       |
 | `/user <id\|@username>`            | admin           | Show a user card                                          |
 | `/set_role <id\|@username> <role>` | admin           | Change a user's role                                      |
 | `/ban <id\|@username>`             | admin           | Ban a user                                                |
@@ -148,7 +149,7 @@ Three roles, all stored in the database — nothing is hardcoded in the source.
 | Role      | Gets                                                                                  |
 |-----------|---------------------------------------------------------------------------------------|
 | `client`  | Contact profile, booking, and managing their own appointments. Default for new users. |
-| `master`  | Service catalogue, weekly schedule, and the daily appointment list.                   |
+| `master`  | Service catalogue, weekly schedule, time off, and the daily appointment list.         |
 | `admin`   | User management and role assignment, plus the client commands.                        |
 
 ### First run: bootstrapping the master

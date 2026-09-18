@@ -15,6 +15,7 @@ RU: dict[str, str] = {
         "Команды:\n"
         "/today — записи на сегодня\n"
         "/schedule — недельный график\n"
+        "/time_off — выходные / отсутствие\n"
         "/services — мои услуги\n"
         "/add_service — добавить услугу\n"
         "/lang — язык интерфейса\n"
@@ -47,6 +48,7 @@ RU: dict[str, str] = {
         "Вы мастер. Управление записью:\n\n"
         "/today — записи на сегодня (подтвердить / отменить)\n"
         "/schedule — недельный график\n"
+        "/time_off — выходные и отсутствие\n"
         "/services — список услуг\n"
         "/add_service — добавить услугу\n"
         "/lang — язык интерфейса\n"
@@ -303,4 +305,14 @@ RU: dict[str, str] = {
     "schedule_confirm_no": "Нет",
     "schedule_deleted": "Интервал удалён.",
     "schedule_delete_not_found": "Интервал не найден.",
+    "/time_off_description": "Выходные / отсутствие",
+    "time_off_header": "🚫 Ближайшие выходные:",
+    "time_off_list_item": "• {when}{note}",
+    "time_off_empty": (
+        "Ближайших выходных нет.\n\n"
+        "Заблокируйте дни кнопкой ниже."
+    ),
+    "time_off_add_button": "➕ Добавить",
+    "time_off_close_button": "Закрыть",
+    "time_off_closed": "Список выходных закрыт.",
 }
