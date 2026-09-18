@@ -322,4 +322,10 @@ EN: dict[str, str] = {
     "schedule_save_button": "Save",
     "schedule_back_button": "← Back",
     "schedule_cancel_button": "Cancel",
+    "schedule_delete_button": "🗑 {item}",
+    "schedule_confirm_delete": "Delete {item}?",
+    "schedule_confirm_yes": "Yes",
+    "schedule_confirm_no": "No",
+    "schedule_deleted": "Interval removed.",
+    "schedule_delete_not_found": "Interval not found.",
 }

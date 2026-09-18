@@ -10,9 +10,12 @@ from app.bot.states.states import ScheduleSG
 from app.bot.keyboards.schedule import (
     ScheduleNavCallback,
     ScheduleWeekdayCallback,
+    ScheduleDeleteCallback,
+    ScheduleConfirmCallback,
     get_weekdays_kb,
     format_interval_line,
     get_schedule_list_kb,
+    get_schedule_confirm_delete_kb,
     WEEKDAY_KEYS,
 )
 from app.domain.enums import UserRole
@@ -63,7 +66,7 @@ async def _show_schedule(
     else:
         text = i18n.get("schedule_empty")
 
-    kb = get_schedule_list_kb(i18n=i18n)
+    kb = get_schedule_list_kb(rows=rows, i18n=i18n)
     if edit:
         await message.edit_text(text=text, reply_markup=kb)
     else:
@@ -94,6 +97,84 @@ async def process_schedule_close(
         i18n: dict[str, str],
 ) -> None:
     await callback.message.edit_text(text=i18n.get("schedule_closed"))
+    await callback.answer()
+
+
+@schedule_router.callback_query(ScheduleDeleteCallback.filter())
+async def process_schedule_delete(
+        callback: CallbackQuery,
+        callback_data: ScheduleDeleteCallback,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    row = await repos.working_hours.get(
+        working_hours_id=callback_data.working_hours_id,
+    )
+    if row is None or row.master_user_id != user.user_id:
+        await callback.answer(
+            text=i18n.get("schedule_delete_not_found"),
+            show_alert=True,
+        )
+        return
+
+    item = format_interval_line(row, i18n).lstrip("• ").strip()
+    await callback.message.edit_text(
+        text=i18n.get("schedule_confirm_delete").format(item=item),
+        reply_markup=get_schedule_confirm_delete_kb(
+            working_hours_id=row.id,
+            i18n=i18n,
+        ),
+    )
+    await callback.answer()
+
+
+@schedule_router.callback_query(
+    ScheduleConfirmCallback.filter(F.action == "yes")
+)
+async def process_schedule_delete_yes(
+        callback: CallbackQuery,
+        callback_data: ScheduleConfirmCallback,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    deleted = await repos.working_hours.delete(
+        working_hours_id=callback_data.working_hours_id,
+        master_user_id=user.user_id,
+    )
+    if not deleted:
+        await callback.answer(
+            text=i18n.get("schedule_delete_not_found"),
+            show_alert=True,
+        )
+        return
+    await callback.answer(text=i18n.get("schedule_deleted"))
+    await _show_schedule(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=True,
+    )
+
+
+@schedule_router.callback_query(
+    ScheduleConfirmCallback.filter(F.action == "no")
+)
+async def process_schedule_delete_no(
+        callback: CallbackQuery,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    await _show_schedule(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=True,
+    )
     await callback.answer()
 
 

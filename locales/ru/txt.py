@@ -322,4 +322,10 @@ RU: dict[str, str] = {
     "schedule_save_button": "Сохранить",
     "schedule_back_button": "← Назад",
     "schedule_cancel_button": "Отмена",
+    "schedule_delete_button": "🗑 {item}",
+    "schedule_confirm_delete": "Удалить {item}?",
+    "schedule_confirm_yes": "Да",
+    "schedule_confirm_no": "Нет",
+    "schedule_deleted": "Интервал удалён.",
+    "schedule_delete_not_found": "Интервал не найден.",
 }

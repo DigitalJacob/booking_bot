@@ -23,6 +23,15 @@ class ScheduleWeekdayCallback(CallbackData, prefix="schwd"):
     weekday: int
 
 
+class ScheduleDeleteCallback(CallbackData, prefix="schdel"):
+    working_hours_id: int
+
+
+class ScheduleConfirmCallback(CallbackData, prefix="schcfm"):
+    working_hours_id: int
+    action: str  # yes | no
+
+
 def format_interval_line(
         row: WorkingHours,
         i18n: dict[str, str],
@@ -37,21 +46,68 @@ def format_interval_line(
     )
 
 
-def get_schedule_list_kb(*, i18n: dict[str, str]) -> InlineKeyboardMarkup:
+def get_schedule_list_kb(
+        *,
+        rows: list[WorkingHours],
+        i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
+    buttons: list[list[InlineKeyboardButton]] = []
+    for row in rows:
+        label = i18n.get("schedule_delete_button").format(
+            item=format_interval_line(row, i18n).lstrip("• ").strip(),
+        )
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=label,
+                    callback_data=ScheduleDeleteCallback(
+                        working_hours_id=row.id,
+                    ).pack(),
+                )
+            ]
+        )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("schedule_add_button"),
+                callback_data=ScheduleNavCallback(action="add").pack(),
+            )
+        ]
+    )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("schedule_close_button"),
+                callback_data=ScheduleNavCallback(action="close").pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_schedule_confirm_delete_kb(
+        *,
+        working_hours_id: int,
+        i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=i18n.get("schedule_add_button"),
-                    callback_data=ScheduleNavCallback(action="add").pack(),
-                )
-            ],
-            [
+                    text=i18n.get("schedule_confirm_yes"),
+                    callback_data=ScheduleConfirmCallback(
+                        working_hours_id=working_hours_id,
+                        action="yes",
+                    ).pack(),
+                ),
                 InlineKeyboardButton(
-                    text=i18n.get("schedule_close_button"),
-                    callback_data=ScheduleNavCallback(action="close").pack(),
-                )
-            ],
+                    text=i18n.get("schedule_confirm_no"),
+                    callback_data=ScheduleConfirmCallback(
+                        working_hours_id=working_hours_id,
+                        action="no",
+                    ).pack(),
+                ),
+            ]
         ]
     )
 
