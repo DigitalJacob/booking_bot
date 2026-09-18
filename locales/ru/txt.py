@@ -300,4 +300,26 @@ RU: dict[str, str] = {
     "schedule_weekday_5": "Пт",
     "schedule_weekday_6": "Сб",
     "schedule_weekday_7": "Вс",
+    "schedule_enter_starts": (
+        "Введите время начала ЧЧ:ММ\n"
+        "Пример: 09:00\n\n"
+        "Отмена: /cancel"
+    ),
+    "schedule_enter_ends": (
+        "Введите время окончания ЧЧ:ММ\n"
+        "Пример: 18:00\n\n"
+        "Отмена: /cancel"
+    ),
+    "schedule_choose_weekdays": (
+        "Выберите дни для {starts}–{ends}.\n"
+        "Нажмите день, чтобы отметить, затем «Сохранить»."
+    ),
+    "schedule_invalid_time": "Неверный формат времени. Используйте ЧЧ:ММ",
+    "schedule_invalid_range": "Время окончания должно быть позже начала.",
+    "schedule_need_weekday": "Выберите хотя бы один день.",
+    "schedule_add_ok": "Добавлено: {starts}–{ends} ({days}).",
+    "schedule_cancelled": "Редактирование графика отменено.",
+    "schedule_save_button": "Сохранить",
+    "schedule_back_button": "← Назад",
+    "schedule_cancel_button": "Отмена",
 }

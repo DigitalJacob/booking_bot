@@ -4,10 +4,6 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.domain.models import WorkingHours
 
 
-class ScheduleNavCallback(CallbackData, prefix="sch"):
-    action: str  # add | close | save | back | cancel
-
-
 WEEKDAY_KEYS = {
     1: "schedule_weekday_1",
     2: "schedule_weekday_2",
@@ -17,6 +13,14 @@ WEEKDAY_KEYS = {
     6: "schedule_weekday_6",
     7: "schedule_weekday_7",
 }
+
+
+class ScheduleNavCallback(CallbackData, prefix="sch"):
+    action: str  # add | close | save | back | cancel
+
+
+class ScheduleWeekdayCallback(CallbackData, prefix="schwd"):
+    weekday: int
 
 
 def format_interval_line(
@@ -50,3 +54,48 @@ def get_schedule_list_kb(*, i18n: dict[str, str]) -> InlineKeyboardMarkup:
             ],
         ]
     )
+
+
+def get_weekdays_kb(
+        *,
+        selected: set[int],
+        i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
+    buttons: list[list[InlineKeyboardButton]] = []
+    row: list[InlineKeyboardButton] = []
+    for weekday in range(1, 8):
+        mark = "✓ " if weekday in selected else ""
+        label = mark + i18n.get(WEEKDAY_KEYS[weekday])
+        row.append(
+            InlineKeyboardButton(
+                text=label,
+                callback_data=ScheduleWeekdayCallback(weekday=weekday).pack(),
+            )
+        )
+        if len(row) == 4:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("schedule_save_button"),
+                callback_data=ScheduleNavCallback(action="save").pack(),
+            )
+        ]
+    )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("schedule_back_button"),
+                callback_data=ScheduleNavCallback(action="back").pack(),
+            ),
+            InlineKeyboardButton(
+                text=i18n.get("schedule_cancel_button"),
+                callback_data=ScheduleNavCallback(action="cancel").pack(),
+            ),
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

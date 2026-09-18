@@ -300,4 +300,26 @@ EN: dict[str, str] = {
     "schedule_weekday_5": "Fri",
     "schedule_weekday_6": "Sat",
     "schedule_weekday_7": "Sun",
+    "schedule_enter_starts": (
+        "Enter the start time as HH:MM\n"
+        "Example: 09:00\n\n"
+        "Cancel: /cancel"
+    ),
+    "schedule_enter_ends": (
+        "Enter the end time as HH:MM\n"
+        "Example: 18:00\n\n"
+        "Cancel: /cancel"
+    ),
+    "schedule_choose_weekdays": (
+        "Select weekdays for {starts}–{ends}.\n"
+        "Tap a day to toggle, then Save."
+    ),
+    "schedule_invalid_time": "Invalid time format. Use HH:MM",
+    "schedule_invalid_range": "End time must be after start time.",
+    "schedule_need_weekday": "Select at least one weekday.",
+    "schedule_add_ok": "Added: {starts}–{ends} ({days}).",
+    "schedule_cancelled": "Schedule editing cancelled.",
+    "schedule_save_button": "Save",
+    "schedule_back_button": "← Back",
+    "schedule_cancel_button": "Cancel",
 }
