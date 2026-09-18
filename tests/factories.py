@@ -9,7 +9,6 @@ from app.domain.enums import AppointmentStatus
 from app.domain.models import (
     Appointment,
     Service,
-    Slot,
     MasterSettings,
     WorkingHours,
     TimeOff,
@@ -18,7 +17,6 @@ from app.infrastructure.database.repositories import (
     AppointmentsRepository,
     Repositories,
     ServicesRepository,
-    SlotsRepository,
     UsersRepository,
     MasterSettingsRepository,
     WorkingHoursRepository,
@@ -51,30 +49,12 @@ def make_service(
     )
 
 
-def make_slot(
-        *,
-        slot_id: int = 1,
-        master_user_id: int = MASTER_ID,
-        starts_in_hours: int = 2,
-        duration_minutes: int = 60,
-) -> Slot:
-    starts_at = NOW + timedelta(hours=starts_in_hours)
-    return Slot(
-        id=slot_id,
-        master_user_id=master_user_id,
-        starts_at=starts_at,
-        ends_at=starts_at + timedelta(minutes=duration_minutes),
-        created_at=NOW,
-    )
-
-
 def make_appointment(
         *,
         appointment_id: int = 1,
         client_user_id: int = CLIENT_ID,
         master_user_id: int = MASTER_ID,
         service_id: int = 1,
-        slot_id: int | None = 1,
         starts_at: datetime | None = None,
         ends_at: datetime | None = None,
         status: AppointmentStatus = AppointmentStatus.PENDING,
@@ -88,7 +68,6 @@ def make_appointment(
         client_user_id=client_user_id,
         master_user_id=master_user_id,
         service_id=service_id,
-        slot_id=slot_id,
         starts_at=starts_at,
         ends_at=ends_at,
         status=status,
@@ -114,34 +93,6 @@ class FakeServicesRepository:
             if service.master_user_id == master_user_id
             and (not active_only or service.is_active)
         ]
-
-
-class FakeSlotsRepository:
-    def __init__(
-            self,
-            slots: list[Slot],
-            taken_slot_ids: set[int] | None = None,
-    ) -> None:
-        self._slots = {slot.id: slot for slot in slots}
-        self._taken = taken_slot_ids or set()
-
-    async def get_slot(self, *, slot_id: int) -> Slot | None:
-        return self._slots.get(slot_id)
-
-    async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            available_only: bool = False,
-    ) -> list[Slot]:
-        result = [
-            slot for slot in self._slots.values()
-            if slot.master_user_id == master_user_id
-            and (from_dt is None or slot.starts_at >= from_dt)
-            and (not available_only or slot.id not in self._taken)
-        ]
-        return sorted(result, key=lambda slot: slot.starts_at)
 
 
 class FakeMasterSettingsRepository:
@@ -199,10 +150,8 @@ class FakeAppointmentsRepository:
     def __init__(
             self,
             appointments: list[Appointment],
-            slots: list[Slot] | None = None,
     ) -> None:
         self._appointments = {item.id: item for item in appointments}
-        self._slots = {slot.id: slot for slot in (slots or [])}
         self._next_id = max(self._appointments, default=0) + 1
 
     async def add_appointment(
@@ -211,7 +160,6 @@ class FakeAppointmentsRepository:
             client_user_id: int,
             master_user_id: int,
             service_id: int,
-            slot_id: int | None,
             starts_at: datetime,
             ends_at: datetime,
             status: AppointmentStatus = AppointmentStatus.PENDING,
@@ -232,7 +180,6 @@ class FakeAppointmentsRepository:
             client_user_id=client_user_id,
             master_user_id=master_user_id,
             service_id=service_id,
-            slot_id=slot_id,
             starts_at=starts_at,
             ends_at=ends_at,
             status=status,
@@ -247,19 +194,6 @@ class FakeAppointmentsRepository:
             appointment_id: int,
     ) -> Appointment | None:
         return self._appointments.get(appointment_id)
-
-    async def get_active_by_slot(
-            self,
-            *,
-            slot_id: int,
-    ) -> Appointment | None:
-        for appointment in self._appointments.values():
-            if appointment.slot_id == slot_id and appointment.status in (
-                AppointmentStatus.PENDING,
-                AppointmentStatus.CONFIRMED,
-            ):
-                return appointment
-        return None
 
     async def list_by_client(
             self,
@@ -317,27 +251,20 @@ class FakeAppointmentsRepository:
 def make_repos(
         *,
         services: list[Service] | None = None,
-        slots: list[Slot] | None = None,
         appointments: list[Appointment] | None = None,
-        taken_slot_ids: set[int] | None = None,
         settings: MasterSettings | None = None,
         working_hours: list[WorkingHours] | None = None,
         time_offs: list[TimeOff] | None = None,
 ) -> Repositories:
-    slots = slots or []
     return Repositories(
         users=cast(UsersRepository, None),
         services=cast(
             ServicesRepository,
             FakeServicesRepository(services or []),
         ),
-        slots=cast(
-            SlotsRepository,
-            FakeSlotsRepository(slots, taken_slot_ids),
-        ),
         appointments=cast(
             AppointmentsRepository,
-            FakeAppointmentsRepository(appointments or [], slots),
+            FakeAppointmentsRepository(appointments or []),
         ),
         master_settings=cast(
             MasterSettingsRepository,

@@ -21,7 +21,6 @@ class AppointmentsRepository:
             client_user_id: int,
             master_user_id: int,
             service_id: int,
-            slot_id: int | None,
             starts_at: datetime,
             ends_at: datetime,
             status: AppointmentStatus = AppointmentStatus.PENDING,
@@ -33,7 +32,6 @@ class AppointmentsRepository:
                         client_user_id,
                         master_user_id,
                         service_id,
-                        slot_id,
                         starts_at,
                         ends_at,
                         status
@@ -42,7 +40,6 @@ class AppointmentsRepository:
                         %(client_user_id)s,
                         %(master_user_id)s,
                         %(service_id)s,
-                        %(slot_id)s,
                         %(starts_at)s,
                         %(ends_at)s,
                         %(status)s
@@ -52,7 +49,6 @@ class AppointmentsRepository:
                         client_user_id,
                         master_user_id,
                         service_id,
-                        slot_id,
                         starts_at,
                         ends_at,
                         status,
@@ -62,7 +58,6 @@ class AppointmentsRepository:
                     "client_user_id": client_user_id,
                     "master_user_id": master_user_id,
                     "service_id": service_id,
-                    "slot_id": slot_id,
                     "starts_at": starts_at,
                     "ends_at": ends_at,
                     "status": status,
@@ -70,11 +65,10 @@ class AppointmentsRepository:
             )
             row = await cursor.fetchone()
         logger.info(
-            "Appointment added. client=%d, master=%d, service=%d, slot_id=%s, status=%s",
+            "Appointment added. client=%d, master=%d, service=%d, status=%s",
             client_user_id,
             master_user_id,
             service_id,
-            slot_id,
             status,
         )
         return Appointment.from_db_row(row)
@@ -93,7 +87,6 @@ class AppointmentsRepository:
                         client_user_id,
                         master_user_id,
                         service_id,
-                        slot_id,
                         starts_at,
                         ends_at,
                         status,
@@ -102,38 +95,6 @@ class AppointmentsRepository:
                     WHERE id = %s;
                 """,
                 params=(appointment_id, ),
-            )
-            row = await cursor.fetchone()
-        return Appointment.from_db_row(row) if row else None
-
-
-    async def get_active_by_slot(
-            self,
-            *,
-            slot_id: int,
-    ) -> Appointment | None:
-        async with self._conn.cursor(row_factory=dict_row) as cursor:
-            await cursor.execute(
-                query="""
-                    SELECT
-                        id,
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        slot_id,
-                        starts_at,
-                        ends_at,
-                        status,
-                        created_at
-                    FROM appointments
-                    WHERE slot_id = %s
-                        AND status IN (%s, %s);
-                """,
-                params=(
-                    slot_id,
-                    AppointmentStatus.PENDING,
-                    AppointmentStatus.CONFIRMED,
-                ),
             )
             row = await cursor.fetchone()
         return Appointment.from_db_row(row) if row else None
@@ -154,7 +115,6 @@ class AppointmentsRepository:
                         client_user_id,
                         master_user_id,
                         service_id,
-                        slot_id,
                         starts_at,
                         ends_at,
                         status,
@@ -190,7 +150,6 @@ class AppointmentsRepository:
                         client_user_id,
                         master_user_id,
                         service_id,
-                        slot_id,
                         starts_at,
                         ends_at,
                         status,
@@ -228,7 +187,6 @@ class AppointmentsRepository:
                         client_user_id,
                         master_user_id,
                         service_id,
-                        slot_id,
                         starts_at,
                         ends_at,
                         status,

@@ -20,8 +20,8 @@ from app.bot.states.states import BookingSG
 from app.domain.exceptions import (
     ServiceInactive,
     ServiceNotFound,
-    SlotTaken,
     WindowNotAvailable,
+    TimeConflict,
 )
 from app.domain.models import Service, TimeWindow, User
 from app.domain.services.booking import BookingService
@@ -354,7 +354,7 @@ async def process_confirm(
             service_id=fsm_data["service_id"],
             starts_at=datetime.fromisoformat(fsm_data["starts_at"]),
         )
-    except (SlotTaken, WindowNotAvailable):
+    except (TimeConflict, WindowNotAvailable):
         await callback.answer(
             text=i18n.get("book_window_taken"),
             show_alert=True

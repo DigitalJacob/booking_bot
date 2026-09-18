@@ -4,7 +4,6 @@ from psycopg import AsyncConnection
 
 from app.infrastructure.database.repositories.appointments import AppointmentsRepository
 from app.infrastructure.database.repositories.services import ServicesRepository
-from app.infrastructure.database.repositories.slots import SlotsRepository
 from app.infrastructure.database.repositories.users import UsersRepository
 from app.infrastructure.database.repositories.master_settings import (
     MasterSettingsRepository,
@@ -17,7 +16,6 @@ from app.infrastructure.database.repositories.time_off import TimeOffRepository
 class Repositories:
     users: UsersRepository
     services: ServicesRepository
-    slots: SlotsRepository
     appointments: AppointmentsRepository
     master_settings: MasterSettingsRepository
     working_hours: WorkingHoursRepository
@@ -28,7 +26,6 @@ class Repositories:
         return cls(
             users=UsersRepository(conn),
             services=ServicesRepository(conn),
-            slots=SlotsRepository(conn),
             appointments=AppointmentsRepository(conn),
             master_settings=MasterSettingsRepository(conn),
             working_hours=WorkingHoursRepository(conn),
@@ -40,7 +37,6 @@ __all__ = [
     "AppointmentsRepository",
     "Repositories",
     "ServicesRepository",
-    "SlotsRepository",
     "UsersRepository",
     "MasterSettingsRepository",
     "WorkingHoursRepository",

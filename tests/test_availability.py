@@ -16,7 +16,6 @@ from app.infrastructure.database.repositories import (
     MasterSettingsRepository,
     Repositories,
     ServicesRepository,
-    SlotsRepository,
     TimeOffRepository,
     UsersRepository,
     WorkingHoursRepository,
@@ -77,7 +76,6 @@ def _appointment(
         client_user_id=200,
         master_user_id=MASTER_ID,
         service_id=1,
-        slot_id=1,
         starts_at=starts_at,
         ends_at=ends_at,
         status=status,
@@ -185,7 +183,6 @@ def make_availability_repos(
     return Repositories(
         users=cast(UsersRepository, None),
         services=cast(ServicesRepository, None),
-        slots=cast(SlotsRepository, None),
         appointments=cast(
             AppointmentsRepository,
             FakeAppointmentsRepository(appointments or []),

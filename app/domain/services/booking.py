@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from psycopg.errors import UniqueViolation, ExclusionViolation
 
@@ -10,14 +10,10 @@ from app.domain.exceptions import (
     InvalidAppointmentStatus,
     ServiceInactive,
     ServiceNotFound,
-    SlotInThePast,
-    SlotMasterMismatch,
-    SlotNotFound,
-    SlotTaken,
-    SlotTooShort,
     WindowNotAvailable,
+    TimeConflict,
 )
-from app.domain.models import Appointment, Service, Slot, TimeWindow
+from app.domain.models import Appointment, Service, TimeWindow
 from app.infrastructure.database.repositories import Repositories
 from app.domain.services.availability import AvailabilityService
 
@@ -34,30 +30,6 @@ class BookingService:
             master_user_id=master_user_id,
             active_only=True,
         )
-
-    async def list_available_slots(
-            self,
-            *,
-            master_user_id: int,
-            now: datetime | None = None,
-            min_duration_minutes: int | None = None,
-    ) -> list[Slot]:
-        if now is None:
-            now = datetime.now(timezone.utc)
-
-        slots = await self._repos.slots.list_by_master(
-            master_user_id=master_user_id,
-            from_dt=now,
-            available_only=True,
-        )
-        if min_duration_minutes is None:
-            return slots
-
-        required = timedelta(minutes=min_duration_minutes)
-        return [
-            slot for slot in slots
-            if slot.ends_at - slot.starts_at >= required
-        ]
 
     async def list_available_windows(
             self,
@@ -113,13 +85,12 @@ class BookingService:
                 client_user_id=client_user_id,
                 master_user_id=service.master_user_id,
                 service_id=service_id,
-                slot_id=None,
                 starts_at=match.starts_at,
                 ends_at=match.ends_at,
                 status=AppointmentStatus.PENDING,
             )
         except (UniqueViolation, ExclusionViolation) as e:
-            raise SlotTaken from e
+            raise TimeConflict from e
 
         logger.info(
             "Booked appointment %d via window: client=%d, master=%d, starts_at=%s",
@@ -150,59 +121,6 @@ class BookingService:
                 AppointmentStatus.CONFIRMED,
             )
         ]
-
-    async def book(
-            self,
-            *,
-            client_user_id: int,
-            service_id: int,
-            slot_id: int,
-            now: datetime | None = None
-    ) -> Appointment:
-        if now is None:
-            now = datetime.now(timezone.utc)
-
-        service = await self._repos.services.get_service(service_id=service_id)
-        if service is None:
-            raise ServiceNotFound
-        if not service.is_active:
-            raise ServiceInactive
-
-        slot = await self._repos.slots.get_slot(slot_id=slot_id)
-        if slot is None:
-            raise SlotNotFound
-        if slot.master_user_id != service.master_user_id:
-            raise SlotMasterMismatch
-        if slot.starts_at <= now:
-            raise SlotInThePast
-        if slot.ends_at - slot.starts_at < timedelta(minutes=service.duration_minutes):
-            raise SlotTooShort
-
-        taken = await self._repos.appointments.get_active_by_slot(slot_id=slot_id)
-        if taken is not None:
-            raise SlotTaken
-
-        try:
-            appointment = await self._repos.appointments.add_appointment(
-                client_user_id=client_user_id,
-                master_user_id=slot.master_user_id,
-                service_id=service_id,
-                slot_id=slot_id,
-                starts_at=slot.starts_at,
-                ends_at=slot.ends_at,
-                status=AppointmentStatus.PENDING,
-            )
-        except (UniqueViolation, ExclusionViolation) as e:
-            raise SlotTaken from e
-
-        logger.info(
-            "Booked appointment %d: client=%d, master=%d, slot=%d",
-            appointment.id,
-            client_user_id,
-            slot.master_user_id,
-            slot.id,
-        )
-        return appointment
 
     async def confirm(
             self,
