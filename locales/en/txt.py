@@ -15,7 +15,6 @@ EN: dict[str, str] = {
         "Commands:\n"
         "/today — today's appointments\n"
         "/schedule — weekly working hours\n"
-        "/add_slot — add a time slot\n"
         "/services — my services\n"
         "/add_service — add a service\n"
         "/lang — interface language\n"
@@ -48,7 +47,6 @@ EN: dict[str, str] = {
         "You are a specialist. Booking management:\n\n"
         "/today — today's appointments (confirm / cancel)\n"
         "/schedule — weekly working hours\n"
-        "/add_slot — add a free time slot\n"
         "/services — list of services\n"
         "/add_service — add a service\n"
         "/lang — interface language\n"
@@ -153,29 +151,6 @@ EN: dict[str, str] = {
         "Phone: {client_phone}\n\n"
         "Today's appointments: /today"
     ),
-    "/add_slot_description": "Add a time slot",
-    "add_slot_enter_date": (
-        "Enter the slot date as DD.MM.YYYY\n"
-        "Example: 05.09.2026\n\n"
-        "Cancel: /cancel"
-    ),
-    "add_slot_enter_time": (
-        "Enter the start time as HH:MM\n"
-        "Example: 14:30\n\n"
-        "Cancel: /cancel"
-    ),
-    "add_slot_enter_duration": (
-        "Enter the slot duration in minutes\n"
-        "Example: 60\n\n"
-        "Cancel: /cancel"
-    ),
-    "add_slot_invalid_date": "Invalid date format. Use DD.MM.YYYY",
-    "add_slot_invalid_time": "Invalid time format. Use HH:MM",
-    "add_slot_invalid_duration": "Enter a whole number of minutes greater than 0",
-    "add_slot_past": "Cannot create a slot in the past. Enter another date or time.",
-    "add_slot_duplicate": "A slot at this time already exists.",
-    "add_slot_ok": "Slot created: {when}, duration {duration} min.",
-    "add_slot_cancelled": "Adding a slot was cancelled.",
     "/services_description": "My services",
     "services_list_header": "📋 Your services:",
     "services_list_item": "• {title} — {duration} min, {price} ({status})",

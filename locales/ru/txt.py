@@ -15,7 +15,6 @@ RU: dict[str, str] = {
         "Команды:\n"
         "/today — записи на сегодня\n"
         "/schedule — недельный график\n"
-        "/add_slot — добавить слот\n"
         "/services — мои услуги\n"
         "/add_service — добавить услугу\n"
         "/lang — язык интерфейса\n"
@@ -48,7 +47,6 @@ RU: dict[str, str] = {
         "Вы мастер. Управление записью:\n\n"
         "/today — записи на сегодня (подтвердить / отменить)\n"
         "/schedule — недельный график\n"
-        "/add_slot — добавить свободный слот\n"
         "/services — список услуг\n"
         "/add_service — добавить услугу\n"
         "/lang — язык интерфейса\n"
@@ -153,29 +151,6 @@ RU: dict[str, str] = {
         "Телефон: {client_phone}\n\n"
         "Записи на сегодня: /today"
     ),
-    "/add_slot_description": "Добавить слот",
-    "add_slot_enter_date": (
-        "Введите дату слота в формате ДД.ММ.ГГГГ\n"
-        "Например: 05.09.2026\n\n"
-        "Отмена: /cancel"
-    ),
-    "add_slot_enter_time": (
-        "Введите время начала в формате ЧЧ:ММ\n"
-        "Например: 14:30\n\n"
-        "Отмена: /cancel"
-    ),
-    "add_slot_enter_duration": (
-        "Введите длительность слота в минутах\n"
-        "Например: 60\n\n"
-        "Отмена: /cancel"
-    ),
-    "add_slot_invalid_date": "Неверный формат даты. Используйте ДД.ММ.ГГГГ",
-    "add_slot_invalid_time": "Неверный формат времени. Используйте ЧЧ:ММ",
-    "add_slot_invalid_duration": "Введите целое число минут больше 0",
-    "add_slot_past": "Нельзя создать слот в прошлом. Введите другую дату или время.",
-    "add_slot_duplicate": "Слот на это время уже существует.",
-    "add_slot_ok": "Слот создан: {when}, длительность {duration} мин.",
-    "add_slot_cancelled": "Добавление слота отменено.",
     "/services_description": "Мои услуги",
     "services_list_header": "📋 Ваши услуги:",
     "services_list_item": "• {title} — {duration} мин, {price} ({status})",

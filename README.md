@@ -11,7 +11,7 @@
 A Telegram bot that runs appointment booking for a small service business — a barber,
 a nail studio, a private tutor. Clients leave a short contact profile once, pick a
 service, see only the time slots that actually fit it, and book in a few taps. The
-master manages services and slots, sees the client's name and phone on every card, and
+master manages services and a weekly schedule, sees the client's name and phone on every card, and
 confirms or declines either from `/today` or straight from the new-booking
 notification. Both sides get notified on every status change.
 
@@ -20,18 +20,18 @@ and covered by unit tests.
 
 ## Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| **Python 3.13** | Core language |
-| **aiogram 3.20** | Telegram Bot API framework |
-| **PostgreSQL 17** | Persistent storage for users, services, slots and appointments |
-| **Redis 7.4** | FSM state storage for multi-step dialogs |
-| **psycopg 3** | Async PostgreSQL driver with connection pooling |
-| **Docker Compose** | Runs the bot and all infrastructure services |
-| **pytest / pytest-asyncio** | Unit tests for the domain layer |
-| **pgAdmin** | Visual database management |
-| **environs** | Typed environment variable parsing |
-| **aiohttp-socks** | Optional HTTP/SOCKS5 proxy for the Telegram session |
+| Technology                  | Purpose                                                        |
+|-----------------------------|----------------------------------------------------------------|
+| **Python 3.13**             | Core language                                                  |
+| **aiogram 3.20**            | Telegram Bot API framework                                     |
+| **PostgreSQL 17**           | Persistent storage for users, services, slots and appointments |
+| **Redis 7.4**               | FSM state storage for multi-step dialogs                       |
+| **psycopg 3**               | Async PostgreSQL driver with connection pooling                |
+| **Docker Compose**          | Runs the bot and all infrastructure services                   |
+| **pytest / pytest-asyncio** | Unit tests for the domain layer                                |
+| **pgAdmin**                 | Visual database management                                     |
+| **environs**                | Typed environment variable parsing                             |
+| **aiohttp-socks**           | Optional HTTP/SOCKS5 proxy for the Telegram session            |
 
 ## Architecture
 
@@ -95,7 +95,7 @@ failure halfway through a booking cannot leave a half-written appointment behind
   disappear and the card is marked as past, and a stale button is rejected server-side
 - **Service catalogue** — title, duration and price per service, with soft
   deactivation instead of deletion
-- **Time slot management** — open slots by date, start time and duration
+- **Weekly schedule** — weekly schedule via /schedule
 
 ### For admins
 
@@ -122,34 +122,34 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ## Commands
 
-| Command | Role | Description |
-|---------|------|-------------|
-| `/start` | everyone | Register, get the role-specific greeting and menu |
-| `/help` | everyone | Command reference for your role |
-| `/lang` | everyone | Switch interface language (RU / EN) |
-| `/book` | client | Book an appointment (asks for the profile first if empty) |
-| `/my_bookings` | client | View and cancel your upcoming appointments |
-| `/profile` | client | Show your contact profile |
-| `/edit_profile` | client | Update your name and phone |
-| `/today` | master | Today's appointments with confirm / decline actions |
-| `/services` | master | List your services |
-| `/add_service` | master | Add a service (title, duration, price) |
-| `/add_slot` | master | Open a time slot (date, start time, duration) |
-| `/cancel` | master / client | Abort `/add_service`, `/add_slot` or profile setup |
-| `/user <id\|@username>` | admin | Show a user card |
-| `/set_role <id\|@username> <role>` | admin | Change a user's role |
-| `/ban <id\|@username>` | admin | Ban a user |
-| `/unban <id\|@username>` | admin | Lift a ban |
+| Command                            | Role            | Description                                               |
+|------------------------------------|-----------------|-----------------------------------------------------------|
+| `/start`                           | everyone        | Register, get the role-specific greeting and menu         |
+| `/help`                            | everyone        | Command reference for your role                           |
+| `/lang`                            | everyone        | Switch interface language (RU / EN)                       |
+| `/book`                            | client          | Book an appointment (asks for the profile first if empty) |
+| `/my_bookings`                     | client          | View and cancel your upcoming appointments                |
+| `/profile`                         | client          | Show your contact profile                                 |
+| `/edit_profile`                    | client          | Update your name and phone                                |
+| `/today`                           | master          | Today's appointments with confirm / decline actions       |
+| `/services`                        | master          | List your services                                        |
+| `/add_service`                     | master          | Add a service (title, duration, price)                    |
+| `/schedule`                        | master          | Weekly working hours (add / delete intervals)             |
+| `/cancel`                          | master / client | Abort `/add_service`, `/schedule` or profile setup        |
+| `/user <id\|@username>`            | admin           | Show a user card                                          |
+| `/set_role <id\|@username> <role>` | admin           | Change a user's role                                      |
+| `/ban <id\|@username>`             | admin           | Ban a user                                                |
+| `/unban <id\|@username>`           | admin           | Lift a ban                                                |
 
 ## Roles
 
 Three roles, all stored in the database — nothing is hardcoded in the source.
 
-| Role | Gets |
-|------|------|
-| `client` | Contact profile, booking, and managing their own appointments. Default for new users. |
-| `master` | Service catalogue, time slots, and the daily appointment list. |
-| `admin` | User management and role assignment, plus the client commands. |
+| Role      | Gets                                                                                  |
+|-----------|---------------------------------------------------------------------------------------|
+| `client`  | Contact profile, booking, and managing their own appointments. Default for new users. |
+| `master`  | Service catalogue, weekly schedule, and the daily appointment list.                   |
+| `admin`   | User management and role assignment, plus the client commands.                        |
 
 ### First run: bootstrapping the master
 
@@ -161,7 +161,7 @@ A fresh database has no master, so nobody can create services yet. Set it up onc
 4. Promote them: `/set_role <master_id> master`
 5. Put that same id in `MASTER_USER_ID` in `.env` and restart the bot.
 
-`MASTER_USER_ID` tells the client `/book` flow whose services and slots to show.
+`MASTER_USER_ID` is the master whose services clients book via `/book`.
 `ADMIN_IDS` only decides which accounts become admins on their first `/start`.
 
 > Don't know your Telegram id? Send any message to [@userinfobot](https://t.me/userinfobot).
@@ -239,20 +239,20 @@ Keep `POSTGRES_HOST=localhost` and `REDIS_HOST=localhost` in `.env` for this mod
 
 All settings come from `.env`. Start from `.env.example`.
 
-| Variable | Description |
-|----------|-------------|
-| `BOT_TOKEN` | Telegram bot token from [@BotFather](https://t.me/BotFather) |
-| `ADMIN_IDS` | Comma-separated Telegram ids granted the admin role on first `/start` |
-| `MASTER_USER_ID` | Telegram id of the master whose services clients can book |
-| `TIMEZONE` | IANA timezone for display and slot input (default `Europe/Moscow`); storage stays UTC |
-| `LOG_LEVEL` | `DEBUG` for development, `INFO` for production |
-| `LOG_FORMAT` | Python logging format string |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Database credentials |
-| `POSTGRES_HOST` / `POSTGRES_PORT` | `postgres` / `5432` inside Compose |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE` | Redis connection for FSM storage |
-| `REDIS_USERNAME` / `REDIS_PASSWORD` | Redis credentials |
-| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access |
-| `PROXY_*` | Optional proxy, disabled by default — see below |
+| Variable                                                              | Description                                                                           |
+|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `BOT_TOKEN`                                                           | Telegram bot token from [@BotFather](https://t.me/BotFather)                          |
+| `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                 |
+| `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                             |
+| `TIMEZONE`                                                            | IANA timezone for display and slot input (default `Europe/Moscow`); storage stays UTC |
+| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                        |
+| `LOG_FORMAT`                                                          | Python logging format string                                                          |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                  |
+| `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                    |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                      |
+| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                     |
+| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                        |
+| `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                       |
 
 ### Optional: proxy
 
@@ -275,15 +275,15 @@ Core booking tables (plus `schema_migrations`, `master_settings`, `working_hours
 Schema is applied by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
 on startup.
 
-| Table | Purpose |
-|-------|---------|
-| `users` | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone) |
-| `services` | Master's offerings: title, duration, price, active flag |
-| `slots` | Bookable time ranges owned by a master |
-| `appointments` | Client, service, optional slot link, status, and concrete time range |
-| `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon |
-| `working_hours` | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master |
-| `time_off` | Absolute blocked intervals (day off, break, vacation) per master |
+| Table             | Purpose                                                                                         |
+|-------------------|-------------------------------------------------------------------------------------------------|
+| `users`           | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone) |
+| `services`        | Master's offerings: title, duration, price, active flag                                         |
+| `slots`           | Bookable time ranges owned by a master                                                          |
+| `appointments`    | Client, service, optional slot link, status, and concrete time range                            |
+| `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon                              |
+| `working_hours`   | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                     |
+| `time_off`        | Absolute blocked intervals (day off, break, vacation) per master                                |
 
 `appointments.status` is one of `pending`, `confirmed`, `cancelled`.
 

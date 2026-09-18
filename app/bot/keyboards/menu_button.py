@@ -45,19 +45,12 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
         commands.insert(
             3,
             BotCommand(
-                command="/add_slot",
-                description=i18n.get("/add_slot_description")
-            )
-        )
-        commands.insert(
-            4,
-            BotCommand(
                 command="/services",
                 description=i18n.get("/services_description")
             )
         )
         commands.insert(
-            5,
+            4,
             BotCommand(
                 command="/add_service",
                 description=i18n.get("/add_service_description")
