@@ -8,8 +8,11 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.keyboards.time_off import (
     TimeOffNavCallback,
+    TimeOffDeleteCallback,
+    TimeOffConfirmCallback,
     format_time_off_line,
     get_time_off_list_kb,
+    get_time_off_confirm_delete_kb,
 )
 from app.bot.states.states import TimeOffSG
 from app.bot.utils.format import get_zone, combine_local
@@ -68,7 +71,11 @@ async def _show_time_off(
     else:
         text = i18n.get("time_off_empty")
 
-    kb = get_time_off_list_kb(i18n=i18n)
+    kb = get_time_off_list_kb(
+        rows=rows,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
     if edit:
         await message.edit_text(text=text, reply_markup=kb)
     else:
@@ -99,6 +106,89 @@ async def process_time_off_close(
         i18n: dict[str, str],
 ) -> None:
     await callback.message.edit_text(text=i18n.get("time_off_closed"))
+    await callback.answer()
+
+
+@time_off_router.callback_query(TimeOffDeleteCallback.filter())
+async def process_time_off_delete(
+        callback: CallbackQuery,
+        callback_data: TimeOffDeleteCallback,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    row = await repos.time_off.get(
+        time_off_id=callback_data.time_off_id,
+    )
+    if row is None or row.master_user_id != user.user_id:
+        await callback.answer(
+            text=i18n.get("time_off_delete_not_found"),
+            show_alert=True,
+        )
+        return
+
+    item = format_time_off_line(row, i18n, bot_timezone).lstrip("• ").strip()
+    await callback.message.edit_text(
+        text=i18n.get("time_off_confirm_delete").format(item=item),
+        reply_markup=get_time_off_confirm_delete_kb(
+            time_off_id=row.id,
+            i18n=i18n,
+        ),
+    )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffConfirmCallback.filter(F.action == "yes"),
+)
+async def process_time_off_delete_yes(
+        callback: CallbackQuery,
+        callback_data: TimeOffConfirmCallback,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    deleted = await repos.time_off.delete(
+        time_off_id=callback_data.time_off_id,
+        master_user_id=user.user_id,
+    )
+    if not deleted:
+        await callback.answer(
+            text=i18n.get("time_off_delete_not_found"),
+            show_alert=True,
+        )
+        return
+    await callback.answer(text=i18n.get("time_off_deleted"))
+    await _show_time_off(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
+
+
+@time_off_router.callback_query(
+    TimeOffConfirmCallback.filter(F.action == "no"),
+)
+async def process_time_off_delete_no(
+        callback: CallbackQuery,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _show_time_off(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
     await callback.answer()
 
 

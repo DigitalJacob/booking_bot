@@ -329,4 +329,10 @@ RU: dict[str, str] = {
     "time_off_invalid_range": "Дата окончания должна быть не раньше даты начала.",
     "time_off_add_ok": "Выходной добавлен: {when}.",
     "time_off_cancelled": "Редактирование выходных отменено.",
+    "time_off_delete_button": "🗑 {item}",
+    "time_off_confirm_delete": "Удалить {item}?",
+    "time_off_confirm_yes": "Да",
+    "time_off_confirm_no": "Нет",
+    "time_off_deleted": "Выходной удалён.",
+    "time_off_delete_not_found": "Выходной не найден.",
 }

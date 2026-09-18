@@ -329,4 +329,10 @@ EN: dict[str, str] = {
     "time_off_invalid_range": "The end date must be on or after the start date.",
     "time_off_add_ok": "Time off added: {when}.",
     "time_off_cancelled": "Time off editing cancelled.",
+    "time_off_delete_button": "🗑 {item}",
+    "time_off_confirm_delete": "Delete {item}?",
+    "time_off_confirm_yes": "Yes",
+    "time_off_confirm_no": "No",
+    "time_off_deleted": "Time off removed.",
+    "time_off_delete_not_found": "Time off not found.",
 }

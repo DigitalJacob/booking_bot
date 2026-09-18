@@ -11,6 +11,15 @@ class TimeOffNavCallback(CallbackData, prefix="toff"):
     action: str  # add | close | cancel
 
 
+class TimeOffDeleteCallback(CallbackData, prefix="toffdel"):
+    time_off_id: int
+
+
+class TimeOffConfirmCallback(CallbackData, prefix="toffcfm"):
+    time_off_id: int
+    action: str
+
+
 def format_time_off_line(
         row: TimeOff,
         i18n: dict[str, str],
@@ -34,20 +43,68 @@ def format_time_off_line(
     return i18n.get("time_off_list_item").format(when=when, note=note)
 
 
-def get_time_off_list_kb(*, i18n: dict[str, str]) -> InlineKeyboardMarkup:
+def get_time_off_list_kb(
+        *,
+        rows: list[TimeOff],
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> InlineKeyboardMarkup:
+    buttons: list[list[InlineKeyboardButton]] = []
+    for row in rows:
+        label = i18n.get("time_off_delete_button").format(
+            item=format_time_off_line(row, i18n, bot_timezone).lstrip("• ").strip(),
+        )
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=label,
+                    callback_data=TimeOffDeleteCallback(
+                        time_off_id=row.id,
+                    ).pack(),
+                )
+            ]
+        )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("time_off_add_button"),
+                callback_data=TimeOffNavCallback(action="add").pack(),
+            )
+        ]
+    )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("time_off_close_button"),
+                callback_data=TimeOffNavCallback(action="close").pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_time_off_confirm_delete_kb(
+        *,
+        time_off_id: int,
+        i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=i18n.get("time_off_add_button"),
-                    callback_data=TimeOffNavCallback(action="add").pack(),
-                )
-            ],
-            [
+                    text=i18n.get("time_off_confirm_yes"),
+                    callback_data=TimeOffConfirmCallback(
+                        time_off_id=time_off_id,
+                        action="yes",
+                    ).pack(),
+                ),
                 InlineKeyboardButton(
-                    text=i18n.get("time_off_close_button"),
-                    callback_data=TimeOffNavCallback(action="close").pack(),
-                )
-            ],
+                    text=i18n.get("time_off_confirm_no"),
+                    callback_data=TimeOffConfirmCallback(
+                        time_off_id=time_off_id,
+                        action="no",
+                    ).pack(),
+                ),
+            ]
         ]
     )
