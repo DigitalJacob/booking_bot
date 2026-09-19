@@ -66,7 +66,6 @@ class ServicesRepository:
         )
         return Service.from_db_row(row)
 
-
     async def get_service(
             self,
             *,
@@ -90,7 +89,6 @@ class ServicesRepository:
             )
             row = await cursor.fetchone()
         return Service.from_db_row(row) if row else None
-
 
     async def list_by_master(
             self,
@@ -121,3 +119,92 @@ class ServicesRepository:
             )
             rows = await cursor.fetchall()
         return [Service.from_db_row(row) for row in rows]
+
+    async def update(
+            self,
+            *,
+            service_id: int,
+            master_user_id: int,
+            title: str,
+            duration_minutes: int,
+            price: Decimal | None,
+    ) -> Service | None:
+        """Update only if the service belongs to this master. Returns None if missing."""
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query="""
+                    UPDATE services
+                    SET
+                        title = %(title)s,
+                        duration_minutes = %(duration_minutes)s,
+                        price = %(price)s
+                    WHERE id = %(service_id)s
+                        AND master_user_id = %(master_user_id)s
+                    RETURNING
+                        id,
+                        master_user_id,
+                        title,
+                        duration_minutes,
+                        price,
+                        is_active,
+                        created_at;
+                """,
+                params={
+                    "service_id": service_id,
+                    "master_user_id": master_user_id,
+                    "title": title,
+                    "duration_minutes": duration_minutes,
+                    "price": price,
+                },
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Service updated. id=%d, master_user_id=%d, title='%s'",
+            service_id,
+            master_user_id,
+            title,
+        )
+        return Service.from_db_row(row)
+
+    async def set_active(
+            self,
+            *,
+            service_id: int,
+            master_user_id: int,
+            is_active: bool,
+    ) -> Service | None:
+        """Toggle is_active only if the service belongs to this master."""
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query="""
+                    UPDATE services
+                    SET is_active = %(is_active)s
+                    WHERE id = %(service_id)s
+                        AND master_user_id = %(master_user_id)s
+                    RETURNING
+                        id,
+                        master_user_id,
+                        title,
+                        duration_minutes,
+                        price,
+                        is_active,
+                        created_at;
+                """,
+                params={
+                    "service_id": service_id,
+                    "master_user_id": master_user_id,
+                    "is_active": is_active,
+                },
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Service set_active=%s. id=%d, master_user_id=%d",
+            is_active,
+            service_id,
+            master_user_id,
+        )
+        return Service.from_db_row(row)
