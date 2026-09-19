@@ -9,7 +9,7 @@ class MasterServiceCallback(CallbackData, prefix="msvc"):
 
 
 class MasterServiceNavCallback(CallbackData, prefix="msvcnav"):
-    action: str  # add | close | back
+    action: str  # add | close | back | toggle
     service_id: int = 0
 
 
@@ -54,8 +54,22 @@ def get_service_card_kb(
         service: Service,
         i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
+    toggle_text = (
+        i18n.get("services_deactivate_button")
+        if service.is_active
+        else i18n.get("services_activate_button")
+    )
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=toggle_text,
+                    callback_data=MasterServiceNavCallback(
+                        action="toggle",
+                        service_id=service.id,
+                    ).pack(),
+                )
+            ],
             [
                 InlineKeyboardButton(
                     text=i18n.get("services_back_button"),

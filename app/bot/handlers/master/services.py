@@ -166,6 +166,52 @@ async def process_services_close(
     await callback.answer()
 
 
+@services_router.callback_query(
+    MasterServiceNavCallback.filter(F.action == "toggle"),
+)
+async def process_service_toggle(
+        callback: CallbackQuery,
+        callback_data: MasterServiceNavCallback,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    service = await repos.services.get_service(
+        service_id=callback_data.service_id,
+    )
+    if service is None or service.master_user_id != user.user_id:
+        await callback.answer(
+            text=i18n.get("services_not_found"),
+            show_alert=True,
+        )
+        return
+
+    updated = await repos.services.set_active(
+        service_id=service.id,
+        master_user_id=user.user_id,
+        is_active=not service.is_active,
+    )
+    if updated is None:
+        await callback.answer(
+            text=i18n.get("services_not_found"),
+            show_alert=True,
+        )
+        return
+
+    await callback.answer(
+        text=(
+            i18n.get("services_activated")
+            if updated.is_active
+            else i18n.get("services_deactivated")
+        ),
+    )
+    await _show_service_card(
+        message=callback.message,
+        service=updated,
+        i18n=i18n,
+    )
+
+
 @services_router.callback_query(MasterServiceNavCallback.filter(F.action == "add"))
 async def process_services_add_button(
         callback: CallbackQuery,

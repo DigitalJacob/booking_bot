@@ -346,4 +346,8 @@ EN: dict[str, str] = {
         "Status: {status}"
     ),
     "services_not_found": "Service not found.",
+    "services_deactivate_button": "⏸ Deactivate",
+    "services_activate_button": "▶️ Activate",
+    "services_deactivated": "Service deactivated.",
+    "services_activated": "Service activated.",
 }

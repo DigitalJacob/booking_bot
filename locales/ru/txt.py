@@ -346,4 +346,8 @@ RU: dict[str, str] = {
         "Статус: {status}"
     ),
     "services_not_found": "Услуга не найдена.",
+    "services_deactivate_button": "⏸ Деактивировать",
+    "services_activate_button": "▶️ Включить",
+    "services_deactivated": "Услуга деактивирована.",
+    "services_activated": "Услуга включена.",
 }
