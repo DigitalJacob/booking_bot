@@ -350,4 +350,22 @@ RU: dict[str, str] = {
     "services_activate_button": "▶️ Включить",
     "services_deactivated": "Услуга деактивирована.",
     "services_activated": "Услуга включена.",
+    "services_edit_button": "✏️ Изменить",
+    "edit_service_enter_title": (
+        "Введите новое название\n"
+        "Сейчас: {title}\n\n"
+        "Отмена: /cancel"
+    ),
+    "edit_service_enter_duration": (
+        "Введите новую длительность в минутах\n"
+        "Сейчас: {duration}\n\n"
+        "Отмена: /cancel"
+    ),
+    "edit_service_enter_price": (
+        "Введите новую цену (или - чтобы очистить)\n"
+        "Сейчас: {price}\n\n"
+        "Отмена: /cancel"
+    ),
+    "edit_service_ok": "Услуга обновлена: {title}, {duration} мин, {price}.",
+    "edit_service_cancelled": "Редактирование отменено.",
 }

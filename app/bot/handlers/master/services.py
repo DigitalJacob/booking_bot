@@ -13,7 +13,7 @@ from app.bot.keyboards.master_services import (
 )
 from app.domain.enums import UserRole
 from app.bot.filters.filters import UserRoleFilter
-from app.bot.states.states import AddServiceSG
+from app.bot.states.states import AddServiceSG, EditServiceSG
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
 
@@ -22,6 +22,11 @@ services_router = Router(name="master_services")
 services_router.message.filter(UserRoleFilter(UserRole.MASTER))
 services_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
     if price is None:
@@ -98,6 +103,10 @@ async def _show_service_card(
         reply_markup=get_service_card_kb(service=service, i18n=i18n),
     )
 
+
+# ---------------------------------------------------------------------------
+# List / card UI
+# ---------------------------------------------------------------------------
 
 @services_router.message(Command(commands="services"))
 async def process_services_command(
@@ -212,6 +221,10 @@ async def process_service_toggle(
     )
 
 
+# ---------------------------------------------------------------------------
+# Add service FSM
+# ---------------------------------------------------------------------------
+
 @services_router.callback_query(MasterServiceNavCallback.filter(F.action == "add"))
 async def process_services_add_button(
         callback: CallbackQuery,
@@ -307,6 +320,152 @@ async def process_add_service_price(
     await state.clear()
     await message.answer(
         text=i18n.get("add_service_ok").format(
+            title=service.title,
+            duration=service.duration_minutes,
+            price=_format_price(service.price, i18n),
+        ),
+    )
+    await _show_services_list(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=False,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Edit service FSM
+# ---------------------------------------------------------------------------
+
+@services_router.callback_query(MasterServiceNavCallback.filter(F.action == "edit"))
+async def process_service_edit(
+        callback: CallbackQuery,
+        callback_data: MasterServiceNavCallback,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    service = await repos.services.get_service(service_id=callback_data.service_id)
+    if service is None or service.master_user_id != user.user_id:
+        await callback.answer(text=i18n.get("services_not_found"), show_alert=True)
+        return
+
+    await state.clear()
+    await state.update_data(service_id=service.id)
+    await state.set_state(EditServiceSG.title)
+    await callback.message.edit_text(
+        text=i18n.get("edit_service_enter_title").format(title=service.title),
+    )
+    await callback.answer()
+
+
+@services_router.message(Command(commands="cancel"), StateFilter(EditServiceSG))
+async def process_edit_service_cancel(
+        message: Message,
+        state: FSMContext,
+        i18n: dict[str, str],
+) -> None:
+    await state.clear()
+    await message.answer(text=i18n.get("edit_service_cancelled"))
+
+
+@services_router.message(StateFilter(EditServiceSG.title))
+async def process_edit_service_title(
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    title = (message.text or "").strip()
+    if not title or len(title) > 100:
+        await message.answer(text=i18n.get("add_service_invalid_title"))
+        return
+
+    await state.update_data(title=title)
+
+    data = await state.get_data()
+    service = await repos.services.get_service(service_id=data["service_id"])
+    if service is None or service.master_user_id != user.user_id:
+        await message.answer(text=i18n.get("services_not_found"))
+        await state.clear()
+        return
+
+    await state.set_state(EditServiceSG.duration)
+    await message.answer(
+        text=i18n.get("edit_service_enter_duration").format(
+            duration=service.duration_minutes,
+        ),
+    )
+
+
+@services_router.message(StateFilter(EditServiceSG.duration))
+async def process_edit_service_duration(
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    text = (message.text or "").strip()
+    if not text.isdigit():
+        await message.answer(text=i18n.get("add_service_invalid_duration"))
+        return
+
+    duration_minutes = int(text)
+    if duration_minutes <= 0:
+        await message.answer(text=i18n.get("add_service_invalid_duration"))
+        return
+
+    await state.update_data(duration_minutes=duration_minutes)
+
+    data = await state.get_data()
+    service = await repos.services.get_service(service_id=data["service_id"])
+    if service is None or service.master_user_id != user.user_id:
+        await message.answer(text=i18n.get("services_not_found"))
+        await state.clear()
+        return
+
+    await state.set_state(EditServiceSG.price)
+    await message.answer(
+        text=i18n.get("edit_service_enter_price").format(
+            price=_format_price(service.price, i18n),
+        ),
+    )
+
+
+@services_router.message(StateFilter(EditServiceSG.price))
+async def process_edit_service_price(
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    try:
+        price = _parse_price(message.text or "")
+    except InvalidOperation:
+        await message.answer(text=i18n.get("add_service_invalid_price"))
+        return
+
+    data = await state.get_data()
+    service = await repos.services.update(
+        service_id=data["service_id"],
+        master_user_id=user.user_id,
+        title=data["title"],
+        duration_minutes=data["duration_minutes"],
+        price=price,
+    )
+    if service is None:
+        await message.answer(text=i18n.get("services_not_found"))
+        await state.clear()
+        return
+
+    await state.clear()
+    await message.answer(
+        text=i18n.get("edit_service_ok").format(
             title=service.title,
             duration=service.duration_minutes,
             price=_format_price(service.price, i18n),

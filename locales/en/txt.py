@@ -350,4 +350,22 @@ EN: dict[str, str] = {
     "services_activate_button": "▶️ Activate",
     "services_deactivated": "Service deactivated.",
     "services_activated": "Service activated.",
+    "services_edit_button": "✏️ Edit",
+    "edit_service_enter_title": (
+        "Enter the new service name\n"
+        "Current: {title}\n\n"
+        "Cancel: /cancel"
+    ),
+    "edit_service_enter_duration": (
+        "Enter the new duration in minutes\n"
+        "Current: {duration}\n\n"
+        "Cancel: /cancel"
+    ),
+    "edit_service_enter_price": (
+        "Enter the new price (or - to clear)\n"
+        "Current: {price}\n\n"
+        "Cancel: /cancel"
+    ),
+    "edit_service_ok": "Service updated: {title}, {duration} min, {price}.",
+    "edit_service_cancelled": "Editing cancelled.",
 }
