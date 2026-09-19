@@ -69,11 +69,7 @@ def get_time_off_list_kb(
             InlineKeyboardButton(
                 text=i18n.get("time_off_add_button"),
                 callback_data=TimeOffNavCallback(action="add").pack(),
-            )
-        ]
-    )
-    buttons.append(
-        [
+            ),
             InlineKeyboardButton(
                 text=i18n.get("time_off_close_button"),
                 callback_data=TimeOffNavCallback(action="close").pack(),
