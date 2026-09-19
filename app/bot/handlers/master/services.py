@@ -1,10 +1,16 @@
 from decimal import Decimal, InvalidOperation
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
+from app.bot.keyboards.master_services import (
+    MasterServiceCallback,
+    MasterServiceNavCallback,
+    get_services_list_kb,
+    get_service_card_kb,
+)
 from app.domain.enums import UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.states.states import AddServiceSG
@@ -14,6 +20,7 @@ from app.infrastructure.database.repositories import Repositories
 
 services_router = Router(name="master_services")
 services_router.message.filter(UserRoleFilter(UserRole.MASTER))
+services_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 
 def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
@@ -44,6 +51,54 @@ def _parse_price(value: str) -> Decimal | None:
     return Decimal(normalized)
 
 
+async def _show_services_list(
+        *,
+        message: Message,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        edit: bool,
+) -> None:
+    services = await repos.services.list_by_master(
+        master_user_id=user.user_id,
+        active_only=False,
+    )
+    if services:
+        body = "\n".join(_format_service_line(s, i18n) for s in services)
+        text = i18n.get("services_list_header") + "\n\n" + body
+    else:
+        text = i18n.get("services_empty")
+
+    kb = get_services_list_kb(services=services, i18n=i18n)
+    if edit:
+        await message.edit_text(text=text, reply_markup=kb)
+    else:
+        await message.answer(text=text, reply_markup=kb)
+
+
+async def _show_service_card(
+        *,
+        message: Message,
+        service: Service,
+        i18n: dict[str, str],
+) -> None:
+    status = (
+        i18n.get("services_status_active")
+        if service.is_active
+        else i18n.get("services_status_inactive")
+    )
+    text = i18n.get("services_card").format(
+        title=service.title,
+        duration=service.duration_minutes,
+        price=_format_price(service.price, i18n),
+        status=status,
+    )
+    await message.edit_text(
+        text=text,
+        reply_markup=get_service_card_kb(service=service, i18n=i18n),
+    )
+
+
 @services_router.message(Command(commands="services"))
 async def process_services_command(
         message: Message,
@@ -51,18 +106,76 @@ async def process_services_command(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    services = await repos.services.list_by_master(
-        master_user_id=user.user_id,
-        active_only=False,
+    await _show_services_list(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=False,
     )
-    if not services:
-        await message.answer(text=i18n.get("services_empty"))
-        return
 
-    lines = [_format_service_line(service, i18n) for service in services]
-    text = i18n.get("services_list_header") + "\n\n" + "\n".join(lines)
-    text += "\n\n" + i18n.get("services_add_hint")
-    await message.answer(text=text)
+
+@services_router.callback_query(MasterServiceCallback.filter())
+async def process_service_open(
+        callback: CallbackQuery,
+        callback_data: MasterServiceCallback,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    service = await repos.services.get_service(
+        service_id=callback_data.service_id
+    )
+    if service is None or service.master_user_id != user.user_id:
+        await callback.answer(
+            text=i18n.get("services_not_found"),
+            show_alert=True
+        )
+        return
+    await _show_service_card(
+        message=callback.message,
+        service=service,
+        i18n=i18n,
+    )
+    await callback.answer()
+
+
+@services_router.callback_query(MasterServiceNavCallback.filter(F.action == "back"))
+async def process_services_back(
+        callback: CallbackQuery,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    await _show_services_list(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=True,
+    )
+    await callback.answer()
+
+
+@services_router.callback_query(MasterServiceNavCallback.filter(F.action == "close"))
+async def process_services_close(
+        callback: CallbackQuery,
+        i18n: dict[str, str],
+) -> None:
+    await callback.message.edit_text(text=i18n.get("services_closed"))
+    await callback.answer()
+
+
+@services_router.callback_query(MasterServiceNavCallback.filter(F.action == "add"))
+async def process_services_add_button(
+        callback: CallbackQuery,
+        state: FSMContext,
+        i18n: dict[str, str],
+) -> None:
+    await state.clear()
+    await state.set_state(AddServiceSG.title)
+    await callback.message.edit_text(text=i18n.get("add_service_enter_title"))
+    await callback.answer()
 
 
 @services_router.message(Command(commands="add_service"))
@@ -152,4 +265,11 @@ async def process_add_service_price(
             duration=service.duration_minutes,
             price=_format_price(service.price, i18n),
         ),
+    )
+    await _show_services_list(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=False,
     )

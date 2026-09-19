@@ -335,4 +335,15 @@ EN: dict[str, str] = {
     "time_off_confirm_no": "No",
     "time_off_deleted": "Time off removed.",
     "time_off_delete_not_found": "Time off not found.",
+    "services_add_button": "➕ Add",
+    "services_close_button": "Close",
+    "services_back_button": "← Back",
+    "services_closed": "Services list closed.",
+    "services_card": (
+        "{title}\n"
+        "Duration: {duration} min\n"
+        "Price: {price}\n"
+        "Status: {status}"
+    ),
+    "services_not_found": "Service not found.",
 }
