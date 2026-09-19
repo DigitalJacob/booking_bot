@@ -71,11 +71,7 @@ def get_schedule_list_kb(
             InlineKeyboardButton(
                 text=i18n.get("schedule_add_button"),
                 callback_data=ScheduleNavCallback(action="add").pack(),
-            )
-        ]
-    )
-    buttons.append(
-        [
+            ),
             InlineKeyboardButton(
                 text=i18n.get("schedule_close_button"),
                 callback_data=ScheduleNavCallback(action="close").pack(),
