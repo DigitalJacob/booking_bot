@@ -122,20 +122,19 @@ async def _show_confirm(
     )
 
 
-@booking_router.message(Command(commands="book"))
-async def process_book_command(
+async def start_booking_flow(
+        *,
         message: Message,
         i18n: dict[str, str],
         state: FSMContext,
         repos: Repositories,
-        user: User | None,
+        user: User,
         master_user_id: int,
+        edit: bool = False,
 ) -> None:
-    if user is None:
-        await message.answer(text=i18n.get("book_need_start"))
-        return
-
     if not user.profile_complete:
+        if edit:
+            await message.edit_text(text=i18n.get("hub_profile_incomplete"))
         await start_profile_flow(
             message=message,
             state=state,
@@ -149,7 +148,11 @@ async def process_book_command(
     booking = BookingService(repos)
     services = await booking.list_services(master_user_id=master_user_id)
     if not services:
-        await message.answer(text=i18n.get("book_no_services"))
+        text = i18n.get("book_no_services")
+        if edit:
+            await message.edit_text(text=text)
+        else:
+            await message.answer(text=text)
         return
 
     await state.set_state(BookingSG.choosing_service)
@@ -158,6 +161,30 @@ async def process_book_command(
         message=message,
         services=services,
         i18n=i18n,
+        edit=edit,
+    )
+
+
+@booking_router.message(Command(commands="book"))
+async def process_book_command(
+        message: Message,
+        i18n: dict[str, str],
+        state: FSMContext,
+        repos: Repositories,
+        user: User | None,
+        master_user_id: int,
+) -> None:
+    if user is None:
+        await message.answer(text=i18n.get("book_need_start"))
+        return
+
+    await start_booking_flow(
+        message=message,
+        i18n=i18n,
+        state=state,
+        repos=repos,
+        user=user,
+        master_user_id=master_user_id,
         edit=False,
     )
 

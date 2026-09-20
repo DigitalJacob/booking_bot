@@ -16,7 +16,7 @@ profile_router = Router(name="client_profile")
 _PHONE_RE = re.compile(r"^\+?\d{10,15}$")
 
 
-def _profile_card(user: User, i18n: dict[str, str]) -> str:
+def format_profile_card(user: User, i18n: dict[str, str]) -> str:
     return i18n.get("profile_card").format(
         first_name=user.first_name or "-",
         last_name=user.last_name or "-",
@@ -84,7 +84,7 @@ async def process_profile_command(
 
     if user.profile_complete:
         await state.clear()
-        await message.answer(text=_profile_card(user, i18n))
+        await message.answer(text=format_profile_card(user, i18n))
         await message.answer(text=i18n.get("profile_edit_hint"))
         return
 

@@ -35,7 +35,7 @@ today_router.message.filter(UserRoleFilter(UserRole.MASTER))
 today_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 
-async def _send_today(
+async def send_today(
         *,
         message: Message,
         repos: Repositories,
@@ -130,7 +130,7 @@ async def process_today_command(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    await _send_today(
+    await send_today(
         message=message,
         repos=repos,
         user=user,

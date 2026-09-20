@@ -50,6 +50,35 @@ async def process_any_message_when_lang(
     await state.update_data(lang_settings_msg_id=msg.message_id)
 
 
+async def start_lang_settings(
+        *,
+        message: Message,
+        i18n: dict[str, str],
+        state: FSMContext,
+        locales: list[str],
+        user: User | None,
+        edit: bool = False,
+) -> None:
+    await state.set_state(LangSG.lang)
+    user_lang = user.language if user else None
+    text = i18n.get("/lang")
+    kb = get_lang_settings_kb(
+        i18n=i18n,
+        locales=locales,
+        checked=user_lang,
+    )
+    if edit:
+        await message.edit_text(text=text, reply_markup=kb)
+        msg_id = message.message_id
+    else:
+        msg = await message.answer(text=text, reply_markup=kb)
+        msg_id = msg.message_id
+    await state.update_data(
+        lang_settings_msg_id=msg_id,
+        user_lang=user_lang,
+    )
+
+
 @settings_router.message(Command(commands="lang"))
 async def process_lang_command(
         message: Message,
@@ -58,20 +87,13 @@ async def process_lang_command(
         locales: list[str],
         user: User | None,
 ) -> None:
-    await state.set_state(LangSG.lang)
-    user_lang = user.language if user else None
-
-    msg = await message.answer(
-        text=i18n.get("/lang"),
-        reply_markup=get_lang_settings_kb(
-            i18n=i18n,
-            locales=locales,
-            checked=user_lang,
-        ),
-    )
-    await state.update_data(
-        lang_settings_msg_id=msg.message_id,
-        user_lang=user_lang,
+    await start_lang_settings(
+        message=message,
+        i18n=i18n,
+        state=state,
+        locales=locales,
+        user=user,
+        edit=False,
     )
 
 

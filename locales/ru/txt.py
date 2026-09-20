@@ -405,9 +405,9 @@ RU: dict[str, str] = {
     "hub_admin_set_role_button": "Сменить роль",
     "hub_admin_ban_button": "Забанить",
     "hub_admin_unban_button": "Разбанить",
-    "hub_use_slash": (
-        "{command}.\n"
-    ),
     "hub_my_bookings_opened": "Записи ниже. Нажмите ⌂ Меню, чтобы вернуться.",
+    "hub_today_opened": "Записи на сегодня ниже. Нажмите ⌂ Меню, чтобы вернуться.",
+    "hub_profile_edit_started": "Обновите профиль ниже. Нажмите ⌂ Меню, чтобы вернуться.",
+    "hub_profile_incomplete": "Профиль не заполнен. Заполните данные ниже.",
     "/menu_description": "Открыть главное меню",
 }

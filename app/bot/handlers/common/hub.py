@@ -59,6 +59,8 @@ async def show_hub_screen(
         action: str,
         repos: Repositories | None = None,
         bot_timezone: str | None = None,
+        master_user_id: int | None = None,
+        locales: list[str] | None = None,
         edit: bool = True,
 ) -> None:
     """Open a hub screen or wired list by action name (edit-in-place when edit=True)."""
@@ -217,21 +219,99 @@ async def show_hub_screen(
         )
         return
 
-    # Remaining leaves — temporary slash tip (wired in later commits)
-    slash_map: dict[str, tuple[str, str]] = {
-        "book": ("/book", "root"),
-        "today": ("/today", "root"),
-        "profile_show": ("/profile", "profile"),
-        "profile_edit": ("/edit_profile", "profile"),
-        "lang": ("/lang", "settings"),
-    }
-    if action in slash_map:
-        command, back_screen = slash_map[action]
-        await state.update_data(hub_screen="slash_tip", hub_back=back_screen)
+    if action == "book":
+        if role == UserRole.MASTER or repos is None or master_user_id is None:
+            return
+        from app.bot.handlers.client.booking import start_booking_flow
+
+        await state.update_data(hub_screen="book", hub_back="root")
+        await start_booking_flow(
+            message=message,
+            i18n=i18n,
+            state=state,
+            repos=repos,
+            user=user,
+            master_user_id=master_user_id,
+            edit=True,
+        )
+        return
+
+    if action == "today":
+        if role != UserRole.MASTER or repos is None or bot_timezone is None:
+            return
+        from app.bot.handlers.master.today import send_today
+
+        await state.update_data(hub_screen="today", hub_back="root")
         await message.edit_text(
-            text=i18n.get("hub_use_slash").format(command=command),
+            text=i18n.get("hub_today_opened"),
+            reply_markup=get_hub_home_kb(i18n),
+        )
+        await send_today(
+            message=message,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+        )
+        return
+
+    if action == "profile_show":
+        if role == UserRole.MASTER:
+            return
+        from app.bot.handlers.client.profile import format_profile_card, start_profile_flow
+
+        await state.update_data(hub_screen="profile_show", hub_back="profile")
+        if not user.profile_complete:
+            await message.edit_text(
+                text=i18n.get("hub_profile_incomplete"),
+                reply_markup=get_hub_home_kb(i18n),
+            )
+            await start_profile_flow(
+                message=message,
+                state=state,
+                i18n=i18n,
+                resume_book=False,
+            )
+            return
+        await message.edit_text(
+            text=format_profile_card(user, i18n),
             reply_markup=get_hub_back_home_kb(i18n),
         )
+        return
+
+    if action == "profile_edit":
+        if role == UserRole.MASTER:
+            return
+        from app.bot.handlers.client.profile import start_profile_flow
+
+        await state.update_data(hub_screen="profile_edit", hub_back="profile")
+        await message.edit_text(
+            text=i18n.get("hub_profile_edit_started"),
+            reply_markup=get_hub_home_kb(i18n),
+        )
+        await start_profile_flow(
+            message=message,
+            state=state,
+            i18n=i18n,
+            resume_book=False,
+        )
+        return
+
+    if action == "lang":
+        if locales is None:
+            return
+        from app.bot.handlers.common.settings import start_lang_settings
+
+        await state.update_data(hub_screen="lang", hub_back="settings")
+        await start_lang_settings(
+            message=message,
+            i18n=i18n,
+            state=state,
+            locales=locales,
+            user=user,
+            edit=True,
+        )
+        return
 
 
 async def return_from_list(
@@ -302,6 +382,8 @@ async def process_hub_back(
         i18n: dict[str, str],
         repos: Repositories,
         bot_timezone: str,
+        master_user_id: int,
+        locales: list[str],
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -317,6 +399,8 @@ async def process_hub_back(
         action=target,
         repos=repos,
         bot_timezone=bot_timezone,
+        master_user_id=master_user_id,
+        locales=locales,
         edit=True,
     )
     await callback.answer()
@@ -331,6 +415,8 @@ async def process_hub_action(
         i18n: dict[str, str],
         repos: Repositories,
         bot_timezone: str,
+        master_user_id: int,
+        locales: list[str],
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -344,6 +430,8 @@ async def process_hub_action(
         action=callback_data.action,
         repos=repos,
         bot_timezone=bot_timezone,
+        master_user_id=master_user_id,
+        locales=locales,
         edit=True,
     )
     await callback.answer()
