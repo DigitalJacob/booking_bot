@@ -9,6 +9,10 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
             command="/start",
             description=i18n.get("/start_description"),
         ),
+        BotCommand(
+            command="/menu",
+            description=i18n.get("/menu_description"),
+        ),
     ]
     if role in (UserRole.CLIENT, UserRole.ADMIN):
         commands.extend(
@@ -28,40 +32,29 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
             ]
         )
     if role == UserRole.MASTER:
-        commands.insert(
-            1,
-            BotCommand(
-                command="/today",
-                description=i18n.get("/today_description"),
-            ),
-        )
-        commands.insert(
-            2,
-            BotCommand(
-                command="/schedule",
-                description=i18n.get("/schedule_description"),
-            ),
-        )
-        commands.insert(
-            3,
-            BotCommand(
-                command="/time_off",
-                description=i18n.get("/time_off_description"),
-            ),
-        )
-        commands.insert(
-            4,
-            BotCommand(
-                command="/services",
-                description=i18n.get("/services_description")
-            )
-        )
-        commands.insert(
-            5,
-            BotCommand(
-                command="/add_service",
-                description=i18n.get("/add_service_description")
-            ),
+        commands.extend(
+            [
+                BotCommand(
+                    command="/today",
+                    description=i18n.get("/today_description"),
+                ),
+                BotCommand(
+                    command="/schedule",
+                    description=i18n.get("/schedule_description"),
+                ),
+                BotCommand(
+                    command="/time_off",
+                    description=i18n.get("/time_off_description"),
+                ),
+                BotCommand(
+                    command="/services",
+                    description=i18n.get("/services_description"),
+                ),
+                BotCommand(
+                    command="/add_service",
+                    description=i18n.get("/add_service_description"),
+                ),
+            ]
         )
     if role == UserRole.ADMIN:
         commands.extend(
