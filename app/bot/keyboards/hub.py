@@ -26,6 +26,16 @@ def get_hub_home_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     )
 
 
+def get_hub_book_result_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    """After booking: jump to my bookings or main menu."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [_btn(i18n.get("hub_my_bookings_button"), "my_bookings")],
+            [_btn(i18n.get("hub_home_button"), "root")],
+        ]
+    )
+
+
 def get_hub_back_home_row(i18n: dict[str, str]) -> list[InlineKeyboardButton]:
     return [
         _btn(i18n.get("hub_back_button"), "back"),

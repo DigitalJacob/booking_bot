@@ -29,6 +29,7 @@ from app.infrastructure.database.repositories import Repositories
 from app.bot.utils.notify import notify_appointment
 from app.bot.utils.format import format_dt, to_local
 from app.bot.handlers.client.profile import start_profile_flow
+from app.bot.keyboards.hub import get_hub_book_result_kb
 
 
 booking_router = Router(name="client_booking")
@@ -411,7 +412,10 @@ async def process_confirm(
         bot_timezone=bot_timezone,
     )
     await state.clear()
-    await callback.message.edit_text(text=i18n.get("book_ok"))
+    await callback.message.edit_text(
+        text=i18n.get("book_ok"),
+        reply_markup=get_hub_book_result_kb(i18n),
+    )
     await callback.answer()
 
 
