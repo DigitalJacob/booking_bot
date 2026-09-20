@@ -198,6 +198,25 @@ async def show_hub_screen(
         )
         return
 
+    if action in ("admin_user", "admin_ban", "admin_unban", "admin_set_role"):
+        if role != UserRole.ADMIN:
+            return
+        from app.bot.handlers.admin.users import start_admin_mod_flow
+
+        action_map = {
+            "admin_user": "user",
+            "admin_ban": "ban",
+            "admin_unban": "unban",
+            "admin_set_role": "set_role",
+        }
+        await start_admin_mod_flow(
+            message=message,
+            state=state,
+            i18n=i18n,
+            action=action_map[action],
+        )
+        return
+
     # Remaining leaves — temporary slash tip (wired in later commits)
     slash_map: dict[str, tuple[str, str]] = {
         "book": ("/book", "root"),
@@ -205,10 +224,6 @@ async def show_hub_screen(
         "profile_show": ("/profile", "profile"),
         "profile_edit": ("/edit_profile", "profile"),
         "lang": ("/lang", "settings"),
-        "admin_user": ("/user", "moderation"),
-        "admin_set_role": ("/set_role", "moderation"),
-        "admin_ban": ("/ban", "moderation"),
-        "admin_unban": ("/unban", "moderation"),
     }
     if action in slash_map:
         command, back_screen = slash_map[action]

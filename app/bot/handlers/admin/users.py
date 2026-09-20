@@ -1,25 +1,30 @@
 import logging
 from contextlib import suppress
 
-from aiogram import Bot, Router
+from aiogram import Bot, F, Router
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from aiogram.filters import Command, CommandObject
-from aiogram.types import Message, BotCommandScopeChat
+from aiogram.filters import Command, CommandObject, StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message, BotCommandScopeChat
 
 from app.bot.filters.filters import UserRoleFilter
+from app.bot.i18n.translator import resolve_i18n
+from app.bot.keyboards.admin import AdminRoleCallback, get_admin_role_kb
+from app.bot.keyboards.hub import get_hub_home_kb
+from app.bot.keyboards.menu_button import get_main_menu_commands
+from app.bot.states.states import AdminModSG
+from app.bot.utils.format import format_dt
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
-from app.bot.i18n.translator import resolve_i18n
-from app.bot.keyboards.menu_button import get_main_menu_commands
-from app.bot.utils.format import format_dt
 
 
 logger = logging.getLogger(__name__)
 
 admin_users_router = Router(name="admin_users")
 admin_users_router.message.filter(UserRoleFilter(UserRole.ADMIN))
+admin_users_router.callback_query.filter(UserRoleFilter(UserRole.ADMIN))
 
 
 def _parse_target_ref(command: CommandObject) -> str | None:
@@ -43,6 +48,19 @@ def _parse_role(command: CommandObject) -> UserRole | None:
         return None
 
 
+async def lookup_user_ref(
+        *,
+        repos: Repositories,
+        raw: str,
+) -> User | None:
+    raw = raw.strip()
+    if not raw:
+        return None
+    if raw.isdigit():
+        return await repos.users.get_user_by_id(user_id=int(raw))
+    return await repos.users.get_user_by_username(username=raw)
+
+
 async def _get_target(
         *,
         message: Message,
@@ -56,12 +74,7 @@ async def _get_target(
         await message.answer(text=i18n.get(usage_key))
         return None
 
-    target: User | None
-    if raw_user_info.isdigit():
-        target = await repos.users.get_user_by_id(user_id=int(raw_user_info))
-    else:
-        target = await repos.users.get_user_by_username(username=raw_user_info)
-
+    target = await lookup_user_ref(repos=repos, raw=raw_user_info)
     if target is None:
         await message.answer(
             text=i18n.get("admin_user_not_found").format(target=raw_user_info),
@@ -84,6 +97,137 @@ def _user_card(target: User, i18n: dict[str, str], bot_timezone: str) -> str:
         created_at=format_dt(target.created_at, bot_timezone),
     )
 
+
+async def _apply_ban(
+        *,
+        repos: Repositories,
+        actor: User,
+        target: User,
+        i18n: dict[str, str],
+) -> tuple[bool, str]:
+    if target.user_id == actor.user_id:
+        return False, i18n.get("admin_ban_self")
+    if target.role in (UserRole.ADMIN, UserRole.MASTER):
+        return False, i18n.get("admin_ban_staff")
+    if target.banned:
+        return False, i18n.get("admin_already_banned").format(
+            user_id=target.user_id,
+        )
+
+    await repos.users.change_user_banned_status(
+        user_id=target.user_id,
+        banned=True,
+    )
+    logger.info("Admin %d banned user %d", actor.user_id, target.user_id)
+    return True, i18n.get("admin_banned").format(user_id=target.user_id)
+
+
+async def _apply_unban(
+        *,
+        repos: Repositories,
+        actor: User,
+        target: User,
+        i18n: dict[str, str],
+) -> tuple[bool, str]:
+    if not target.banned:
+        return False, i18n.get("admin_not_banned").format(user_id=target.user_id)
+
+    await repos.users.change_user_banned_status(
+        user_id=target.user_id,
+        banned=False,
+    )
+    logger.info("Admin %d unbanned user %d", actor.user_id, target.user_id)
+    return True, i18n.get("admin_unbanned").format(user_id=target.user_id)
+
+
+async def _apply_set_role(
+        *,
+        bot: Bot,
+        translations: dict,
+        repos: Repositories,
+        actor: User,
+        target: User,
+        role: UserRole,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> tuple[bool, str]:
+    if target.user_id == actor.user_id and role != UserRole.ADMIN:
+        return False, i18n.get("admin_demote_self")
+
+    if target.role == role:
+        return False, i18n.get("admin_role_unchanged").format(
+            user_id=target.user_id,
+            role=role,
+        )
+
+    await repos.users.change_user_role(user_id=target.user_id, role=role)
+
+    if role == UserRole.MASTER:
+        await repos.master_settings.ensure_defaults(
+            master_user_id=target.user_id,
+            timezone=bot_timezone,
+        )
+
+    logger.info(
+        "Admin %d changed role of user %d to '%s'",
+        actor.user_id,
+        target.user_id,
+        role,
+    )
+
+    target_i18n = resolve_i18n(
+        language=target.language,
+        translations=translations,
+    )
+    with suppress(TelegramBadRequest, TelegramForbiddenError):
+        await bot.set_my_commands(
+            commands=get_main_menu_commands(i18n=target_i18n, role=role),
+            scope=BotCommandScopeChat(
+                type=BotCommandScopeType.CHAT,
+                chat_id=target.user_id,
+            ),
+        )
+        await bot.send_message(
+            chat_id=target.user_id,
+            text=target_i18n.get("admin_role_changed_notice").format(
+                role=role,
+            ),
+        )
+
+    return True, i18n.get("admin_role_set").format(
+        user_id=target.user_id,
+        role=role,
+    )
+
+
+async def start_admin_mod_flow(
+        *,
+        message: Message,
+        state: FSMContext,
+        i18n: dict[str, str],
+        action: str,
+) -> None:
+    """Start guided moderation FSM from hub (action: user|ban|unban|set_role)."""
+    await state.clear()
+    await state.set_state(AdminModSG.target)
+    await state.update_data(admin_action=action)
+    await message.edit_text(text=i18n.get("admin_hub_ask_target"))
+
+
+async def _finish_ok(
+        *,
+        message: Message,
+        state: FSMContext,
+        text: str,
+        i18n: dict[str, str],
+) -> None:
+    await state.clear()
+    await message.answer(text=text, reply_markup=get_hub_home_kb(i18n))
+
+
+# ---------------------------------------------------------------------------
+# Slash commands (deep links / fallback)
+# ---------------------------------------------------------------------------
 
 @admin_users_router.message(Command(commands="user"))
 async def process_user_command(
@@ -124,26 +268,13 @@ async def process_ban_command(
     if target is None:
         return
 
-    if target.user_id == user.user_id:
-        await message.answer(text=i18n.get("admin_ban_self"))
-        return
-    if target.role in (UserRole.ADMIN, UserRole.MASTER):
-        await message.answer(text=i18n.get("admin_ban_staff"))
-        return
-    if target.banned:
-        await message.answer(
-            text=i18n.get("admin_already_banned").format(user_id=target.user_id),
-        )
-        return
-
-    await repos.users.change_user_banned_status(
-        user_id=target.user_id,
-        banned=True,
+    _, text = await _apply_ban(
+        repos=repos,
+        actor=user,
+        target=target,
+        i18n=i18n,
     )
-    logger.info("Admin %d banned user %d", user.user_id, target.user_id)
-    await message.answer(
-        text=i18n.get("admin_banned").format(user_id=target.user_id),
-    )
+    await message.answer(text=text)
 
 
 @admin_users_router.message(Command(commands="unban"))
@@ -164,20 +295,13 @@ async def process_unban_command(
     if target is None:
         return
 
-    if not target.banned:
-        await message.answer(
-            text=i18n.get("admin_not_banned").format(user_id=target.user_id),
-        )
-        return
-
-    await repos.users.change_user_banned_status(
-        user_id=target.user_id,
-        banned=False,
+    _, text = await _apply_unban(
+        repos=repos,
+        actor=user,
+        target=target,
+        i18n=i18n,
     )
-    logger.info("Admin %d unbanned user %d", user.user_id, target.user_id)
-    await message.answer(
-        text=i18n.get("admin_unbanned").format(user_id=target.user_id),
-    )
+    await message.answer(text=text)
 
 
 @admin_users_router.message(Command(commands="set_role"))
@@ -210,56 +334,174 @@ async def process_set_role_command(
         )
         return
 
-    if target.user_id == user.user_id and role != UserRole.ADMIN:
-        await message.answer(text=i18n.get("admin_demote_self"))
-        return
-
-    if target.role == role:
-        await message.answer(
-            text=i18n.get("admin_role_unchanged").format(
-                user_id=target.user_id,
-                role=role,
-            ),
-        )
-        return
-
-    await repos.users.change_user_role(user_id=target.user_id, role=role)
-
-    if role == UserRole.MASTER:
-        await repos.master_settings.ensure_defaults(
-            master_user_id=target.user_id,
-            timezone=bot_timezone,
-        )
-
-    logger.info(
-        "Admin %d changed role of user %d to '%s'",
-        user.user_id,
-        target.user_id,
-        role,
-    )
-
-    target_i18n = resolve_i18n(
-        language=target.language,
+    _, text = await _apply_set_role(
+        bot=bot,
         translations=translations,
+        repos=repos,
+        actor=user,
+        target=target,
+        role=role,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
     )
-    with suppress(TelegramBadRequest, TelegramForbiddenError):
-        await bot.set_my_commands(
-            commands=get_main_menu_commands(i18n=target_i18n, role=role),
-            scope=BotCommandScopeChat(
-                type=BotCommandScopeType.CHAT,
-                chat_id=target.user_id,
-            ),
-        )
-        await bot.send_message(
-            chat_id=target.user_id,
-            text=target_i18n.get("admin_role_changed_notice").format(
-                role=role,
-            ),
-        )
+    await message.answer(text=text)
 
-    await message.answer(
-        text=i18n.get("admin_role_set").format(
-            user_id=target.user_id,
-            role=role,
-        ),
+
+# ---------------------------------------------------------------------------
+# Guided FSM from hub
+# ---------------------------------------------------------------------------
+
+@admin_users_router.message(Command(commands="cancel"), StateFilter(AdminModSG))
+async def process_admin_mod_cancel(
+        message: Message,
+        state: FSMContext,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    from app.bot.handlers.common.hub import show_hub
+
+    await state.clear()
+    await message.answer(text=i18n.get("admin_hub_cancelled"))
+    await show_hub(
+        message=message,
+        user=user,
+        i18n=i18n,
+        state=state,
+        edit=False,
     )
+
+
+@admin_users_router.message(StateFilter(AdminModSG.target))
+async def process_admin_mod_target(
+        message: Message,
+        state: FSMContext,
+        bot: Bot,
+        translations: dict,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    raw = (message.text or "").strip()
+    if not raw:
+        await message.answer(text=i18n.get("admin_hub_ask_target"))
+        return
+
+    target = await lookup_user_ref(repos=repos, raw=raw)
+    if target is None:
+        await message.answer(
+            text=i18n.get("admin_user_not_found").format(target=raw),
+        )
+        return
+
+    data = await state.get_data()
+    action = data.get("admin_action")
+
+    if action == "user":
+        await _finish_ok(
+            message=message,
+            state=state,
+            text=_user_card(target, i18n, bot_timezone),
+            i18n=i18n,
+        )
+        return
+
+    if action == "ban":
+        ok, text = await _apply_ban(
+            repos=repos,
+            actor=user,
+            target=target,
+            i18n=i18n,
+        )
+        if ok:
+            await _finish_ok(message=message, state=state, text=text, i18n=i18n)
+        else:
+            await message.answer(text=text)
+        return
+
+    if action == "unban":
+        ok, text = await _apply_unban(
+            repos=repos,
+            actor=user,
+            target=target,
+            i18n=i18n,
+        )
+        if ok:
+            await _finish_ok(message=message, state=state, text=text, i18n=i18n)
+        else:
+            await message.answer(text=text)
+        return
+
+    if action == "set_role":
+        await state.update_data(target_user_id=target.user_id)
+        await state.set_state(AdminModSG.role)
+        await message.answer(
+            text=i18n.get("admin_hub_ask_role").format(
+                user_id=target.user_id,
+            ),
+            reply_markup=get_admin_role_kb(i18n),
+        )
+        return
+
+    await state.clear()
+    await message.answer(text=i18n.get("admin_hub_cancelled"))
+
+
+@admin_users_router.callback_query(
+    AdminRoleCallback.filter(),
+    StateFilter(AdminModSG.role),
+)
+async def process_admin_mod_role(
+        callback: CallbackQuery,
+        callback_data: AdminRoleCallback,
+        state: FSMContext,
+        bot: Bot,
+        translations: dict,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    try:
+        role = UserRole(callback_data.role)
+    except ValueError:
+        await callback.answer(
+            text=i18n.get("admin_invalid_role").format(
+                roles=", ".join(UserRole),
+            ),
+            show_alert=True,
+        )
+        return
+
+    data = await state.get_data()
+    target_user_id = data.get("target_user_id")
+    if target_user_id is None:
+        await state.clear()
+        await callback.answer()
+        return
+
+    target = await repos.users.get_user_by_id(user_id=int(target_user_id))
+    if target is None:
+        await state.clear()
+        await callback.message.edit_text(
+            text=i18n.get("admin_user_not_found").format(target=target_user_id),
+        )
+        await callback.answer()
+        return
+
+    ok, text = await _apply_set_role(
+        bot=bot,
+        translations=translations,
+        repos=repos,
+        actor=user,
+        target=target,
+        role=role,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    if ok:
+        await state.clear()
+        await callback.message.edit_text(text=text, reply_markup=get_hub_home_kb(i18n))
+    else:
+        await callback.message.answer(text=text)
+    await callback.answer()

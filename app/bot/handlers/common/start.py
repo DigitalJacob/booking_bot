@@ -7,23 +7,16 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, Message
 
-from app.domain.enums import UserRole
+from app.bot.handlers.common.hub import show_hub
+from app.bot.i18n.translator import resolve_i18n, resolve_language
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
-from app.bot.i18n.translator import resolve_i18n, resolve_language
+from app.domain.enums import UserRole
 from app.domain.models.user import User
 from app.infrastructure.database.repositories import Repositories
 
 
 start_router = Router(name="start")
-
-
-def _start_text(role: UserRole, i18n: dict[str, str]) -> str:
-    if role == UserRole.MASTER:
-        return i18n.get("/start_master")
-    if role == UserRole.ADMIN:
-        return i18n.get("/start_admin")
-    return i18n.get("/start")
 
 
 def _help_text(role: UserRole | None, i18n: dict[str, str]) -> str:
@@ -62,6 +55,7 @@ async def process_start_command(
             language=language,
             role=user_role,
         )
+        user = await repos.users.get_user_by_id(user_id=message.from_user.id)
     else:
         user_role = user.role
 
@@ -85,8 +79,14 @@ async def process_start_command(
         ),
     )
 
-    await message.answer(text=_start_text(user_role, i18n))
     await state.clear()
+    await show_hub(
+        message=message,
+        user=user,
+        i18n=i18n,
+        state=state,
+        edit=False,
+    )
 
 
 @start_router.message(Command(commands="help"))

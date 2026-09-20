@@ -39,3 +39,8 @@ class ScheduleSG(StatesGroup):
 class TimeOffSG(StatesGroup):
     starts_date = State()
     ends_date = State()
+
+
+class AdminModSG(StatesGroup):
+    target = State()
+    role = State()

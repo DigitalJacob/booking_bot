@@ -237,6 +237,18 @@ EN: dict[str, str] = {
     "admin_role_unchanged": "User {user_id} already has the role {role}.",
     "admin_role_set": "User {user_id} now has the role {role}.",
     "admin_role_changed_notice": "Your role has been changed to {role}.",
+    "admin_hub_ask_target": (
+        "Enter user id or @username\n\n"
+        "Cancel: /cancel"
+    ),
+    "admin_hub_ask_role": (
+        "Choose a new role for user {user_id}\n\n"
+        "Cancel: /cancel"
+    ),
+    "admin_hub_cancelled": "Moderation cancelled.",
+    "admin_role_client_button": "client",
+    "admin_role_master_button": "master",
+    "admin_role_admin_button": "admin",
     "/profile_description": "My profile",
     "profile_ask_first_name": "What is your first name?",
     "profile_ask_last_name": "What is your last name?",
