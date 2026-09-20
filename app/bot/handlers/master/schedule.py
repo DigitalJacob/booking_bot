@@ -49,7 +49,7 @@ def _weekdays_label(selected: set[int], i18n: dict[str, str]) -> str:
     )
 
 
-async def _show_schedule(
+async def show_schedule_list(
         *,
         message: Message,
         repos: Repositories,
@@ -79,8 +79,10 @@ async def process_schedule_command(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        state: FSMContext,
 ) -> None:
-    await _show_schedule(
+    await state.update_data(list_return="root")
+    await show_schedule_list(
         message=message,
         repos=repos,
         user=user,
@@ -94,9 +96,18 @@ async def process_schedule_command(
 )
 async def process_schedule_close(
         callback: CallbackQuery,
+        state: FSMContext,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    await callback.message.edit_text(text=i18n.get("schedule_closed"))
+    from app.bot.handlers.common.hub import return_from_list
+
+    await return_from_list(
+        message=callback.message,
+        user=user,
+        i18n=i18n,
+        state=state,
+    )
     await callback.answer()
 
 
@@ -150,7 +161,7 @@ async def process_schedule_delete_yes(
         )
         return
     await callback.answer(text=i18n.get("schedule_deleted"))
-    await _show_schedule(
+    await show_schedule_list(
         message=callback.message,
         repos=repos,
         user=user,
@@ -168,7 +179,7 @@ async def process_schedule_delete_no(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    await _show_schedule(
+    await show_schedule_list(
         message=callback.message,
         repos=repos,
         user=user,
@@ -313,7 +324,7 @@ async def process_schedule_save(
         ),
     )
     await callback.answer()
-    await _show_schedule(
+    await show_schedule_list(
         message=callback.message,
         repos=repos,
         user=user,

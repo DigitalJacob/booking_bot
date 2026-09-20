@@ -50,7 +50,7 @@ def _format_day_range(starts: date, ends: date) -> str:
     return f"{start_d}-{end_d}"
 
 
-async def _show_time_off(
+async def show_time_off_list(
         *,
         message: Message,
         repos: Repositories,
@@ -89,8 +89,10 @@ async def process_time_off_command(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        state: FSMContext,
 ) -> None:
-    await _show_time_off(
+    await state.update_data(list_return="root")
+    await show_time_off_list(
         message=message,
         repos=repos,
         user=user,
@@ -103,9 +105,18 @@ async def process_time_off_command(
 @time_off_router.callback_query(TimeOffNavCallback.filter(F.action == "close"))
 async def process_time_off_close(
         callback: CallbackQuery,
+        state: FSMContext,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    await callback.message.edit_text(text=i18n.get("time_off_closed"))
+    from app.bot.handlers.common.hub import return_from_list
+
+    await return_from_list(
+        message=callback.message,
+        user=user,
+        i18n=i18n,
+        state=state,
+    )
     await callback.answer()
 
 
@@ -161,7 +172,7 @@ async def process_time_off_delete_yes(
         )
         return
     await callback.answer(text=i18n.get("time_off_deleted"))
-    await _show_time_off(
+    await show_time_off_list(
         message=callback.message,
         repos=repos,
         user=user,
@@ -181,7 +192,7 @@ async def process_time_off_delete_no(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    await _show_time_off(
+    await show_time_off_list(
         message=callback.message,
         repos=repos,
         user=user,
@@ -266,7 +277,7 @@ async def process_time_off_ends(
             when=_format_day_range(starts, ends),
         ),
     )
-    await _show_time_off(
+    await show_time_off_list(
         message=message,
         repos=repos,
         user=user,

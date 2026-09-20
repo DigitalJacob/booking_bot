@@ -56,7 +56,7 @@ def _parse_price(value: str) -> Decimal | None:
     return Decimal(normalized)
 
 
-async def _show_services_list(
+async def show_services_list(
         *,
         message: Message,
         repos: Repositories,
@@ -114,8 +114,10 @@ async def process_services_command(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        state: FSMContext,
 ) -> None:
-    await _show_services_list(
+    await state.update_data(list_return="root")
+    await show_services_list(
         message=message,
         repos=repos,
         user=user,
@@ -156,7 +158,7 @@ async def process_services_back(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    await _show_services_list(
+    await show_services_list(
         message=callback.message,
         repos=repos,
         user=user,
@@ -169,9 +171,18 @@ async def process_services_back(
 @services_router.callback_query(MasterServiceNavCallback.filter(F.action == "close"))
 async def process_services_close(
         callback: CallbackQuery,
+        state: FSMContext,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
-    await callback.message.edit_text(text=i18n.get("services_closed"))
+    from app.bot.handlers.common.hub import return_from_list
+
+    await return_from_list(
+        message=callback.message,
+        user=user,
+        i18n=i18n,
+        state=state,
+    )
     await callback.answer()
 
 
@@ -325,7 +336,7 @@ async def process_add_service_price(
             price=_format_price(service.price, i18n),
         ),
     )
-    await _show_services_list(
+    await show_services_list(
         message=message,
         repos=repos,
         user=user,
@@ -471,7 +482,7 @@ async def process_edit_service_price(
             price=_format_price(service.price, i18n),
         ),
     )
-    await _show_services_list(
+    await show_services_list(
         message=message,
         repos=repos,
         user=user,

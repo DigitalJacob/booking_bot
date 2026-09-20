@@ -396,5 +396,6 @@ EN: dict[str, str] = {
     "hub_use_slash": (
         "{command}\n"
     ),
+    "hub_my_bookings_opened": "Your bookings are below. Tap ⌂ Menu to return.",
     "/menu_description": "Open the main menu",
 }

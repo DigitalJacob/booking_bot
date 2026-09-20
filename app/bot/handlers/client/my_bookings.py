@@ -21,18 +21,15 @@ from app.infrastructure.database.repositories import Repositories
 my_bookings_router = Router(name="client_my_bookings")
 
 
-@my_bookings_router.message(Command(commands="my_bookings"))
-async def process_my_bookings_command(
+async def send_my_bookings(
+        *,
         message: Message,
         repos: Repositories,
-        user: User | None,
+        user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        skip_header: bool = False,
 ) -> None:
-    if user is None:
-        await message.answer(text=i18n.get("book_need_start"))
-        return
-
     booking = BookingService(repos)
     appointments = await booking.list_client_appointments(
         client_user_id=user.user_id,
@@ -41,7 +38,8 @@ async def process_my_bookings_command(
         await message.answer(text=i18n.get("my_bookings_empty"))
         return
 
-    await message.answer(text=i18n.get("my_bookings_header"))
+    if not skip_header:
+        await message.answer(text=i18n.get("my_bookings_header"))
     for appointment in appointments:
         service = await repos.services.get_service(
             service_id=appointment.service_id,
@@ -58,6 +56,27 @@ async def process_my_bookings_command(
                 i18n=i18n,
             ),
         )
+
+
+@my_bookings_router.message(Command(commands="my_bookings"))
+async def process_my_bookings_command(
+        message: Message,
+        repos: Repositories,
+        user: User | None,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    if user is None:
+        await message.answer(text=i18n.get("book_need_start"))
+        return
+
+    await send_my_bookings(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
 
 
 @my_bookings_router.callback_query(
