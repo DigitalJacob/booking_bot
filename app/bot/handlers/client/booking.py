@@ -423,9 +423,18 @@ async def process_cancel(
         callback: CallbackQuery,
         i18n: dict[str, str],
         state: FSMContext,
+        user: User | None,
 ) -> None:
+    from app.bot.handlers.common.hub import show_hub
+
     await state.clear()
-    await callback.message.edit_text(text=i18n.get("book_cancelled"))
+    await show_hub(
+        message=callback.message,
+        user=user,
+        i18n=i18n,
+        state=state,
+        edit=True,
+    )
     await callback.answer()
 
 
