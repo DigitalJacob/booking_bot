@@ -119,13 +119,16 @@ failure halfway through a booking cannot leave a half-written appointment behind
   guarantees two clients can never book overlapping times for the same master
 - **UTC everywhere** — all timestamps stored as `TIMESTAMPTZ`
 - **Structured logging** with a configurable level and rotating Docker log files
+- **Inline hub menu** — `/start` and `/menu` open a role-specific button hub;
+  slash commands remain as deep links / fallbacks
 
 ## Commands
 
 | Command                            | Role            | Description                                               |
 |------------------------------------|-----------------|-----------------------------------------------------------|
-| `/start`                           | everyone        | Register, get the role-specific greeting and menu         |
+| `/start`                           | everyone        | Register and open the role-specific hub menu              |
 | `/help`                            | everyone        | Command reference for your role                           |
+| `/menu`                            | everyone        | Open the main hub menu                                    |
 | `/lang`                            | everyone        | Switch interface language (RU / EN)                       |
 | `/book`                            | client          | Book an appointment (asks for the profile first if empty) |
 | `/my_bookings`                     | client          | View and cancel your upcoming appointments                |
@@ -371,8 +374,6 @@ booking_bot/
 - Appointment reminders ahead of the scheduled time
 - Per-language service titles set by the master
 - Fetching appointment details in a single joined query to remove N+1 reads
-- Replace BotCommands menu with a single hub message and inline buttons
-  (keep slash commands as deep links / fallbacks)
 
 ## Feedback
 
