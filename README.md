@@ -93,8 +93,7 @@ failure halfway through a booking cannot leave a half-written appointment behind
   tapped twice by accident
 - **Past appointments are read-only** — once the appointment has ended the action buttons
   disappear and the card is marked as past, and a stale button is rejected server-side
-- **Service catalogue** — title, duration and price per service, with soft
-  deactivation instead of deletion
+- **Service catalogue** — title, duration and price; edit and soft deactivate from `/services`
 - **Weekly schedule** — `/schedule` for repeating working hours
 - **Time off** — `/time_off` to block full days (vacation, days off)
 
@@ -367,7 +366,6 @@ booking_bot/
 ## Roadmap
 
 - Per-master timezone setting (today: bot-wide `TIMEZONE` in `.env`)
-- Editing and deactivating services from the bot
 - Partial-day time off (hours, not only full days)
 - Multi-master support, letting clients pick a master first
 - Appointment reminders ahead of the scheduled time
