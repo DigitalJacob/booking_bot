@@ -15,6 +15,7 @@ from app.bot.keyboards.hub import get_hub_home_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
+from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -208,7 +209,7 @@ async def start_admin_mod_flow(
         action: str,
 ) -> None:
     """Start guided moderation FSM from hub (action: user|ban|unban|set_role)."""
-    await state.clear()
+    await clear_state_keep_hub(state)
     await state.set_state(AdminModSG.target)
     await state.update_data(admin_action=action)
     await message.edit_text(text=i18n.get("admin_hub_ask_target"))
@@ -221,7 +222,7 @@ async def _finish_ok(
         text: str,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(text=text, reply_markup=get_hub_home_kb(i18n))
 
 
@@ -358,16 +359,16 @@ async def process_admin_mod_cancel(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    from app.bot.handlers.common.hub import show_hub
+    from app.bot.utils.hub_nav import show_hub
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(text=i18n.get("admin_hub_cancelled"))
     await show_hub(
         message=message,
         user=user,
         i18n=i18n,
         state=state,
-        edit=False,
+        force_new=True,
     )
 
 
@@ -443,7 +444,7 @@ async def process_admin_mod_target(
         )
         return
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(text=i18n.get("admin_hub_cancelled"))
 
 
@@ -476,13 +477,13 @@ async def process_admin_mod_role(
     data = await state.get_data()
     target_user_id = data.get("target_user_id")
     if target_user_id is None:
-        await state.clear()
+        await clear_state_keep_hub(state)
         await callback.answer()
         return
 
     target = await repos.users.get_user_by_id(user_id=int(target_user_id))
     if target is None:
-        await state.clear()
+        await clear_state_keep_hub(state)
         await callback.message.edit_text(
             text=i18n.get("admin_user_not_found").format(target=target_user_id),
         )
@@ -500,7 +501,7 @@ async def process_admin_mod_role(
         bot_timezone=bot_timezone,
     )
     if ok:
-        await state.clear()
+        await clear_state_keep_hub(state)
         await callback.message.edit_text(text=text, reply_markup=get_hub_home_kb(i18n))
     else:
         await callback.message.answer(text=text)

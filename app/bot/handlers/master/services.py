@@ -16,6 +16,7 @@ from app.bot.filters.filters import UserRoleFilter
 from app.bot.states.states import AddServiceSG, EditServiceSG
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
+from app.bot.utils.hub_nav import clear_state_keep_hub
 
 
 services_router = Router(name="master_services")
@@ -242,7 +243,7 @@ async def process_services_add_button(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await state.set_state(AddServiceSG.title)
     await callback.message.edit_text(text=i18n.get("add_service_enter_title"))
     await callback.answer()
@@ -254,7 +255,7 @@ async def process_add_service_command(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await state.set_state(AddServiceSG.title)
     await message.answer(text=i18n.get("add_service_enter_title"))
 
@@ -265,7 +266,7 @@ async def process_add_service_cancel(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(text=i18n.get("add_service_cancelled"))
 
 
@@ -328,7 +329,7 @@ async def process_add_service_price(
         price=price,
     )
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(
         text=i18n.get("add_service_ok").format(
             title=service.title,
@@ -363,7 +364,7 @@ async def process_service_edit(
         await callback.answer(text=i18n.get("services_not_found"), show_alert=True)
         return
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await state.update_data(service_id=service.id)
     await state.set_state(EditServiceSG.title)
     await callback.message.edit_text(
@@ -378,7 +379,7 @@ async def process_edit_service_cancel(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(text=i18n.get("edit_service_cancelled"))
 
 
@@ -401,7 +402,7 @@ async def process_edit_service_title(
     service = await repos.services.get_service(service_id=data["service_id"])
     if service is None or service.master_user_id != user.user_id:
         await message.answer(text=i18n.get("services_not_found"))
-        await state.clear()
+        await clear_state_keep_hub(state)
         return
 
     await state.set_state(EditServiceSG.duration)
@@ -436,7 +437,7 @@ async def process_edit_service_duration(
     service = await repos.services.get_service(service_id=data["service_id"])
     if service is None or service.master_user_id != user.user_id:
         await message.answer(text=i18n.get("services_not_found"))
-        await state.clear()
+        await clear_state_keep_hub(state)
         return
 
     await state.set_state(EditServiceSG.price)
@@ -471,10 +472,10 @@ async def process_edit_service_price(
     )
     if service is None:
         await message.answer(text=i18n.get("services_not_found"))
-        await state.clear()
+        await clear_state_keep_hub(state)
         return
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(
         text=i18n.get("edit_service_ok").format(
             title=service.title,

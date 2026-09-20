@@ -387,6 +387,7 @@ RU: dict[str, str] = {
     "hub_moderation_title": "Модерация",
     "hub_back_button": "← Назад",
     "hub_home_button": "⌂ Меню",
+    "hub_ok_button": "OK",
     "hub_book_button": "Запись",
     "hub_my_bookings_button": "Мои записи",
     "hub_today_button": "Сегодня",

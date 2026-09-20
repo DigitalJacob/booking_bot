@@ -9,7 +9,7 @@ from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.utils.format import client_contact, format_dt
-from app.bot.keyboards.hub import get_hub_book_result_kb
+from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.master import get_appointment_actions_kb
 
 
@@ -44,7 +44,7 @@ async def notify_appointment(
             slot_ends_at=appointment.ends_at,
         )
     elif with_client_hub:
-        reply_markup = get_hub_book_result_kb(i18n)
+        reply_markup = get_hub_dismiss_kb(i18n)
 
     with suppress(TelegramBadRequest, TelegramForbiddenError):
         await bot.send_message(

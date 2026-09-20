@@ -19,6 +19,7 @@ from app.bot.utils.format import get_zone, combine_local
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
+from app.bot.utils.hub_nav import clear_state_keep_hub
 
 
 time_off_router = Router(name="master_time_off")
@@ -209,7 +210,7 @@ async def process_time_off_add(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await state.set_state(TimeOffSG.starts_date)
     await callback.message.edit_text(text=i18n.get("time_off_enter_starts"))
     await callback.answer()
@@ -221,7 +222,7 @@ async def process_time_off_cancel_cmd(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(text=i18n.get("time_off_cancelled"))
 
 
@@ -271,7 +272,7 @@ async def process_time_off_ends(
         note=None,
     )
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(
         text=i18n.get("time_off_add_ok").format(
             when=_format_day_range(starts, ends),

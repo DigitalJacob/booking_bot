@@ -9,6 +9,7 @@ from app.bot.keyboards.profile import get_phone_kb, remove_kb
 from app.bot.states.states import ProfileSG
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
+from app.bot.utils.hub_nav import clear_state_keep_hub
 
 
 profile_router = Router(name="client_profile")
@@ -34,7 +35,7 @@ async def _save_profile(
         phone: str,
 ) -> None:
     if user is None:
-        await state.clear()
+        await clear_state_keep_hub(state)
         await message.answer(
             text=i18n.get("book_need_start"),
             reply_markup=remove_kb(),
@@ -49,7 +50,7 @@ async def _save_profile(
         phone=phone,
     )
     resume_book = bool(data.get("resume_book"))
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(
         text=i18n.get("profile_saved"),
         reply_markup=remove_kb(),
@@ -65,7 +66,7 @@ async def start_profile_flow(
         i18n: dict[str, str],
         resume_book: bool = False,
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await state.set_state(ProfileSG.first_name)
     await state.update_data(resume_book=resume_book)
     await message.answer(text=i18n.get("profile_ask_first_name"))
@@ -83,7 +84,7 @@ async def process_profile_command(
         return
 
     if user.profile_complete:
-        await state.clear()
+        await clear_state_keep_hub(state)
         await message.answer(text=format_profile_card(user, i18n))
         await message.answer(text=i18n.get("profile_edit_hint"))
         return
@@ -120,7 +121,7 @@ async def process_profile_cancel(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(
         text=i18n.get("profile_cancelled"),
         reply_markup=remove_kb(),

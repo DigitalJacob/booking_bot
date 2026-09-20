@@ -21,6 +21,7 @@ from app.bot.keyboards.schedule import (
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
+from app.bot.utils.hub_nav import clear_state_keep_hub
 
 
 schedule_router = Router(name="master_schedule")
@@ -195,7 +196,7 @@ async def process_schedule_add(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await state.set_state(ScheduleSG.starts_time)
     await callback.message.edit_text(text=i18n.get("schedule_enter_starts"))
     await callback.answer()
@@ -207,7 +208,7 @@ async def process_schedule_cancel_cmd(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await message.answer(text=i18n.get("schedule_cancelled"))
 
 
@@ -315,7 +316,7 @@ async def process_schedule_save(
             ends_time=ends,
         )
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await callback.message.edit_text(
         text=i18n.get("schedule_add_ok").format(
             starts=_format_hm(starts),
@@ -356,6 +357,6 @@ async def process_schedule_cancel_cb(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await state.clear()
+    await clear_state_keep_hub(state)
     await callback.message.edit_text(text=i18n.get("schedule_cancelled"))
     await callback.answer()

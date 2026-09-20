@@ -16,7 +16,12 @@ from app.bot.keyboards.booking import (
     get_services_kb,
     get_windows_kb,
 )
+from app.bot.handlers.client.profile import start_profile_flow
+from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import BookingSG
+from app.bot.utils.format import format_dt, to_local
+from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
     ServiceInactive,
     ServiceNotFound,
@@ -26,10 +31,6 @@ from app.domain.exceptions import (
 from app.domain.models import Service, TimeWindow, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
-from app.bot.utils.notify import notify_appointment
-from app.bot.utils.format import format_dt, to_local
-from app.bot.handlers.client.profile import start_profile_flow
-from app.bot.keyboards.hub import get_hub_book_result_kb
 
 
 booking_router = Router(name="client_booking")
@@ -144,7 +145,7 @@ async def start_booking_flow(
         )
         return
 
-    await state.clear()
+    await clear_state_keep_hub(state)
 
     booking = BookingService(repos)
     services = await booking.list_services(master_user_id=master_user_id)
@@ -234,7 +235,7 @@ async def process_service_choice(
     if not days:
         await callback.answer()
         await callback.message.edit_text(text=i18n.get("book_no_windows"))
-        await state.clear()
+        await clear_state_keep_hub(state)
         return
 
     await state.update_data(
@@ -371,7 +372,7 @@ async def process_confirm(
             text=i18n.get("book_need_start"),
             show_alert=True,
         )
-        await state.clear()
+        await clear_state_keep_hub(state)
         return
 
     fsm_data = await state.get_data()
@@ -411,10 +412,10 @@ async def process_confirm(
         with_master_actions=True,
         bot_timezone=bot_timezone,
     )
-    await state.clear()
+    await clear_state_keep_hub(state)
     await callback.message.edit_text(
         text=i18n.get("book_ok"),
-        reply_markup=get_hub_book_result_kb(i18n),
+        reply_markup=get_hub_dismiss_kb(i18n),
     )
     await callback.answer()
 
@@ -429,15 +430,14 @@ async def process_cancel(
         state: FSMContext,
         user: User | None,
 ) -> None:
-    from app.bot.handlers.common.hub import show_hub
+    from app.bot.utils.hub_nav import show_hub
 
-    await state.clear()
+    await clear_state_keep_hub(state)
     await show_hub(
         message=callback.message,
         user=user,
         i18n=i18n,
         state=state,
-        edit=True,
     )
     await callback.answer()
 
@@ -486,7 +486,7 @@ async def process_back(
         await state.update_data(day=None, starts_at=None)
         if not days:
             await callback.message.edit_text(text=i18n.get("book_no_windows"))
-            await state.clear()
+            await clear_state_keep_hub(state)
         else:
             await _show_days(message=callback.message, days=days, i18n=i18n)
         await callback.answer()

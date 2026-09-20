@@ -26,12 +26,11 @@ def get_hub_home_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     )
 
 
-def get_hub_book_result_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
-    """After booking: jump to my bookings or main menu."""
+def get_hub_dismiss_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    """OK on status / book_ok: delete push or restore sticky hub."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [_btn(i18n.get("hub_my_bookings_button"), "my_bookings")],
-            [_btn(i18n.get("hub_home_button"), "root")],
+            [_btn(i18n.get("hub_ok_button"), "dismiss")],
         ]
     )
 

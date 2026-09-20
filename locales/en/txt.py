@@ -387,6 +387,7 @@ EN: dict[str, str] = {
     "hub_moderation_title": "Moderation",
     "hub_back_button": "← Back",
     "hub_home_button": "⌂ Menu",
+    "hub_ok_button": "OK",
     "hub_book_button": "Book",
     "hub_my_bookings_button": "My bookings",
     "hub_today_button": "Today",
