@@ -3,6 +3,7 @@ from datetime import date
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.bot.utils.format import format_time
 from app.domain.models import Service, TimeWindow
 
@@ -45,6 +46,11 @@ def _nav_row(
     return buttons
 
 
+def _format_day_button(day: date, i18n: dict[str, str]) -> str:
+    weekday = i18n.get(WEEKDAY_KEYS[day.isoweekday()])
+    return f"{weekday} {day.strftime('%d.%m')}"
+
+
 def get_services_kb(
         *,
         services: list[Service],
@@ -73,15 +79,19 @@ def get_days_kb(
         i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
+    row: list[InlineKeyboardButton] = []
     for day in days:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text=day.strftime("%d.%m.%Y"),
-                    callback_data=DayCallback(value=day.isoformat()).pack(),
-                )
-            ]
+        row.append(
+            InlineKeyboardButton(
+                text=_format_day_button(day, i18n),
+                callback_data=DayCallback(value=day.isoformat()).pack(),
+            )
         )
+        if len(row) == 3:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
     buttons.append(_nav_row(i18n, with_back=True))
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
