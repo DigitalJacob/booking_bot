@@ -15,7 +15,7 @@ from app.bot.keyboards.hub import get_hub_home_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
-from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -359,8 +359,6 @@ async def process_admin_mod_cancel(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    from app.bot.utils.hub_nav import show_hub
-
     await clear_state_keep_hub(state)
     await message.answer(text=i18n.get("admin_hub_cancelled"))
     await show_hub(

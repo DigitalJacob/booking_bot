@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters.filters import UserRoleFilter
-from app.bot.states.states import ScheduleSG
+from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.schedule import (
     ScheduleNavCallback,
     ScheduleWeekdayCallback,
@@ -18,10 +18,11 @@ from app.bot.keyboards.schedule import (
     get_schedule_confirm_delete_kb,
     WEEKDAY_KEYS,
 )
+from app.bot.states.states import ScheduleSG
+from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
-from app.bot.utils.hub_nav import clear_state_keep_hub
 
 
 schedule_router = Router(name="master_schedule")
@@ -101,8 +102,6 @@ async def process_schedule_close(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    from app.bot.handlers.common.hub import return_from_list
-
     await return_from_list(
         message=callback.message,
         user=user,

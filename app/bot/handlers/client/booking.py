@@ -20,7 +20,7 @@ from app.bot.handlers.client.profile import start_profile_flow
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import BookingSG
 from app.bot.utils.format import format_dt, to_local
-from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
 from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
     ServiceInactive,
@@ -430,8 +430,6 @@ async def process_cancel(
         state: FSMContext,
         user: User | None,
 ) -> None:
-    from app.bot.utils.hub_nav import show_hub
-
     await clear_state_keep_hub(state)
     await show_hub(
         message=callback.message,

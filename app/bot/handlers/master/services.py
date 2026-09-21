@@ -5,18 +5,19 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
+from app.bot.filters.filters import UserRoleFilter
+from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.master_services import (
     MasterServiceCallback,
     MasterServiceNavCallback,
     get_services_list_kb,
     get_service_card_kb,
 )
-from app.domain.enums import UserRole
-from app.bot.filters.filters import UserRoleFilter
 from app.bot.states.states import AddServiceSG, EditServiceSG
+from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.domain.enums import UserRole
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
-from app.bot.utils.hub_nav import clear_state_keep_hub
 
 
 services_router = Router(name="master_services")
@@ -176,8 +177,6 @@ async def process_services_close(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    from app.bot.handlers.common.hub import return_from_list
-
     await return_from_list(
         message=callback.message,
         user=user,
