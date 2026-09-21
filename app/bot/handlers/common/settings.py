@@ -12,6 +12,7 @@ from app.bot.filters.filters import LocaleFilter
 from app.bot.keyboards.keyboards import get_lang_settings_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
+from app.bot.utils.hub_registry import register
 from app.infrastructure.database.repositories import Repositories
 from app.domain.models.user import User
 
@@ -161,3 +162,28 @@ async def process_lang_click(
         )
     except TelegramBadRequest:
         await callback.answer()
+
+
+async def _hub_lang(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        locales: list[str] | None = None,
+        **_,
+) -> None:
+    if locales is None:
+        return
+    await state.update_data(hub_screen="lang", hub_back="settings")
+    await start_lang_settings(
+        message=message,
+        i18n=i18n,
+        state=state,
+        locales=locales,
+        user=user,
+        edit=True,
+    )
+
+
+register("lang", _hub_lang)

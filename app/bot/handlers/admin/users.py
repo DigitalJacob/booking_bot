@@ -16,6 +16,7 @@ from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
+from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -504,3 +505,30 @@ async def process_admin_mod_role(
     else:
         await callback.message.answer(text=text)
     await callback.answer()
+
+
+def _register_admin_leaf(hub_action: str, mod_action: str) -> None:
+    async def _hub(
+            *,
+            message: Message,
+            user: User,
+            i18n: dict[str, str],
+            state: FSMContext,
+            **_,
+    ) -> None:
+        if user.role != UserRole.ADMIN:
+            return
+        await start_admin_mod_flow(
+            message=message,
+            state=state,
+            i18n=i18n,
+            action=mod_action,
+        )
+
+    register(hub_action, _hub)
+
+
+_register_admin_leaf("admin_user", "user")
+_register_admin_leaf("admin_ban", "ban")
+_register_admin_leaf("admin_unban", "unban")
+_register_admin_leaf("admin_set_role", "set_role")

@@ -21,7 +21,9 @@ from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import BookingSG
 from app.bot.utils.format import format_dt, to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
+from app.bot.utils.hub_registry import register
 from app.bot.utils.notify import notify_appointment
+from app.domain.enums import UserRole
 from app.domain.exceptions import (
     ServiceInactive,
     ServiceNotFound,
@@ -515,3 +517,30 @@ async def process_back(
         return
 
     await callback.answer()
+
+
+async def _hub_book(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        repos: Repositories | None = None,
+        master_user_id: int | None = None,
+        **_,
+) -> None:
+    if user.role == UserRole.MASTER or repos is None or master_user_id is None:
+        return
+    await state.update_data(hub_screen="book", hub_back="root")
+    await start_booking_flow(
+        message=message,
+        i18n=i18n,
+        state=state,
+        repos=repos,
+        user=user,
+        master_user_id=master_user_id,
+        edit=True,
+    )
+
+
+register("book", _hub_book)

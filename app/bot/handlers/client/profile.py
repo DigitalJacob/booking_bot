@@ -5,11 +5,14 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from app.bot.keyboards.hub import get_hub_back_home_kb, get_hub_home_kb
 from app.bot.keyboards.profile import get_phone_kb, remove_kb
 from app.bot.states.states import ProfileSG
+from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.hub_registry import register
+from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
-from app.bot.utils.hub_nav import clear_state_keep_hub
 
 
 profile_router = Router(name="client_profile")
@@ -221,3 +224,59 @@ async def process_phone_text(
         i18n=i18n,
         phone=raw,
     )
+
+
+async def _hub_profile_show(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        **_,
+) -> None:
+    if user.role == UserRole.MASTER:
+        return
+    await state.update_data(hub_screen="profile_show", hub_back="profile")
+    if not user.profile_complete:
+        await message.edit_text(
+            text=i18n.get("hub_profile_incomplete"),
+            reply_markup=get_hub_home_kb(i18n),
+        )
+        await start_profile_flow(
+            message=message,
+            state=state,
+            i18n=i18n,
+            resume_book=False,
+        )
+        return
+    await message.edit_text(
+        text=format_profile_card(user, i18n),
+        reply_markup=get_hub_back_home_kb(i18n),
+    )
+
+
+async def _hub_profile_edit(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        **_,
+) -> None:
+    if user.role == UserRole.MASTER:
+        return
+    await state.update_data(hub_screen="profile_edit", hub_back="profile")
+    await message.edit_text(
+        text=i18n.get("hub_profile_edit_started"),
+        reply_markup=get_hub_home_kb(i18n),
+    )
+    await start_profile_flow(
+        message=message,
+        state=state,
+        i18n=i18n,
+        resume_book=False,
+    )
+
+
+register("profile_show", _hub_profile_show)
+register("profile_edit", _hub_profile_edit)

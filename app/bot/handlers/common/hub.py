@@ -9,7 +9,6 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.keyboards.hub import (
     HubCallback,
     get_hub_back_home_kb,
-    get_hub_home_kb,
     get_hub_moderation_kb,
     get_hub_profile_kb,
     get_hub_schedule_kb,
@@ -20,6 +19,7 @@ from app.bot.utils.hub_nav import (
     clear_state_keep_hub,
     show_hub,
 )
+from app.bot.utils.hub_registry import dispatch_leaf
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -48,7 +48,7 @@ async def show_hub_screen(
         master_user_id: int | None = None,
         locales: list[str] | None = None,
 ) -> None:
-    """Open a hub screen or wired list by action name (edit-in-place)."""
+    """Open a hub section or a registered leaf by action name."""
     role = user.role
 
     if action == "root":
@@ -106,196 +106,17 @@ async def show_hub_screen(
         )
         return
 
-    if action == "services":
-        if role != UserRole.MASTER or repos is None:
-            return
-        from app.bot.handlers.master.services import show_services_list
-
-        await state.update_data(
-            hub_screen="services",
-            hub_back="root",
-            list_return="root",
-        )
-        await show_services_list(
-            message=message,
-            repos=repos,
-            user=user,
-            i18n=i18n,
-            edit=True,
-        )
-        return
-
-    if action == "working_hours":
-        if role != UserRole.MASTER or repos is None:
-            return
-        from app.bot.handlers.master.schedule import show_schedule_list
-
-        await state.update_data(
-            hub_screen="working_hours",
-            hub_back="schedule",
-            list_return="schedule",
-        )
-        await show_schedule_list(
-            message=message,
-            repos=repos,
-            user=user,
-            i18n=i18n,
-            edit=True,
-        )
-        return
-
-    if action == "time_off":
-        if role != UserRole.MASTER or repos is None or bot_timezone is None:
-            return
-        from app.bot.handlers.master.time_off import show_time_off_list
-
-        await state.update_data(
-            hub_screen="time_off",
-            hub_back="schedule",
-            list_return="schedule",
-        )
-        await show_time_off_list(
-            message=message,
-            repos=repos,
-            user=user,
-            i18n=i18n,
-            bot_timezone=bot_timezone,
-            edit=True,
-        )
-        return
-
-    if action == "my_bookings":
-        if repos is None:
-            return
-        from app.bot.handlers.client.my_bookings import send_my_bookings
-
-        await state.update_data(hub_screen="my_bookings", hub_back="root")
-        await message.edit_text(
-            text=i18n.get("hub_my_bookings_opened"),
-            reply_markup=get_hub_home_kb(i18n),
-        )
-        await send_my_bookings(
-            message=message,
-            repos=repos,
-            user=user,
-            i18n=i18n,
-            bot_timezone=bot_timezone or "UTC",
-            skip_header=True,
-        )
-        return
-
-    if action in ("admin_user", "admin_ban", "admin_unban", "admin_set_role"):
-        if role != UserRole.ADMIN:
-            return
-        from app.bot.handlers.admin.users import start_admin_mod_flow
-
-        action_map = {
-            "admin_user": "user",
-            "admin_ban": "ban",
-            "admin_unban": "unban",
-            "admin_set_role": "set_role",
-        }
-        await start_admin_mod_flow(
-            message=message,
-            state=state,
-            i18n=i18n,
-            action=action_map[action],
-        )
-        return
-
-    if action == "book":
-        if role == UserRole.MASTER or repos is None or master_user_id is None:
-            return
-        from app.bot.handlers.client.booking import start_booking_flow
-
-        await state.update_data(hub_screen="book", hub_back="root")
-        await start_booking_flow(
-            message=message,
-            i18n=i18n,
-            state=state,
-            repos=repos,
-            user=user,
-            master_user_id=master_user_id,
-            edit=True,
-        )
-        return
-
-    if action == "today":
-        if role != UserRole.MASTER or repos is None or bot_timezone is None:
-            return
-        from app.bot.handlers.master.today import send_today
-
-        await state.update_data(hub_screen="today", hub_back="root")
-        await message.edit_text(
-            text=i18n.get("hub_today_opened"),
-            reply_markup=get_hub_home_kb(i18n),
-        )
-        await send_today(
-            message=message,
-            repos=repos,
-            user=user,
-            i18n=i18n,
-            bot_timezone=bot_timezone,
-        )
-        return
-
-    if action == "profile_show":
-        if role == UserRole.MASTER:
-            return
-        from app.bot.handlers.client.profile import format_profile_card, start_profile_flow
-
-        await state.update_data(hub_screen="profile_show", hub_back="profile")
-        if not user.profile_complete:
-            await message.edit_text(
-                text=i18n.get("hub_profile_incomplete"),
-                reply_markup=get_hub_home_kb(i18n),
-            )
-            await start_profile_flow(
-                message=message,
-                state=state,
-                i18n=i18n,
-                resume_book=False,
-            )
-            return
-        await message.edit_text(
-            text=format_profile_card(user, i18n),
-            reply_markup=get_hub_back_home_kb(i18n),
-        )
-        return
-
-    if action == "profile_edit":
-        if role == UserRole.MASTER:
-            return
-        from app.bot.handlers.client.profile import start_profile_flow
-
-        await state.update_data(hub_screen="profile_edit", hub_back="profile")
-        await message.edit_text(
-            text=i18n.get("hub_profile_edit_started"),
-            reply_markup=get_hub_home_kb(i18n),
-        )
-        await start_profile_flow(
-            message=message,
-            state=state,
-            i18n=i18n,
-            resume_book=False,
-        )
-        return
-
-    if action == "lang":
-        if locales is None:
-            return
-        from app.bot.handlers.common.settings import start_lang_settings
-
-        await state.update_data(hub_screen="lang", hub_back="settings")
-        await start_lang_settings(
-            message=message,
-            i18n=i18n,
-            state=state,
-            locales=locales,
-            user=user,
-            edit=True,
-        )
-        return
+    await dispatch_leaf(
+        action=action,
+        message=message,
+        user=user,
+        i18n=i18n,
+        state=state,
+        repos=repos,
+        bot_timezone=bot_timezone,
+        master_user_id=master_user_id,
+        locales=locales,
+    )
 
 
 async def return_from_list(

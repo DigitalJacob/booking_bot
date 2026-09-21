@@ -18,6 +18,7 @@ from app.bot.keyboards.time_off import (
 from app.bot.states.states import TimeOffSG
 from app.bot.utils.format import get_zone, combine_local
 from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -285,3 +286,33 @@ async def process_time_off_ends(
         bot_timezone=bot_timezone,
         edit=False,
     )
+
+
+async def _hub_time_off(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        repos: Repositories | None = None,
+        bot_timezone: str | None = None,
+        **_,
+) -> None:
+    if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
+        return
+    await state.update_data(
+        hub_screen="time_off",
+        hub_back="schedule",
+        list_return="schedule",
+    )
+    await show_time_off_list(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
+
+
+register("time_off", _hub_time_off)

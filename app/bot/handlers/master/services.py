@@ -15,6 +15,7 @@ from app.bot.keyboards.master_services import (
 )
 from app.bot.states.states import AddServiceSG, EditServiceSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
@@ -489,3 +490,31 @@ async def process_edit_service_price(
         i18n=i18n,
         edit=False,
     )
+
+
+async def _hub_services(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        repos: Repositories | None = None,
+        **_,
+) -> None:
+    if user.role != UserRole.MASTER or repos is None:
+        return
+    await state.update_data(
+        hub_screen="services",
+        hub_back="root",
+        list_return="root",
+    )
+    await show_services_list(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=True,
+    )
+
+
+register("services", _hub_services)

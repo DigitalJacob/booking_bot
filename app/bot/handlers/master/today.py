@@ -4,15 +4,18 @@ from datetime import datetime, timezone
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.domain.enums import AppointmentStatus, UserRole
 from app.bot.filters.filters import UserRoleFilter
+from app.bot.keyboards.hub import get_hub_home_kb
 from app.bot.keyboards.master import (
     MasterAppointmentCallback,
     get_appointment_actions_kb,
     is_slot_past,
 )
+from app.bot.utils.hub_registry import register
 from app.bot.utils.notify import notify_appointment
 from app.bot.utils.format import (
     client_contact,
@@ -247,3 +250,32 @@ async def process_close(
 ) -> None:
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.answer()
+
+
+async def _hub_today(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        repos: Repositories | None = None,
+        bot_timezone: str | None = None,
+        **_,
+) -> None:
+    if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
+        return
+    await state.update_data(hub_screen="today", hub_back="root")
+    await message.edit_text(
+        text=i18n.get("hub_today_opened"),
+        reply_markup=get_hub_home_kb(i18n),
+    )
+    await send_today(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+
+
+register("today", _hub_today)

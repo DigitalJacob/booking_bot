@@ -1,12 +1,15 @@
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.keyboards.client import (
     ClientAppointmentCallback,
     get_my_booking_actions_kb,
 )
+from app.bot.keyboards.hub import get_hub_home_kb
 from app.bot.utils.format import format_dt, status_label
+from app.bot.utils.hub_registry import register
 from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
     AppointmentNotFound,
@@ -138,3 +141,33 @@ async def process_client_close(
 ) -> None:
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.answer()
+
+
+async def _hub_my_bookings(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        repos: Repositories | None = None,
+        bot_timezone: str | None = None,
+        **_,
+) -> None:
+    if repos is None:
+        return
+    await state.update_data(hub_screen="my_bookings", hub_back="root")
+    await message.edit_text(
+        text=i18n.get("hub_my_bookings_opened"),
+        reply_markup=get_hub_home_kb(i18n),
+    )
+    await send_my_bookings(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone or "UTC",
+        skip_header=True,
+    )
+
+
+register("my_bookings", _hub_my_bookings)

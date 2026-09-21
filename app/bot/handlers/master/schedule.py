@@ -20,6 +20,7 @@ from app.bot.keyboards.schedule import (
 )
 from app.bot.states.states import ScheduleSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -359,3 +360,31 @@ async def process_schedule_cancel_cb(
     await clear_state_keep_hub(state)
     await callback.message.edit_text(text=i18n.get("schedule_cancelled"))
     await callback.answer()
+
+
+async def _hub_working_hours(
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        repos: Repositories | None = None,
+        **_,
+) -> None:
+    if user.role != UserRole.MASTER or repos is None:
+        return
+    await state.update_data(
+        hub_screen="working_hours",
+        hub_back="schedule",
+        list_return="schedule",
+    )
+    await show_schedule_list(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=True,
+    )
+
+
+register("working_hours", _hub_working_hours)
