@@ -3,7 +3,6 @@ from datetime import datetime
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from app.bot.keyboards.hub import HubCallback
 from app.domain.enums import AppointmentStatus
 from app.domain.models.appointment import Appointment
 
@@ -29,12 +28,12 @@ def get_appointment_actions_kb(
         i18n: dict[str, str],
         now: datetime | None = None,
         slot_ends_at: datetime | None = None,
-        dismiss: bool = False,
+        with_close: bool = True,
 ) -> InlineKeyboardMarkup | None:
     """
     Master appointment controls.
-    dismiss=True: OK (hub dismiss) for push notifications.
-    dismiss=False: Close (strip keyboard) for /today cards.
+    with_close=False: push notifications (confirm/cancel only; hub opens after).
+    with_close=True: /today cards (Close strips the keyboard).
     """
     if now is not None and is_slot_past(slot_ends_at=slot_ends_at, now=now):
         return None
@@ -68,16 +67,7 @@ def get_appointment_actions_kb(
     if row:
         rows.append(row)
 
-    if dismiss:
-        rows.append(
-            [
-                InlineKeyboardButton(
-                    text=i18n.get("hub_ok_button"),
-                    callback_data=HubCallback(action="dismiss").pack(),
-                )
-            ]
-        )
-    else:
+    if with_close:
         rows.append(
             [
                 InlineKeyboardButton(
@@ -89,4 +79,7 @@ def get_appointment_actions_kb(
                 )
             ]
         )
+
+    if not rows:
+        return None
     return InlineKeyboardMarkup(inline_keyboard=rows)

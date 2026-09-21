@@ -7,7 +7,6 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.domain.enums import AppointmentStatus, UserRole
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.keyboards.hub import get_hub_home_kb
 from app.bot.keyboards.master import (
@@ -15,14 +14,16 @@ from app.bot.keyboards.master import (
     get_appointment_actions_kb,
     is_slot_past,
 )
-from app.bot.utils.hub_registry import register
-from app.bot.utils.notify import notify_appointment
 from app.bot.utils.format import (
     client_contact,
     format_time,
     local_today_bounds,
     status_label,
 )
+from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, show_hub
+from app.bot.utils.hub_registry import register
+from app.bot.utils.notify import notify_appointment
+from app.domain.enums import AppointmentStatus, UserRole
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
@@ -125,6 +126,29 @@ async def _reject_if_slot_past(
     return False
 
 
+async def _finish_master_decision(
+        *,
+        callback: CallbackQuery,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        ack_text: str,
+) -> None:
+    """Restore sticky hub; delete the acted push when it is not the hub."""
+    await show_hub(
+        message=callback.message,
+        user=user,
+        i18n=i18n,
+        state=state,
+    )
+    data = await state.get_data()
+    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
+    if sticky_id is None or callback.message.message_id != sticky_id:
+        with suppress(TelegramBadRequest):
+            await callback.message.delete()
+    await callback.answer(text=ack_text)
+
+
 @today_router.message(Command(commands="today"))
 async def process_today_command(
         message: Message,
@@ -152,6 +176,7 @@ async def process_confirm(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        state: FSMContext,
 ) -> None:
     if await _reject_if_slot_past(
         callback=callback,
@@ -186,11 +211,13 @@ async def process_confirm(
         bot_timezone=bot_timezone,
         with_dismiss=True,
     )
-    await callback.message.edit_text(
-        text=i18n.get("master_confirmed").format(id=appointment.id),
-        reply_markup=None,
+    await _finish_master_decision(
+        callback=callback,
+        user=user,
+        i18n=i18n,
+        state=state,
+        ack_text=i18n.get("master_confirmed").format(id=appointment.id),
     )
-    await callback.answer()
 
 
 @today_router.callback_query(MasterAppointmentCallback.filter(F.action == "cancel"))
@@ -203,6 +230,7 @@ async def process_cancel(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        state: FSMContext,
 ) -> None:
     if await _reject_if_slot_past(
         callback=callback,
@@ -237,11 +265,13 @@ async def process_cancel(
         bot_timezone=bot_timezone,
         with_dismiss=True,
     )
-    await callback.message.edit_text(
-        text=i18n.get("master_cancelled").format(id=appointment.id),
-        reply_markup=None,
+    await _finish_master_decision(
+        callback=callback,
+        user=user,
+        i18n=i18n,
+        state=state,
+        ack_text=i18n.get("master_cancelled").format(id=appointment.id),
     )
-    await callback.answer()
 
 
 @today_router.callback_query(MasterAppointmentCallback.filter(F.action == "close"))
