@@ -135,7 +135,7 @@ EN: dict[str, str] = {
         "Phone: {client_phone}\n"
         "✓ Appointment time has already passed"
     ),
-    "status_pending": "pending",
+    "status_pending": "awaiting confirmation",
     "status_confirmed": "confirmed",
     "status_cancelled": "cancelled",
     "master_confirm_button": "✅ Confirm",
@@ -186,13 +186,21 @@ EN: dict[str, str] = {
     "add_service_cancelled": "Adding a service was cancelled.",
     "/add_service_description": "Add a service",
     "/my_bookings_description": "My appointments",
-    "my_bookings_header": "🗓 Your appointments:",
+    "my_bookings_header": "Your appointments:",
     "my_bookings_empty": (
         "You have no active appointments.\n\n"
-        "Book one: /book"
+        "Book one from the menu → Book."
     ),
-    "my_bookings_item": "{when} — {title} ({status})",
-    "my_bookings_cancel_button": "❌ Cancel appointment",
+    "my_bookings_item": "• {weekday} {when} — {title} ({status})",
+    "my_bookings_list_button": "{weekday} {when} · {title}",
+    "my_bookings_card": (
+        "Appointment\n\n"
+        "When: {when}\n"
+        "Service: {title}\n"
+        "Status: {status}"
+    ),
+    "my_bookings_cancel_button": "Cancel appointment",
+    "my_bookings_back_button": "← Back",
     "my_bookings_close_button": "Close",
     "my_bookings_cancelled": "Appointment cancelled.",
     "my_bookings_action_failed": "Failed to cancel the appointment.",
@@ -406,7 +414,6 @@ EN: dict[str, str] = {
     "hub_admin_set_role_button": "Set role",
     "hub_admin_ban_button": "Ban user",
     "hub_admin_unban_button": "Unban user",
-    "hub_my_bookings_opened": "Your bookings are below. Tap ⌂ Menu to return.",
     "hub_today_opened": "Today's appointments are below. Tap ⌂ Menu to return.",
     "hub_profile_edit_started": "Update your profile below. Tap ⌂ Menu to return.",
     "hub_profile_incomplete": "Your profile is incomplete. Fill it in below.",

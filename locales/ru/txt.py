@@ -135,7 +135,7 @@ RU: dict[str, str] = {
         "Телефон: {client_phone}\n"
         "✓ Время записи уже прошло"
     ),
-    "status_pending": "ожидает",
+    "status_pending": "ожидает подтверждения",
     "status_confirmed": "подтверждена",
     "status_cancelled": "отменена",
     "master_confirm_button": "✅ Подтвердить",
@@ -186,13 +186,21 @@ RU: dict[str, str] = {
     "add_service_cancelled": "Добавление услуги отменено.",
     "/add_service_description": "Добавить услугу",
     "/my_bookings_description": "Мои записи",
-    "my_bookings_header": "🗓 Ваши записи:",
+    "my_bookings_header": "Ваши записи:",
     "my_bookings_empty": (
         "У вас нет активных записей.\n\n"
-        "Записаться: /book"
+        "Записаться можно через меню → Запись."
     ),
-    "my_bookings_item": "{when} — {title} ({status})",
-    "my_bookings_cancel_button": "❌ Отменить запись",
+    "my_bookings_item": "• {weekday} {when} — {title} ({status})",
+    "my_bookings_list_button": "{weekday} {when} · {title}",
+    "my_bookings_card": (
+        "Запись\n\n"
+        "Когда: {when}\n"
+        "Услуга: {title}\n"
+        "Статус: {status}"
+    ),
+    "my_bookings_cancel_button": "Отменить запись",
+    "my_bookings_back_button": "← Назад",
     "my_bookings_close_button": "Закрыть",
     "my_bookings_cancelled": "Запись отменена.",
     "my_bookings_action_failed": "Не удалось отменить запись.",
@@ -406,7 +414,6 @@ RU: dict[str, str] = {
     "hub_admin_set_role_button": "Сменить роль",
     "hub_admin_ban_button": "Забанить",
     "hub_admin_unban_button": "Разбанить",
-    "hub_my_bookings_opened": "Записи ниже. Нажмите ⌂ Меню, чтобы вернуться.",
     "hub_today_opened": "Записи на сегодня ниже. Нажмите ⌂ Меню, чтобы вернуться.",
     "hub_profile_edit_started": "Обновите профиль ниже. Нажмите ⌂ Меню, чтобы вернуться.",
     "hub_profile_incomplete": "Профиль не заполнен. Заполните данные ниже.",
