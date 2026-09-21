@@ -125,6 +125,7 @@ async def process_client_cancel(
         translations=translations,
         text_key="master_booking_cancelled_by_client",
         bot_timezone=bot_timezone,
+        with_dismiss=True,
     )
     await callback.message.edit_text(
         text=i18n.get("my_bookings_cancelled"),

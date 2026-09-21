@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, Message, BotCommandScopeChat
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.keyboards.admin import AdminRoleCallback, get_admin_role_kb
-from app.bot.keyboards.hub import get_hub_home_kb
+from app.bot.keyboards.hub import get_hub_dismiss_kb, get_hub_home_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
@@ -194,6 +194,7 @@ async def _apply_set_role(
             text=target_i18n.get("admin_role_changed_notice").format(
                 role=role,
             ),
+            reply_markup=get_hub_dismiss_kb(target_i18n),
         )
 
     return True, i18n.get("admin_role_set").format(

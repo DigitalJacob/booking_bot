@@ -23,7 +23,7 @@ async def notify_appointment(
         text_key: str,
         bot_timezone: str,
         with_master_actions: bool = False,
-        with_client_hub: bool = False,
+        with_dismiss: bool = False,
 ) -> None:
     recipient = await repos.users.get_user_by_id(user_id=recipient_user_id)
     i18n = resolve_i18n(
@@ -42,8 +42,9 @@ async def notify_appointment(
             i18n=i18n,
             now=datetime.now(timezone.utc),
             slot_ends_at=appointment.ends_at,
+            dismiss=True,
         )
-    elif with_client_hub:
+    elif with_dismiss:
         reply_markup = get_hub_dismiss_kb(i18n)
 
     with suppress(TelegramBadRequest, TelegramForbiddenError):

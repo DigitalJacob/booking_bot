@@ -184,7 +184,7 @@ async def process_confirm(
         translations=translations,
         text_key="client_booking_confirmed",
         bot_timezone=bot_timezone,
-        with_client_hub=True,
+        with_dismiss=True,
     )
     await callback.message.edit_text(
         text=i18n.get("master_confirmed").format(id=appointment.id),
@@ -235,7 +235,7 @@ async def process_cancel(
         translations=translations,
         text_key="client_booking_cancelled_by_master",
         bot_timezone=bot_timezone,
-        with_client_hub=True,
+        with_dismiss=True,
     )
     await callback.message.edit_text(
         text=i18n.get("master_cancelled").format(id=appointment.id),
