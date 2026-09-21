@@ -101,7 +101,9 @@ def get_hub_profile_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
             [
                 _btn(i18n.get("hub_profile_edit_button"), "profile_edit")
             ],
-            get_hub_back_home_row(i18n),
+            [
+                _btn(i18n.get("hub_back_button"), "back")
+            ],
         ]
     )
 

@@ -265,14 +265,13 @@ RU: dict[str, str] = {
         "Можно нажать кнопку ниже или ввести номер вручную (+7...)."
     ),
     "profile_share_phone_button": "📱 Отправить телефон",
+    "profile_cancel_button": "Отмена",
     "profile_invalid_name": "Слишком короткое значение. Введите ещё раз.",
     "profile_invalid_phone": (
         "Не удалось распознать номер. "
         "Отправьте контакт кнопкой или номер в формате +79001234567."
     ),
-    "profile_saved": "Профиль сохранён.",
     "profile_saved_continue_book": "Теперь можно записаться: /book",
-    "profile_cancelled": "Заполнение профиля отменено.",
     "profile_card": (
         "Ваш профиль:\n\n"
         "Имя: {first_name}\n"
@@ -415,7 +414,5 @@ RU: dict[str, str] = {
     "hub_admin_ban_button": "Забанить",
     "hub_admin_unban_button": "Разбанить",
     "hub_today_opened": "Записи на сегодня ниже. Нажмите ⌂ Меню, чтобы вернуться.",
-    "hub_profile_edit_started": "Обновите профиль ниже. Нажмите ⌂ Меню, чтобы вернуться.",
-    "hub_profile_incomplete": "Профиль не заполнен. Заполните данные ниже.",
     "/menu_description": "Открыть главное меню",
 }

@@ -265,14 +265,13 @@ EN: dict[str, str] = {
         "Tap the button below or type the number manually (+1...)."
     ),
     "profile_share_phone_button": "📱 Share phone number",
+    "profile_cancel_button": "Cancel",
     "profile_invalid_name": "That value is too short. Please try again.",
     "profile_invalid_phone": (
         "Could not read that number. "
         "Share a contact via the button or type it like +79001234567."
     ),
-    "profile_saved": "Profile saved.",
     "profile_saved_continue_book": "You can book now: /book",
-    "profile_cancelled": "Profile setup cancelled.",
     "profile_card": (
         "Your profile:\n\n"
         "First name: {first_name}\n"
@@ -415,7 +414,5 @@ EN: dict[str, str] = {
     "hub_admin_ban_button": "Ban user",
     "hub_admin_unban_button": "Unban user",
     "hub_today_opened": "Today's appointments are below. Tap ⌂ Menu to return.",
-    "hub_profile_edit_started": "Update your profile below. Tap ⌂ Menu to return.",
-    "hub_profile_incomplete": "Your profile is incomplete. Fill it in below.",
     "/menu_description": "Open the main menu",
 }

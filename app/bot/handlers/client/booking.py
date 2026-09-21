@@ -137,13 +137,12 @@ async def start_booking_flow(
         edit: bool = False,
 ) -> None:
     if not user.profile_complete:
-        if edit:
-            await message.edit_text(text=i18n.get("hub_profile_incomplete"))
         await start_profile_flow(
             message=message,
             state=state,
             i18n=i18n,
             resume_book=True,
+            edit=edit,
         )
         return
 
