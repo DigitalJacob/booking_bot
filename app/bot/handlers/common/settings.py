@@ -7,17 +7,52 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, CallbackQuery, Message
 
-from app.domain.enums import UserRole
 from app.bot.filters.filters import LocaleFilter
 from app.bot.keyboards.keyboards import get_lang_settings_kb
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from app.bot.states.states import LangSG
+from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
 from app.bot.utils.hub_registry import register
-from app.infrastructure.database.repositories import Repositories
+from app.domain.enums import UserRole
 from app.domain.models.user import User
+from app.infrastructure.database.repositories import Repositories
 
 
 settings_router = Router(name="settings")
+
+
+async def _finish_lang_flow(
+        *,
+        message: Message,
+        state: FSMContext,
+        user: User | None,
+        i18n: dict[str, str],
+) -> None:
+    """Clear lang FSM and restore sticky hub without a notice message."""
+    data = await state.get_data()
+    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
+    lang_msg_id = data.get("lang_settings_msg_id")
+
+    await clear_state_keep_hub(state)
+    if user is not None:
+        await show_hub(
+            message=message,
+            user=user,
+            i18n=i18n,
+            state=state,
+        )
+
+    # /lang may have opened a non-sticky prompt — remove it after hub restore.
+    if (
+        lang_msg_id is not None
+        and sticky_id is not None
+        and lang_msg_id != sticky_id
+    ):
+        with suppress(TelegramBadRequest):
+            await message.bot.delete_message(
+                chat_id=message.chat.id,
+                message_id=lang_msg_id,
+            )
 
 
 @settings_router.message(StateFilter(LangSG.lang), ~CommandStart())
@@ -28,26 +63,31 @@ async def process_any_message_when_lang(
         state: FSMContext,
         locales: list[str],
 ) -> None:
-    user_id = message.from_user.id
     data = await state.get_data()
     user_lang = data.get("user_lang")
+    msg_id = data.get("lang_settings_msg_id") or data.get(HUB_MESSAGE_ID_KEY)
+    kb = get_lang_settings_kb(
+        i18n=i18n,
+        locales=locales,
+        checked=user_lang,
+    )
+    text = i18n.get("/lang")
 
     with suppress(TelegramBadRequest):
-        msg_id = data.get("lang_settings_msg_id")
-        if msg_id:
-            await bot.edit_message_reply_markup(
-                chat_id=user_id,
-                message_id=msg_id,
-            )
+        await message.delete()
 
-    msg = await message.answer(
-        text=i18n.get("/lang"),
-        reply_markup=get_lang_settings_kb(
-            i18n=i18n,
-            locales=locales,
-            checked=user_lang,
-        ),
-    )
+    if msg_id is not None:
+        with suppress(TelegramBadRequest):
+            await bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=msg_id,
+                text=text,
+                reply_markup=kb,
+            )
+            await state.update_data(lang_settings_msg_id=msg_id)
+            return
+
+    msg = await message.answer(text=text, reply_markup=kb)
     await state.update_data(lang_settings_msg_id=msg.message_id)
 
 
@@ -107,6 +147,7 @@ async def process_save_click(
         repos: Repositories,
         user: User | None,
 ) -> None:
+    await callback.answer()
     fsm_data = await state.get_data()
     language = fsm_data.get("user_lang")
     if language:
@@ -114,8 +155,6 @@ async def process_save_click(
             language=language,
             user_id=callback.from_user.id,
         )
-
-    await callback.message.edit_text(text=i18n.get("lang_saved"))
 
     user_role = user.role if user else UserRole.CLIENT
     await bot.set_my_commands(
@@ -125,8 +164,12 @@ async def process_save_click(
             chat_id=callback.from_user.id,
         ),
     )
-    await state.update_data(lang_settings_msg_id=None, user_lang=None)
-    await state.set_state()
+    await _finish_lang_flow(
+        message=callback.message,
+        state=state,
+        user=user,
+        i18n=i18n,
+    )
 
 
 @settings_router.callback_query(F.data == "cancel_lang_button_data")
@@ -136,13 +179,13 @@ async def process_cancel_click(
         state: FSMContext,
         user: User | None,
 ) -> None:
-    user_lang = user.language if user else None
-    lang_label = i18n.get(user_lang) if user_lang else ""
-    await callback.message.edit_text(
-        text=i18n.get("lang_cancelled").format(lang_label),
+    await callback.answer()
+    await _finish_lang_flow(
+        message=callback.message,
+        state=state,
+        user=user,
+        i18n=i18n,
     )
-    await state.update_data(lang_settings_msg_id=None, user_lang=None)
-    await state.set_state()
 
 
 @settings_router.callback_query(LocaleFilter())

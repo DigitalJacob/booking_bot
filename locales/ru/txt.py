@@ -83,14 +83,6 @@ RU: dict[str, str] = {
     "en": "🇬🇧 Английский",
     "save_lang_button_text": "✅ Сохранить",
     "cancel_lang_button_text": "Отмена",
-    "lang_saved": (
-        "Язык сохранён и будет использоваться в интерфейсе бота.\n\n"
-        "Можете отправить /help"
-    ),
-    "lang_cancelled": (
-        "Хорошо, ваш язык по-прежнему: {}.\n\n"
-        "Можете отправить /help"
-    ),
     "/start_description": "Перезапустить бота",
     "/lang_description": "Настроить язык интерфейса",
     "/help_description": "Посмотреть справку",
