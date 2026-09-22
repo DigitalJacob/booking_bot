@@ -403,7 +403,7 @@ async def process_confirm(
         )
         return
 
-    await notify_appointment(
+    notify_msg_id = await notify_appointment(
         bot=bot,
         repos=repos,
         appointment=appointment,
@@ -413,6 +413,11 @@ async def process_confirm(
         with_master_actions=True,
         bot_timezone=bot_timezone,
     )
+    if notify_msg_id is not None:
+        await repos.appointments.set_master_notify_message_id(
+            appointment_id=appointment.id,
+            message_id=notify_msg_id,
+        )
     await clear_state_keep_hub(state)
     await callback.message.edit_text(
         text=i18n.get("book_ok"),

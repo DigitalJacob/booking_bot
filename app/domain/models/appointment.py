@@ -15,6 +15,7 @@ class Appointment:
     ends_at: datetime
     status: AppointmentStatus
     created_at: datetime
+    master_notify_message_id: int | None = None
 
     @classmethod
     def from_db_row(cls, row: dict[str, Any]) -> "Appointment":
@@ -26,5 +27,6 @@ class Appointment:
             starts_at=row["starts_at"],
             ends_at=row["ends_at"],
             status=AppointmentStatus(row["status"]),
-            created_at=row["created_at"]
+            created_at=row["created_at"],
+            master_notify_message_id=row.get("master_notify_message_id"),
         )

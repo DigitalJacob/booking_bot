@@ -5,12 +5,12 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import InlineKeyboardMarkup
 
-from app.domain.models import Appointment
-from app.infrastructure.database.repositories import Repositories
 from app.bot.i18n.translator import resolve_i18n
-from app.bot.utils.format import client_contact, format_dt
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.master import get_appointment_actions_kb
+from app.bot.utils.format import client_contact, format_dt
+from app.domain.models import Appointment
+from app.infrastructure.database.repositories import Repositories
 
 
 async def notify_appointment(
@@ -24,7 +24,11 @@ async def notify_appointment(
         bot_timezone: str,
         with_master_actions: bool = False,
         with_dismiss: bool = False,
-) -> None:
+) -> int | None:
+    """
+    Send an appointment status notification.
+    Returns Telegram message_id when the message was sent, else None.
+    """
     recipient = await repos.users.get_user_by_id(user_id=recipient_user_id)
     i18n = resolve_i18n(
         language=recipient.language if recipient else None,
@@ -48,7 +52,7 @@ async def notify_appointment(
         reply_markup = get_hub_dismiss_kb(i18n)
 
     with suppress(TelegramBadRequest, TelegramForbiddenError):
-        await bot.send_message(
+        sent = await bot.send_message(
             chat_id=recipient_user_id,
             text=i18n.get(text_key).format(
                 title=service.title if service else "?",
@@ -58,3 +62,5 @@ async def notify_appointment(
             ),
             reply_markup=reply_markup,
         )
+        return sent.message_id
+    return None

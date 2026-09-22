@@ -10,6 +10,18 @@ from app.domain.models.appointment import Appointment
 
 logger = logging.getLogger(__name__)
 
+_APPOINTMENT_COLUMNS = """
+    id,
+    client_user_id,
+    master_user_id,
+    service_id,
+    starts_at,
+    ends_at,
+    status,
+    created_at,
+    master_notify_message_id
+"""
+
 
 class AppointmentsRepository:
     def __init__(self, conn: AsyncConnection) -> None:
@@ -27,7 +39,7 @@ class AppointmentsRepository:
     ) -> Appointment:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     INSERT INTO appointments(
                         client_user_id,
                         master_user_id,
@@ -45,14 +57,7 @@ class AppointmentsRepository:
                         %(status)s
                     )
                     RETURNING
-                        id,
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        starts_at,
-                        ends_at,
-                        status,
-                        created_at;
+                        {_APPOINTMENT_COLUMNS};
                 """,
                 params={
                     "client_user_id": client_user_id,
@@ -73,7 +78,6 @@ class AppointmentsRepository:
         )
         return Appointment.from_db_row(row)
 
-
     async def get_appointment(
             self,
             *,
@@ -81,24 +85,16 @@ class AppointmentsRepository:
     ) -> Appointment | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     SELECT
-                        id,
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        starts_at,
-                        ends_at,
-                        status,
-                        created_at
+                        {_APPOINTMENT_COLUMNS}
                     FROM appointments
                     WHERE id = %s;
                 """,
-                params=(appointment_id, ),
+                params=(appointment_id,),
             )
             row = await cursor.fetchone()
         return Appointment.from_db_row(row) if row else None
-
 
     async def list_by_client(
             self,
@@ -109,16 +105,9 @@ class AppointmentsRepository:
     ) -> list[Appointment]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     SELECT
-                        id,
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        starts_at,
-                        ends_at,
-                        status,
-                        created_at
+                        {_APPOINTMENT_COLUMNS}
                     FROM appointments
                     WHERE client_user_id = %(client_user_id)s
                         AND (%(from_dt)s::timestamptz IS NULL OR starts_at >= %(from_dt)s)
@@ -134,7 +123,6 @@ class AppointmentsRepository:
             rows = await cursor.fetchall()
         return [Appointment.from_db_row(row) for row in rows]
 
-
     async def list_by_master(
             self,
             *,
@@ -144,16 +132,9 @@ class AppointmentsRepository:
     ) -> list[Appointment]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     SELECT
-                        id,
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        starts_at,
-                        ends_at,
-                        status,
-                        created_at
+                        {_APPOINTMENT_COLUMNS}
                     FROM appointments
                     WHERE master_user_id = %(master_user_id)s
                         AND (%(from_dt)s::timestamptz IS NULL OR starts_at >= %(from_dt)s)
@@ -169,7 +150,6 @@ class AppointmentsRepository:
             rows = await cursor.fetchall()
         return [Appointment.from_db_row(row) for row in rows]
 
-
     async def change_status(
             self,
             *,
@@ -178,19 +158,12 @@ class AppointmentsRepository:
     ) -> Appointment | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     UPDATE appointments
                     SET status = %(status)s
                     WHERE id = %(appointment_id)s
                     RETURNING
-                        id,
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        starts_at,
-                        ends_at,
-                        status,
-                        created_at;
+                        {_APPOINTMENT_COLUMNS};
                 """,
                 params={
                     "appointment_id": appointment_id,
@@ -204,3 +177,27 @@ class AppointmentsRepository:
             status,
         )
         return Appointment.from_db_row(row) if row else None
+
+    async def set_master_notify_message_id(
+            self,
+            *,
+            appointment_id: int,
+            message_id: int | None,
+    ) -> None:
+        async with self._conn.cursor() as cursor:
+            await cursor.execute(
+                query="""
+                    UPDATE appointments
+                    SET master_notify_message_id = %(message_id)s
+                    WHERE id = %(appointment_id)s;
+                """,
+                params={
+                    "appointment_id": appointment_id,
+                    "message_id": message_id,
+                },
+            )
+        logger.info(
+            "Set master_notify_message_id=%s for appointment %d",
+            message_id,
+            appointment_id,
+        )
