@@ -87,7 +87,9 @@ def get_hub_settings_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
             [
                 _btn(i18n.get("hub_help_button"), "help")
             ],
-            get_hub_back_home_row(i18n),
+            [
+                _btn(i18n.get("hub_back_button"), "back")
+            ],
         ]
     )
 
