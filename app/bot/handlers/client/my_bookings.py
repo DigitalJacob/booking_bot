@@ -12,7 +12,7 @@ from app.bot.keyboards.client import (
 from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.bot.utils.format import format_dt, status_label, to_local
 from app.bot.utils.hub_registry import register
-from app.bot.utils.notify import notify_appointment
+from app.bot.utils.notify import notify_appointment, supersede_master_action_push
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
@@ -294,16 +294,25 @@ async def process_client_cancel(
         )
         return
 
-    await notify_appointment(
+    superseded = await supersede_master_action_push(
         bot=bot,
         repos=repos,
         appointment=appointment,
-        recipient_user_id=appointment.master_user_id,
         translations=translations,
         text_key="master_booking_cancelled_by_client",
         bot_timezone=bot_timezone,
-        with_dismiss=True,
     )
+    if not superseded:
+        await notify_appointment(
+            bot=bot,
+            repos=repos,
+            appointment=appointment,
+            recipient_user_id=appointment.master_user_id,
+            translations=translations,
+            text_key="master_booking_cancelled_by_client",
+            bot_timezone=bot_timezone,
+            with_dismiss=True,
+        )
     await show_my_bookings_list(
         message=callback.message,
         repos=repos,

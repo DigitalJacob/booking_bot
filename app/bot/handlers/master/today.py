@@ -22,7 +22,7 @@ from app.bot.utils.format import (
 )
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, show_hub
 from app.bot.utils.hub_registry import register
-from app.bot.utils.notify import notify_appointment
+from app.bot.utils.notify import notify_appointment, supersede_master_action_push
 from app.domain.enums import AppointmentStatus, UserRole
 from app.domain.exceptions import (
     AppointmentNotFound,
@@ -126,15 +126,54 @@ async def _reject_if_slot_past(
     return False
 
 
+async def _disarm_stale_master_push(
+        *,
+        callback: CallbackQuery,
+        bot: Bot,
+        repos: Repositories,
+        appointment_id: int,
+        translations: dict,
+        bot_timezone: str,
+) -> None:
+    """Turn a stale confirm/cancel push into status+OK or strip its keyboard."""
+    appointment = await repos.appointments.get_appointment(
+        appointment_id=appointment_id,
+    )
+    if appointment is not None and appointment.status == AppointmentStatus.CANCELLED:
+        if await supersede_master_action_push(
+            bot=bot,
+            repos=repos,
+            appointment=appointment,
+            translations=translations,
+            text_key="master_booking_cancelled_by_client",
+            bot_timezone=bot_timezone,
+        ):
+            return
+
+    with suppress(TelegramBadRequest):
+        await callback.message.edit_reply_markup(reply_markup=None)
+    if appointment is not None and appointment.master_notify_message_id is not None:
+        await repos.appointments.set_master_notify_message_id(
+            appointment_id=appointment.id,
+            message_id=None,
+        )
+
+
 async def _finish_master_decision(
         *,
         callback: CallbackQuery,
         user: User,
         i18n: dict[str, str],
         state: FSMContext,
+        repos: Repositories,
+        appointment_id: int,
         ack_text: str,
 ) -> None:
     """Restore sticky hub; delete the acted push when it is not the hub."""
+    await repos.appointments.set_master_notify_message_id(
+        appointment_id=appointment_id,
+        message_id=None,
+    )
     await show_hub(
         message=callback.message,
         user=user,
@@ -195,6 +234,14 @@ async def process_confirm(
     except (
         AppointmentNotFound, ForbiddenBookingAction, InvalidAppointmentStatus
     ):
+        await _disarm_stale_master_push(
+            callback=callback,
+            bot=bot,
+            repos=repos,
+            appointment_id=callback_data.appointment_id,
+            translations=translations,
+            bot_timezone=bot_timezone,
+        )
         await callback.answer(
             text=i18n.get("master_action_failed"),
             show_alert=True,
@@ -216,6 +263,8 @@ async def process_confirm(
         user=user,
         i18n=i18n,
         state=state,
+        repos=repos,
+        appointment_id=appointment.id,
         ack_text=i18n.get("master_confirmed").format(id=appointment.id),
     )
 
@@ -249,6 +298,14 @@ async def process_cancel(
     except (
         AppointmentNotFound, ForbiddenBookingAction, InvalidAppointmentStatus
     ):
+        await _disarm_stale_master_push(
+            callback=callback,
+            bot=bot,
+            repos=repos,
+            appointment_id=callback_data.appointment_id,
+            translations=translations,
+            bot_timezone=bot_timezone,
+        )
         await callback.answer(
             text=i18n.get("master_action_failed"),
             show_alert=True,
@@ -270,6 +327,8 @@ async def process_cancel(
         user=user,
         i18n=i18n,
         state=state,
+        repos=repos,
+        appointment_id=appointment.id,
         ack_text=i18n.get("master_cancelled").format(id=appointment.id),
     )
 
