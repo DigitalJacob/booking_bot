@@ -97,8 +97,10 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ### For admins
 
-- **User lookup and moderation** — `/user`, `/set_role`, `/ban` and `/unban` all accept
-  either a numeric id or `@username`; `/user` shows the contact profile when filled in
+- **Moderation hub** — user card, set role, ban and unban as root hub actions
+  (no client booking or profile in the admin menu)
+- **Slash fallbacks** — `/user`, `/set_role`, `/ban` and `/unban` accept either a
+  numeric id or `@username`; `/user` shows the contact profile when filled in
 - **Shadowban** — banned users get no reply at all, so they cannot tell they were
   blocked and cannot probe the bot for a reaction
 - **Guard rails** — an admin cannot ban themselves, demote themselves, or ban other staff
@@ -122,26 +124,26 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ## Commands
 
-| Command                            | Role            | Description                                               |
-|------------------------------------|-----------------|-----------------------------------------------------------|
-| `/start`                           | everyone        | Register and open the role-specific hub menu              |
-| `/help`                            | everyone        | Command reference for your role                           |
-| `/menu`                            | everyone        | Open the main hub menu                                    |
-| `/lang`                            | everyone        | Switch interface language (RU / EN)                       |
-| `/book`                            | client          | Book an appointment (asks for the profile first if empty) |
-| `/my_bookings`                     | client          | Sticky list of upcoming appointments (open / cancel)      |
-| `/profile`                         | client          | Show your contact profile                                 |
-| `/edit_profile`                    | client          | Update your name and phone                                |
-| `/bookings`                        | master          | Weekly appointments: week → day → card (confirm / cancel) |
-| `/services`                        | master          | List your services                                        |
-| `/add_service`                     | master          | Add a service (title, duration, price)                    |
-| `/schedule`                        | master          | Weekly working hours (add / delete intervals)             |
-| `/time_off`                        | master          | Upcoming absences (full days off)                         |
-| `/cancel`                          | master / client | Abort service / schedule / time off / profile setup       |
-| `/user <id\|@username>`            | admin           | Show a user card                                          |
-| `/set_role <id\|@username> <role>` | admin           | Change a user's role                                      |
-| `/ban <id\|@username>`             | admin           | Ban a user                                                |
-| `/unban <id\|@username>`           | admin           | Lift a ban                                                |
+| Command                            | Role                    | Description                                               |
+|------------------------------------|-------------------------|-----------------------------------------------------------|
+| `/start`                           | everyone                | Register and open the role-specific hub menu              |
+| `/help`                            | everyone                | Command reference for your role                           |
+| `/menu`                            | everyone                | Open the main hub menu                                    |
+| `/lang`                            | everyone                | Switch interface language (RU / EN)                       |
+| `/book`                            | client                  | Book an appointment (asks for the profile first if empty) |
+| `/my_bookings`                     | client                  | Sticky list of upcoming appointments (open / cancel)      |
+| `/profile`                         | client                  | Show your contact profile                                 |
+| `/edit_profile`                    | client                  | Update your name and phone                                |
+| `/bookings`                        | master                  | Weekly appointments: week → day → card (confirm / cancel) |
+| `/services`                        | master                  | List your services                                        |
+| `/add_service`                     | master                  | Add a service (title, duration, price)                    |
+| `/schedule`                        | master                  | Weekly working hours (add / delete intervals)             |
+| `/time_off`                        | master                  | Upcoming absences (full days off)                         |
+| `/cancel`                          | master / client / admin | Abort FSM flows (services, schedule, profile, moderation) |
+| `/user <id\|@username>`            | admin                   | Show a user card                                          |
+| `/set_role <id\|@username> <role>` | admin                   | Change a user's role                                      |
+| `/ban <id\|@username>`             | admin                   | Ban a user                                                |
+| `/unban <id\|@username>`           | admin                   | Lift a ban                                                |
 
 ## Roles
 
@@ -151,7 +153,7 @@ Three roles, all stored in the database — nothing is hardcoded in the source.
 |-----------|---------------------------------------------------------------------------------------|
 | `client`  | Contact profile, booking, and managing their own appointments. Default for new users. |
 | `master`  | Service catalogue, weekly schedule, time off, and the weekly appointment list.        |
-| `admin`   | User management and role assignment, plus the client commands.                        |
+| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.       |
 
 ### First run: bootstrapping the master
 
