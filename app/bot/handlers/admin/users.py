@@ -16,7 +16,7 @@ from app.bot.keyboards.admin import (
     get_admin_cancel_kb,
     get_admin_role_kb,
 )
-from app.bot.keyboards.hub import get_hub_dismiss_kb, get_hub_home_kb
+from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.bot_commands import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
@@ -36,6 +36,11 @@ admin_users_router.callback_query.filter(UserRoleFilter(UserRole.ADMIN))
 
 def _is_not_modified(exc: TelegramBadRequest) -> bool:
     return "message is not modified" in str(exc).lower()
+
+
+async def _delete_user_input(message: Message) -> None:
+    with suppress(TelegramBadRequest):
+        await message.delete()
 
 
 async def _show_admin_prompt(
@@ -75,26 +80,18 @@ async def _finish_admin_flow(
         i18n: dict[str, str],
         result_text: str,
 ) -> None:
-    """Show the outcome on the sticky message; Home returns to hub root."""
+    """Restore sticky hub, then send a dismissible result notice."""
     await clear_state_keep_hub(state)
-    data = await state.get_data()
-    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
-    kb = get_hub_home_kb(i18n)
-
-    if sticky_id is not None:
-        try:
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=sticky_id,
-                text=result_text,
-                reply_markup=kb,
-            )
-            return
-        except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
-                return
-
-    await message.answer(text=result_text, reply_markup=kb)
+    await show_hub(
+        message=message,
+        user=user,
+        i18n=i18n,
+        state=state,
+    )
+    await message.answer(
+        text=result_text,
+        reply_markup=get_hub_dismiss_kb(i18n),
+    )
 
 
 async def _cancel_admin_flow(
@@ -480,6 +477,8 @@ async def process_admin_mod_target(
         bot_timezone: str,
 ) -> None:
     raw = (message.text or "").strip()
+    await _delete_user_input(message)
+
     if not raw:
         await _show_admin_prompt(
             message=message,
