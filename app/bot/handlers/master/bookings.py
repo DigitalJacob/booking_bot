@@ -21,6 +21,7 @@ from app.bot.utils.format import (
     client_contact,
     combine_local,
     format_dt,
+    i18n_plural,
     local_week_bounds,
     status_label,
     to_local,
@@ -152,14 +153,34 @@ async def show_master_bookings_week(
         for day in sorted(by_day):
             count = by_day[day]
             day_text = _day_label(day=day, i18n=i18n)
-            day_line = i18n.get("master_bookings_day_button").format(
-                day=day_text,
-                count=count,
+            lines.append(
+                i18n_plural(
+                    count,
+                    i18n,
+                    key_prefix="master_bookings_day_line",
+                    day=day_text,
+                )
             )
-            lines.append(day_line)
-            day_buttons.append((day, _truncate_button(day_line)))
+            day_buttons.append(
+                (
+                    day,
+                    _truncate_button(
+                        i18n.get("master_bookings_day_button").format(
+                            day=day_text,
+                        )
+                    ),
+                )
+            )
+        total = i18n_plural(
+            len(active),
+            i18n,
+            key_prefix="master_bookings_total",
+        )
         text = (
-            i18n.get("master_bookings_header").format(week=week_label)
+            i18n.get("master_bookings_header").format(
+                week=week_label,
+                total=total,
+            )
             + "\n\n"
             + "\n".join(lines)
         )

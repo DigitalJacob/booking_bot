@@ -78,3 +78,27 @@ def local_week_bounds(
     start_local = datetime.combine(week_start, time.min, tzinfo=zone)
     end_local = start_local + timedelta(days=7)
     return start_local, end_local, week_start
+
+
+def _plural_form_index(n: int) -> int:
+    """0=one, 1=few, 2=many (Slavic rules; EN can use few==many)."""
+    n = abs(n) % 100
+    if 10 < n < 20:
+        return 2
+    last = n % 10
+    if last == 1:
+        return 0
+    if last in (2, 3, 4):
+        return 1
+    return 2
+
+
+def i18n_plural(
+        n: int,
+        i18n: dict[str, str],
+        *,
+        key_prefix: str,
+        **extra: object,
+) -> str:
+    suffix = ("one", "few", "many")[_plural_form_index(n)]
+    return i18n.get(f"{key_prefix}_{suffix}").format(n=n, **extra)
