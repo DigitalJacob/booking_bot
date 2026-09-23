@@ -55,6 +55,7 @@ app/
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
     ├── utils/        # Notifications and shared formatting
+    ├── bot_commands.py  # Role-aware Telegram command menu
     └── i18n/         # Locale resolution
 ```
 
@@ -98,7 +99,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
 ### For admins
 
 - **Moderation hub** — user card, set role, ban and unban as root hub actions
-  (no client booking or profile in the admin menu)
+  (no client booking or profile in the admin menu); guided flows ask for id/@ on the
+  sticky hub message, then restore the menu and send a short result notice with **OK**
 - **Slash fallbacks** — `/user`, `/set_role`, `/ban` and `/unban` accept either a
   numeric id or `@username`; `/user` shows the contact profile when filled in
 - **Shadowban** — banned users get no reply at all, so they cannot tell they were
