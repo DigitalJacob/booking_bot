@@ -12,7 +12,7 @@ A Telegram bot that runs appointment booking for a small service business — a 
 a nail studio, a private tutor. Clients leave a short contact profile once, pick a
 service, see only the times that actually fit it, and book in a few taps. The
 master manages services, a weekly schedule and time off, sees the client's name and phone on every card, and
-confirms or declines either from `/today` or straight from the new-booking
+confirms or declines either from `/bookings` or straight from the new-booking
 notification. Both sides get notified on every status change.
 
 Built on a layered architecture with the business logic isolated from Telegram and SQL,
@@ -79,20 +79,18 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Guided booking** — step-by-step dialog: service → day → time → confirmation
 - **Only bookable times are shown** — windows outside working hours, blocked by
   time off, already taken, or in the past are filtered out before the client sees them
-- **`/my_bookings`** — upcoming appointments with their current status
+- **`/my_bookings`** — sticky list of upcoming appointments; open a card to cancel
 - **Self-service cancellation** — cancel your own booking; the master is notified
 - **Status notifications** — a message arrives when the master confirms or declines
 
 ### For the master
 
-- **`/today`** — every appointment for the current day as a card with inline actions
+- **`/bookings`** — sticky week view → day → appointment card (navigate weeks with ← / →)
 - **Client name and phone on every card and notification** — not just a Telegram id,
   so the master can actually call the person
-- **One-tap confirm / decline** — from `/today` or directly from the new-booking
-  message; the keyboard is removed after the action, so a finished card cannot be
-  tapped twice by accident
-- **Past appointments are read-only** — once the appointment has ended the action buttons
-  disappear and the card is marked as past, and a stale button is rejected server-side
+- **One-tap confirm / decline** — from a booking card or directly from the new-booking
+  push; past slots are read-only (no action buttons), and a stale button is rejected
+  server-side
 - **Service catalogue** — title, duration and price; edit and soft deactivate from `/services`
 - **Weekly schedule** — `/schedule` for repeating working hours
 - **Time off** — `/time_off` to block full days (vacation, days off)
@@ -131,10 +129,10 @@ failure halfway through a booking cannot leave a half-written appointment behind
 | `/menu`                            | everyone        | Open the main hub menu                                    |
 | `/lang`                            | everyone        | Switch interface language (RU / EN)                       |
 | `/book`                            | client          | Book an appointment (asks for the profile first if empty) |
-| `/my_bookings`                     | client          | View and cancel your upcoming appointments                |
+| `/my_bookings`                     | client          | Sticky list of upcoming appointments (open / cancel)      |
 | `/profile`                         | client          | Show your contact profile                                 |
 | `/edit_profile`                    | client          | Update your name and phone                                |
-| `/today`                           | master          | Today's appointments with confirm / decline actions       |
+| `/bookings`                        | master          | Weekly appointments: week → day → card (confirm / cancel) |
 | `/services`                        | master          | List your services                                        |
 | `/add_service`                     | master          | Add a service (title, duration, price)                    |
 | `/schedule`                        | master          | Weekly working hours (add / delete intervals)             |
@@ -152,7 +150,7 @@ Three roles, all stored in the database — nothing is hardcoded in the source.
 | Role      | Gets                                                                                  |
 |-----------|---------------------------------------------------------------------------------------|
 | `client`  | Contact profile, booking, and managing their own appointments. Default for new users. |
-| `master`  | Service catalogue, weekly schedule, time off, and the daily appointment list.         |
+| `master`  | Service catalogue, weekly schedule, time off, and the weekly appointment list.        |
 | `admin`   | User management and role assignment, plus the client commands.                        |
 
 ### First run: bootstrapping the master
@@ -348,10 +346,11 @@ booking_bot/
 │   │   ├── filters/        # Role and locale filters
 │   │   ├── handlers/       # admin / client / master / common
 │   │   ├── i18n/           # Locale resolution
-│   │   ├── keyboards/      # Inline keyboards, CallbackData, menu button
+│   │   ├── keyboards/      # Inline keyboards and typed CallbackData
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
 │   │   ├── states/         # FSM state groups
-│   │   ├── utils/          # Notifications and shared formatting
+│   │   ├── utils/          # Notifications, hub helpers, shared formatting
+│   │   ├── bot_commands.py # Role-aware Telegram command menu
 │   │   └── bot.py          # Dispatcher setup and startup
 │   ├── domain/             # Models, enums, exceptions, BookingService
 │   └── infrastructure/     # Connection pool and repositories
@@ -368,7 +367,7 @@ booking_bot/
 
 ## Roadmap
 
-- Per-master timezone setting (today: bot-wide `TIMEZONE` in `.env`)
+- Per-master timezone setting (currently: bot-wide `TIMEZONE` in `.env`)
 - Partial-day time off (hours, not only full days)
 - Multi-master support, letting clients pick a master first
 - Appointment reminders ahead of the scheduled time
