@@ -2,7 +2,6 @@ from contextlib import suppress
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -15,7 +14,6 @@ from app.bot.keyboards.hub import (
 )
 from app.bot.utils.hub_nav import (
     HUB_MESSAGE_ID_KEY,
-    clear_state_keep_hub,
     show_hub,
 )
 from app.bot.utils.hub_registry import dispatch_leaf
@@ -124,26 +122,6 @@ async def return_from_list(
         i18n=i18n,
         state=state,
         action=target,
-    )
-
-
-@hub_router.message(Command(commands="menu"))
-async def process_menu_command(
-        message: Message,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
-) -> None:
-    if user is None:
-        await message.answer(text=i18n.get("book_need_start"))
-        return
-    await clear_state_keep_hub(state)
-    await show_hub(
-        message=message,
-        user=user,
-        i18n=i18n,
-        state=state,
-        force_new=True,
     )
 
 

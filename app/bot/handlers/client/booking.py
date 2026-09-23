@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from aiogram import F, Router, Bot
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -165,30 +165,6 @@ async def start_booking_flow(
         services=services,
         i18n=i18n,
         edit=edit,
-    )
-
-
-@booking_router.message(Command(commands="book"))
-async def process_book_command(
-        message: Message,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        master_user_id: int,
-) -> None:
-    if user is None:
-        await message.answer(text=i18n.get("book_need_start"))
-        return
-
-    await start_booking_flow(
-        message=message,
-        i18n=i18n,
-        state=state,
-        repos=repos,
-        user=user,
-        master_user_id=master_user_id,
-        edit=False,
     )
 
 

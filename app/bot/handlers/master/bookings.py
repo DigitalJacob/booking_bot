@@ -3,7 +3,6 @@ from datetime import date, datetime, time, timedelta, timezone
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -457,38 +456,6 @@ async def _finish_master_decision(
         with suppress(TelegramBadRequest):
             await callback.message.delete()
     await callback.answer(text=ack_text)
-
-
-@bookings_router.message(Command(commands="bookings"))
-async def process_bookings_command(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-) -> None:
-    await state.update_data(
-        list_return="root",
-        hub_screen="bookings",
-        hub_back="root",
-    )
-    _, _, week_start = local_week_bounds(bot_timezone)
-    await state.update_data(
-        {
-            _WEEK_START_KEY: week_start.isoformat(),
-            _DAY_KEY: None,
-        }
-    )
-    await show_master_bookings_week(
-        message=message,
-        state=state,
-        repos=repos,
-        user=user,
-        i18n=i18n,
-        bot_timezone=bot_timezone,
-        edit=False,
-    )
 
 
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "open_day"))

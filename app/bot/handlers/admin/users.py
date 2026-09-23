@@ -4,7 +4,7 @@ from contextlib import suppress
 from aiogram import Bot, F, Router
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from aiogram.filters import Command, CommandObject, StateFilter
+from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, BotCommandScopeChat, InlineKeyboardMarkup
 
@@ -110,27 +110,6 @@ async def _cancel_admin_flow(
     )
 
 
-def _parse_target_ref(command: CommandObject) -> str | None:
-    if command.args is None:
-        return None
-    parts = command.args.split()
-    if not parts:
-        return None
-    return parts[0].strip()
-
-
-def _parse_role(command: CommandObject) -> UserRole | None:
-    if command.args is None:
-        return None
-    parts = command.args.split()
-    if len(parts) < 2:
-        return None
-    try:
-        return UserRole(parts[1].lower())
-    except ValueError:
-        return None
-
-
 async def lookup_user_ref(
         *,
         repos: Repositories,
@@ -142,28 +121,6 @@ async def lookup_user_ref(
     if raw.isdigit():
         return await repos.users.get_user_by_id(user_id=int(raw))
     return await repos.users.get_user_by_username(username=raw)
-
-
-async def _get_target(
-        *,
-        message: Message,
-        command: CommandObject,
-        repos: Repositories,
-        i18n: dict[str, str],
-        usage_key: str,
-) -> User | None:
-    raw_user_info = _parse_target_ref(command)
-    if raw_user_info is None:
-        await message.answer(text=i18n.get(usage_key))
-        return None
-
-    target = await lookup_user_ref(repos=repos, raw=raw_user_info)
-    if target is None:
-        await message.answer(
-            text=i18n.get("admin_user_not_found").format(target=raw_user_info),
-        )
-        return None
-    return target
 
 
 def _user_card(target: User, i18n: dict[str, str], bot_timezone: str) -> str:
@@ -301,128 +258,6 @@ async def start_admin_mod_flow(
         text=i18n.get("admin_hub_ask_target"),
         i18n=i18n,
     )
-
-
-# ---------------------------------------------------------------------------
-# Slash commands (deep links / fallback)
-# ---------------------------------------------------------------------------
-
-@admin_users_router.message(Command(commands="user"))
-async def process_user_command(
-        message: Message,
-        command: CommandObject,
-        repos: Repositories,
-        i18n: dict[str, str],
-        bot_timezone: str,
-) -> None:
-    target = await _get_target(
-        message=message,
-        command=command,
-        repos=repos,
-        i18n=i18n,
-        usage_key="admin_usage_user",
-    )
-    if target is None:
-        return
-
-    await message.answer(text=_user_card(target, i18n, bot_timezone))
-
-
-@admin_users_router.message(Command(commands="ban"))
-async def process_ban_command(
-        message: Message,
-        command: CommandObject,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-) -> None:
-    target = await _get_target(
-        message=message,
-        command=command,
-        repos=repos,
-        i18n=i18n,
-        usage_key="admin_usage_ban",
-    )
-    if target is None:
-        return
-
-    _, text = await _apply_ban(
-        repos=repos,
-        actor=user,
-        target=target,
-        i18n=i18n,
-    )
-    await message.answer(text=text)
-
-
-@admin_users_router.message(Command(commands="unban"))
-async def process_unban_command(
-        message: Message,
-        command: CommandObject,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-) -> None:
-    target = await _get_target(
-        message=message,
-        command=command,
-        repos=repos,
-        i18n=i18n,
-        usage_key="admin_usage_unban",
-    )
-    if target is None:
-        return
-
-    _, text = await _apply_unban(
-        repos=repos,
-        actor=user,
-        target=target,
-        i18n=i18n,
-    )
-    await message.answer(text=text)
-
-
-@admin_users_router.message(Command(commands="set_role"))
-async def process_set_role_command(
-        message: Message,
-        command: CommandObject,
-        bot: Bot,
-        translations: dict,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-) -> None:
-    target = await _get_target(
-        message=message,
-        command=command,
-        repos=repos,
-        i18n=i18n,
-        usage_key="admin_usage_set_role",
-    )
-    if target is None:
-        return
-
-    role = _parse_role(command)
-    if role is None:
-        await message.answer(
-            text=i18n.get("admin_invalid_role").format(
-                roles=", ".join(UserRole),
-            ),
-        )
-        return
-
-    _, text = await _apply_set_role(
-        bot=bot,
-        translations=translations,
-        repos=repos,
-        actor=user,
-        target=target,
-        role=role,
-        i18n=i18n,
-        bot_timezone=bot_timezone,
-    )
-    await message.answer(text=text)
 
 
 # ---------------------------------------------------------------------------

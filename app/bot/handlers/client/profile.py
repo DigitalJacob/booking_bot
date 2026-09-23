@@ -243,49 +243,6 @@ async def start_profile_flow(
     )
 
 
-@profile_router.message(Command(commands="profile"))
-async def process_profile_command(
-        message: Message,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
-) -> None:
-    if user is None:
-        await message.answer(text=i18n.get("book_need_start"))
-        return
-
-    if user.profile_complete:
-        await clear_state_keep_hub(state)
-        await message.answer(text=format_profile_card(user, i18n))
-        await message.answer(text=i18n.get("profile_edit_hint"))
-        return
-
-    await start_profile_flow(
-        message=message,
-        state=state,
-        i18n=i18n,
-        resume_book=False,
-    )
-
-
-@profile_router.message(Command(commands="edit_profile"))
-async def process_edit_profile_command(
-        message: Message,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
-) -> None:
-    if user is None:
-        await message.answer(text=i18n.get("book_need_start"))
-        return
-    await start_profile_flow(
-        message=message,
-        state=state,
-        i18n=i18n,
-        resume_book=False,
-    )
-
-
 @profile_router.message(Command(commands="cancel"), StateFilter(ProfileSG))
 async def process_profile_cancel_cmd(
         message: Message,

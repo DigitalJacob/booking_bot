@@ -3,7 +3,7 @@ from contextlib import suppress
 from aiogram import Bot, Router
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, Message
 
@@ -17,14 +17,6 @@ from app.infrastructure.database.repositories import Repositories
 
 
 start_router = Router(name="start")
-
-
-def _help_text(role: UserRole | None, i18n: dict[str, str]) -> str:
-    if role == UserRole.MASTER:
-        return i18n.get("/help_master")
-    if role == UserRole.ADMIN:
-        return i18n.get("/help_admin")
-    return i18n.get("/help")
 
 
 @start_router.message(CommandStart())
@@ -87,13 +79,3 @@ async def process_start_command(
         state=state,
         force_new=True,
     )
-
-
-@start_router.message(Command(commands="help"))
-async def process_help_command(
-        message: Message,
-        i18n: dict[str, str],
-        user: User | None,
-) -> None:
-    role = user.role if user else None
-    await message.answer(text=_help_text(role, i18n))

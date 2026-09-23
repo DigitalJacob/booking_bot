@@ -76,24 +76,6 @@ async def show_schedule_list(
         await message.answer(text=text, reply_markup=kb)
 
 
-@schedule_router.message(Command(commands="schedule"))
-async def process_schedule_command(
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-) -> None:
-    await state.update_data(list_return="root")
-    await show_schedule_list(
-        message=message,
-        repos=repos,
-        user=user,
-        i18n=i18n,
-        edit=False,
-    )
-
-
 @schedule_router.callback_query(
     ScheduleNavCallback.filter(F.action == "close"),
 )

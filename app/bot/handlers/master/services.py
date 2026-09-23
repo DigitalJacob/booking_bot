@@ -111,24 +111,6 @@ async def _show_service_card(
 # List / card UI
 # ---------------------------------------------------------------------------
 
-@services_router.message(Command(commands="services"))
-async def process_services_command(
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-) -> None:
-    await state.update_data(list_return="root")
-    await show_services_list(
-        message=message,
-        repos=repos,
-        user=user,
-        i18n=i18n,
-        edit=False,
-    )
-
-
 @services_router.callback_query(MasterServiceCallback.filter())
 async def process_service_open(
         callback: CallbackQuery,
@@ -247,17 +229,6 @@ async def process_services_add_button(
     await state.set_state(AddServiceSG.title)
     await callback.message.edit_text(text=i18n.get("add_service_enter_title"))
     await callback.answer()
-
-
-@services_router.message(Command(commands="add_service"))
-async def process_add_service_command(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-) -> None:
-    await clear_state_keep_hub(state)
-    await state.set_state(AddServiceSG.title)
-    await message.answer(text=i18n.get("add_service_enter_title"))
 
 
 @services_router.message(Command(commands="cancel"), StateFilter(AddServiceSG))

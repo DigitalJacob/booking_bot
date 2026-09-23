@@ -1,5 +1,4 @@
 from aiogram import Bot, F, Router
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -139,30 +138,6 @@ async def _show_booking_card(
             appointment=appointment,
             i18n=i18n,
         ),
-    )
-
-
-@my_bookings_router.message(Command(commands="my_bookings"))
-async def process_my_bookings_command(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        bot_timezone: str,
-) -> None:
-    if user is None:
-        await message.answer(text=i18n.get("book_need_start"))
-        return
-
-    await state.update_data(list_return="root")
-    await show_my_bookings_list(
-        message=message,
-        repos=repos,
-        user=user,
-        i18n=i18n,
-        bot_timezone=bot_timezone,
-        edit=False,
     )
 
 

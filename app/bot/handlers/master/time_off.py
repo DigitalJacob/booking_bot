@@ -85,26 +85,6 @@ async def show_time_off_list(
         await message.answer(text=text, reply_markup=kb)
 
 
-@time_off_router.message(Command(commands="time_off"))
-async def process_time_off_command(
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        state: FSMContext,
-) -> None:
-    await state.update_data(list_return="root")
-    await show_time_off_list(
-        message=message,
-        repos=repos,
-        user=user,
-        i18n=i18n,
-        bot_timezone=bot_timezone,
-        edit=False,
-    )
-
-
 @time_off_router.callback_query(TimeOffNavCallback.filter(F.action == "close"))
 async def process_time_off_close(
         callback: CallbackQuery,

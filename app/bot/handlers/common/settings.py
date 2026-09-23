@@ -3,7 +3,7 @@ from contextlib import suppress
 from aiogram import Bot, F, Router
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, CallbackQuery, Message
 
@@ -42,7 +42,7 @@ async def _finish_lang_flow(
             state=state,
         )
 
-    # /lang may have opened a non-sticky prompt — remove it after hub restore.
+    # Lang picker may have opened a non-sticky prompt — remove after hub restore.
     if (
         lang_msg_id is not None
         and sticky_id is not None
@@ -117,24 +117,6 @@ async def start_lang_settings(
     await state.update_data(
         lang_settings_msg_id=msg_id,
         user_lang=user_lang,
-    )
-
-
-@settings_router.message(Command(commands="lang"))
-async def process_lang_command(
-        message: Message,
-        i18n: dict[str, str],
-        state: FSMContext,
-        locales: list[str],
-        user: User | None,
-) -> None:
-    await start_lang_settings(
-        message=message,
-        i18n=i18n,
-        state=state,
-        locales=locales,
-        user=user,
-        edit=False,
     )
 
 
