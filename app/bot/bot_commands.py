@@ -4,89 +4,11 @@ from app.domain.enums import UserRole
 
 
 def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotCommand]:
-    commands = [
+    """Telegram ☰ menu: /start only. Hub navigation is inline buttons."""
+    _ = role  # Callers still pass role; menu no longer differs by role.
+    return [
         BotCommand(
             command="/start",
             description=i18n.get("/start_description"),
         ),
-        BotCommand(
-            command="/menu",
-            description=i18n.get("/menu_description"),
-        ),
     ]
-    if role == UserRole.CLIENT:
-        commands.extend(
-            [
-                BotCommand(
-                    command="/book",
-                    description=i18n.get("/book_description"),
-                ),
-                BotCommand(
-                    command="/my_bookings",
-                    description=i18n.get("/my_bookings_description"),
-                ),
-                BotCommand(
-                    command="/profile",
-                    description=i18n.get("/profile_description"),
-                ),
-            ]
-        )
-    if role == UserRole.MASTER:
-        commands.extend(
-            [
-                BotCommand(
-                    command="/bookings",
-                    description=i18n.get("/bookings_description"),
-                ),
-                BotCommand(
-                    command="/schedule",
-                    description=i18n.get("/schedule_description"),
-                ),
-                BotCommand(
-                    command="/time_off",
-                    description=i18n.get("/time_off_description"),
-                ),
-                BotCommand(
-                    command="/services",
-                    description=i18n.get("/services_description"),
-                ),
-                BotCommand(
-                    command="/add_service",
-                    description=i18n.get("/add_service_description"),
-                ),
-            ]
-        )
-    if role == UserRole.ADMIN:
-        commands.extend(
-            [
-                BotCommand(
-                    command="/user",
-                    description=i18n.get("/user_description"),
-                ),
-                BotCommand(
-                    command="/set_role",
-                    description=i18n.get("/set_role_description"),
-                ),
-                BotCommand(
-                    command="/ban",
-                    description=i18n.get("/ban_description"),
-                ),
-                BotCommand(
-                    command="/unban",
-                    description=i18n.get("/unban_description"),
-                ),
-            ]
-        )
-    commands.extend(
-        [
-            BotCommand(
-                command="/lang",
-                description=i18n.get("/lang_description"),
-            ),
-            BotCommand(
-                command="/help",
-                description=i18n.get("/help_description"),
-            ),
-        ]
-    )
-    return commands
