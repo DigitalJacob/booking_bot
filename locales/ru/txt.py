@@ -1,67 +1,30 @@
 RU: dict[str, str] = {
-    "/start": (
-        "Привет!\n\n"
-        "Я бот для записи к мастеру.\n\n"
-        "Доступные команды:\n"
-        "/profile - авторизация\n"
-        "/book — записаться\n"
-        "/my_bookings — мои записи\n"
-        "/help — справка\n"
-        "/lang — язык интерфейса"
-    ),
-    "/start_master": (
-        "Привет!\n\n"
-        "Вы вошли как мастер.\n\n"
-        "Команды:\n"
-        "/bookings — записи по неделям\n"
-        "/schedule — недельный график\n"
-        "/time_off — выходные / отсутствие\n"
-        "/services — мои услуги\n"
-        "/add_service — добавить услугу\n"
-        "/lang — язык интерфейса\n"
-        "/help — справка"
-    ),
-    "/start_admin": (
-        "Привет!\n\n"
-        "Вы администратор бота.\n\n"
-        "Команды:\n"
-        "/user — карточка пользователя\n"
-        "/set_role — изменить роль\n"
-        "/ban — забанить\n"
-        "/unban — разбанить\n"
-        "/lang — язык интерфейса\n"
-        "/help — справка"
-    ),
     "/help": (
         "Я помогаю записаться на услугу и управлять визитами.\n\n"
-        "Команды:\n"
-        "/start — перезапуск бота\n"
-        "/profile - авторизация\n"
-        "/book — записаться к мастеру\n"
-        "/my_bookings — мои записи\n"
-        "/lang — язык интерфейса\n"
-        "/help — эта справка"
+        "Всё управление — кнопками главного меню:\n"
+        "• Запись — записаться к мастеру\n"
+        "• Мои записи — ваши визиты\n"
+        "• Профиль — контакты для связи\n"
+        "• Настройки — язык и эта справка\n\n"
+        "Команда /start открывает меню заново."
     ),
     "/help_master": (
-        "Вы мастер. Управление записью:\n\n"
-        "/bookings — записи (подтвердить / отменить)\n"
-        "/schedule — недельный график\n"
-        "/time_off — выходные и отсутствие\n"
-        "/services — список услуг\n"
-        "/add_service — добавить услугу\n"
-        "/lang — язык интерфейса\n"
-        "/help — эта справка"
+        "Вы мастер. Управление — кнопками главного меню:\n\n"
+        "• Записи — неделя → день → карточка "
+        "(подтвердить / отменить)\n"
+        "• Услуги — каталог и добавление\n"
+        "• График — рабочие часы и выходные\n"
+        "• Настройки — язык и эта справка\n\n"
+        "Команда /start открывает меню заново."
     ),
     "/help_admin": (
-        "Вы администратор бота.\n\n"
-        "Команды:\n"
-        "/start — перезапуск бота\n"
-        "/user &lt;id|@username&gt; — карточка пользователя\n"
-        "/set_role &lt;id|@username&gt; &lt;роль&gt; — изменить роль\n"
-        "/ban &lt;id|@username&gt; — забанить\n"
-        "/unban &lt;id|@username&gt; — разбанить\n"
-        "/lang — язык интерфейса\n"
-        "/help — эта справка"
+        "Вы администратор бота. Модерация — "
+        "кнопками главного меню:\n\n"
+        "• Карточка пользователя\n"
+        "• Сменить роль\n"
+        "• Забанить / Разбанить\n"
+        "• Настройки — язык и эта справка\n\n"
+        "Команда /start открывает меню заново."
     ),
     "client_booking_confirmed": (
         "Ваша запись подтверждена.\n\n"
@@ -80,10 +43,6 @@ RU: dict[str, str] = {
     "save_lang_button_text": "✅ Сохранить",
     "cancel_lang_button_text": "Отмена",
     "/start_description": "Перезапустить бота",
-    "/lang_description": "Настроить язык интерфейса",
-    "/help_description": "Посмотреть справку",
-    "/book": "Выберите услугу",
-    "/book_description": "Записаться к мастеру",
     "book_choose_service": "Выберите услугу",
     "book_choose_day": "Выберите день",
     "book_choose_window": "Выберите время",
@@ -109,7 +68,6 @@ RU: dict[str, str] = {
     "book_service_inactive": "Услуга больше недоступна.",
     "book_service_not_found": "Услуга не найдена.",
     "book_need_start": "Сначала отправьте /start",
-    "/bookings_description": "Записи по неделям",
     "master_bookings_header": "Записи · {week}\n{total}",
     "master_bookings_empty": (
         "На неделю {week} активных записей нет."
@@ -162,10 +120,8 @@ RU: dict[str, str] = {
         "Услуга: {title}\n"
         "Дата и время: {when}\n"
         "Клиент: {client_name}\n"
-        "Телефон: {client_phone}\n\n"
-        "Записи: /bookings"
+        "Телефон: {client_phone}"
     ),
-    "/services_description": "Мои услуги",
     "services_list_header": "📋 Ваши услуги:",
     "services_list_item": "• {title} — {duration} мин, {price} ({status})",
     "services_price_empty": "цена уточняется",
@@ -173,9 +129,8 @@ RU: dict[str, str] = {
     "services_status_inactive": "неактивна",
     "services_empty": (
         "У вас пока нет услуг.\n\n"
-        "Добавить: /add_service"
+        "Добавьте услугу кнопкой ниже."
     ),
-    "services_add_hint": "Добавить услугу: /add_service",
     "add_service_enter_title": (
         "Введите название услуги\n"
         "Например: Маникюр\n\n"
@@ -196,8 +151,6 @@ RU: dict[str, str] = {
     "add_service_invalid_price": "Неверный формат цены. Число или «-».",
     "add_service_ok": "Услуга добавлена: {title}, {duration} мин, {price}.",
     "add_service_cancelled": "Добавление услуги отменено.",
-    "/add_service_description": "Добавить услугу",
-    "/my_bookings_description": "Мои записи",
     "my_bookings_header": "Ваши записи:",
     "my_bookings_empty": (
         "У вас нет активных записей.\n\n"
@@ -223,14 +176,6 @@ RU: dict[str, str] = {
         "Клиент: {client_name}\n"
         "Телефон: {client_phone}"
     ),
-    "/user_description": "Карточка пользователя",
-    "/set_role_description": "Изменить роль",
-    "/ban_description": "Забанить",
-    "/unban_description": "Разбанить",
-    "admin_usage_user": "Использование: /user &lt;id|@username&gt;",
-    "admin_usage_ban": "Использование: /ban &lt;id|@username&gt;",
-    "admin_usage_unban": "Использование: /unban &lt;id|@username&gt;",
-    "admin_usage_set_role": "Использование: /set_role &lt;id|@username&gt; &lt;роль&gt;",
     "admin_user_not_found": "Пользователь {target} не найден.",
     "admin_user_card": (
         "👤 Пользователь {user_id}\n\n"
@@ -267,7 +212,6 @@ RU: dict[str, str] = {
     "admin_role_client_button": "client",
     "admin_role_master_button": "master",
     "admin_role_admin_button": "admin",
-    "/profile_description": "Мой профиль",
     "profile_ask_first_name": "Как вас зовут? (имя)",
     "profile_ask_last_name": "Ваша фамилия?",
     "profile_ask_phone": (
@@ -281,15 +225,15 @@ RU: dict[str, str] = {
         "Не удалось распознать номер. "
         "Отправьте контакт кнопкой или номер в формате +79001234567."
     ),
-    "profile_saved_continue_book": "Теперь можно записаться: /book",
+    "profile_saved_continue_book": (
+        "Теперь можно записаться через меню → Запись."
+    ),
     "profile_card": (
         "Ваш профиль:\n\n"
         "Имя: {first_name}\n"
         "Фамилия: {last_name}\n"
         "Телефон: {phone}"
     ),
-    "profile_edit_hint": "Чтобы изменить данные, отправьте: /edit_profile",
-    "/schedule_description": "Мой график",
     "schedule_header": "🗓 Ваш недельный график:",
     "schedule_list_item": "• {weekday} {starts}–{ends}",
     "schedule_empty": (
@@ -334,7 +278,6 @@ RU: dict[str, str] = {
     "schedule_confirm_no": "Нет",
     "schedule_deleted": "Интервал удалён.",
     "schedule_delete_not_found": "Интервал не найден.",
-    "/time_off_description": "Выходные / отсутствие",
     "time_off_header": "🚫 Ближайшие выходные:",
     "time_off_list_item": "• {when}{note}",
     "time_off_empty": (
@@ -419,5 +362,4 @@ RU: dict[str, str] = {
     "hub_admin_set_role_button": "Сменить роль",
     "hub_admin_ban_button": "Забанить",
     "hub_admin_unban_button": "Разбанить",
-    "/menu_description": "Открыть главное меню",
 }

@@ -1,67 +1,30 @@
 EN: dict[str, str] = {
-    "/start": (
-        "Hello!\n\n"
-        "I am a booking bot for appointments with a specialist.\n\n"
-        "Available commands:\n"
-        "/profile - authorization\n"
-        "/book — book an appointment\n"
-        "/my_bookings — my appointments\n"
-        "/help — help\n"
-        "/lang — interface language"
-    ),
-    "/start_master": (
-        "Hello!\n\n"
-        "You are signed in as a specialist.\n\n"
-        "Commands:\n"
-        "/bookings — weekly appointments\n"
-        "/schedule — weekly working hours\n"
-        "/time_off — days off / absences\n"
-        "/services — my services\n"
-        "/add_service — add a service\n"
-        "/lang — interface language\n"
-        "/help — help"
-    ),
-    "/start_admin": (
-        "Hello!\n\n"
-        "You are a bot administrator.\n\n"
-        "Commands:\n"
-        "/user — user profile\n"
-        "/set_role — change role\n"
-        "/ban — ban user\n"
-        "/unban — unban user\n"
-        "/lang — interface language\n"
-        "/help — help"
-    ),
     "/help": (
         "I help you book a service and manage appointments.\n\n"
-        "Commands:\n"
-        "/start — restart the bot\n"
-        "/profile - authorization\n"
-        "/book — book an appointment\n"
-        "/my_bookings — my appointments\n"
-        "/lang — interface language\n"
-        "/help — this help"
+        "Everything is controlled from the main menu buttons:\n"
+        "• Book — book an appointment\n"
+        "• My bookings — your visits\n"
+        "• Profile — contact details\n"
+        "• Settings — language and this help\n\n"
+        "Send /start to open the menu again."
     ),
     "/help_master": (
-        "You are a specialist. Booking management:\n\n"
-        "/bookings — appointments (confirm / cancel)\n"
-        "/schedule — weekly working hours\n"
-        "/time_off — block days off (absences)\n"
-        "/services — list of services\n"
-        "/add_service — add a service\n"
-        "/lang — interface language\n"
-        "/help — this help"
+        "You are a specialist. Use the main menu buttons:\n\n"
+        "• Bookings — week → day → card "
+        "(confirm / cancel)\n"
+        "• Services — catalogue and add\n"
+        "• Schedule — working hours and time off\n"
+        "• Settings — language and this help\n\n"
+        "Send /start to open the menu again."
     ),
     "/help_admin": (
-        "You are a bot administrator.\n\n"
-        "Commands:\n"
-        "/start — restart the bot\n"
-        "/user &lt;id|@username&gt; — user profile\n"
-        "/set_role &lt;id|@username&gt; &lt;role&gt; — change role\n"
-        "/ban &lt;id|@username&gt; — ban user\n"
-        "/unban &lt;id|@username&gt; — unban user\n"
-        "/lang — interface language\n"
-        "/help — this help"
+        "You are a bot administrator. Moderation is on "
+        "the main menu buttons:\n\n"
+        "• User card\n"
+        "• Set role\n"
+        "• Ban / Unban\n"
+        "• Settings — language and this help\n\n"
+        "Send /start to open the menu again."
     ),
     "client_booking_confirmed": (
         "Your appointment has been confirmed.\n\n"
@@ -80,10 +43,6 @@ EN: dict[str, str] = {
     "save_lang_button_text": "✅ Save",
     "cancel_lang_button_text": "Cancel",
     "/start_description": "Restart the bot",
-    "/lang_description": "Configure the interface language",
-    "/help_description": "View help",
-    "/book": "Choose a service",
-    "/book_description": "Book an appointment",
     "book_choose_service": "Choose a service",
     "book_choose_day": "Choose a day",
     "book_choose_window": "Choose a time",
@@ -109,7 +68,6 @@ EN: dict[str, str] = {
     "book_service_inactive": "This service is no longer available.",
     "book_service_not_found": "Service not found.",
     "book_need_start": "Please send /start first",
-    "/bookings_description": "Weekly bookings",
     "master_bookings_header": "Bookings · {week}\n{total}",
     "master_bookings_empty": (
         "No active bookings for the week of {week}."
@@ -162,10 +120,8 @@ EN: dict[str, str] = {
         "Service: {title}\n"
         "Date and time: {when}\n"
         "Client: {client_name}\n"
-        "Phone: {client_phone}\n\n"
-        "Bookings: /bookings"
+        "Phone: {client_phone}"
     ),
-    "/services_description": "My services",
     "services_list_header": "📋 Your services:",
     "services_list_item": "• {title} — {duration} min, {price} ({status})",
     "services_price_empty": "price to be confirmed",
@@ -173,9 +129,8 @@ EN: dict[str, str] = {
     "services_status_inactive": "inactive",
     "services_empty": (
         "You have no services yet.\n\n"
-        "Add one: /add_service"
+        "Add one with the button below."
     ),
-    "services_add_hint": "Add a service: /add_service",
     "add_service_enter_title": (
         "Enter the service name\n"
         "Example: Manicure\n\n"
@@ -196,8 +151,6 @@ EN: dict[str, str] = {
     "add_service_invalid_price": "Invalid price format. Use a number or «-».",
     "add_service_ok": "Service added: {title}, {duration} min, {price}.",
     "add_service_cancelled": "Adding a service was cancelled.",
-    "/add_service_description": "Add a service",
-    "/my_bookings_description": "My appointments",
     "my_bookings_header": "Your appointments:",
     "my_bookings_empty": (
         "You have no active appointments.\n\n"
@@ -223,14 +176,6 @@ EN: dict[str, str] = {
         "Client: {client_name}\n"
         "Phone: {client_phone}"
     ),
-    "/user_description": "User card",
-    "/set_role_description": "Change role",
-    "/ban_description": "Ban a user",
-    "/unban_description": "Unban a user",
-    "admin_usage_user": "Usage: /user &lt;id|@username&gt;",
-    "admin_usage_ban": "Usage: /ban &lt;id|@username&gt;",
-    "admin_usage_unban": "Usage: /unban &lt;id|@username&gt;",
-    "admin_usage_set_role": "Usage: /set_role &lt;id|@username&gt; &lt;role&gt;",
     "admin_user_not_found": "User {target} not found.",
     "admin_user_card": (
         "👤 User {user_id}\n\n"
@@ -267,7 +212,6 @@ EN: dict[str, str] = {
     "admin_role_client_button": "client",
     "admin_role_master_button": "master",
     "admin_role_admin_button": "admin",
-    "/profile_description": "My profile",
     "profile_ask_first_name": "What is your first name?",
     "profile_ask_last_name": "What is your last name?",
     "profile_ask_phone": (
@@ -281,15 +225,15 @@ EN: dict[str, str] = {
         "Could not read that number. "
         "Share a contact via the button or type it like +79001234567."
     ),
-    "profile_saved_continue_book": "You can book now: /book",
+    "profile_saved_continue_book": (
+        "You can book now from the menu → Book."
+    ),
     "profile_card": (
         "Your profile:\n\n"
         "First name: {first_name}\n"
         "Last name: {last_name}\n"
         "Phone: {phone}"
     ),
-    "profile_edit_hint": "To update your details, send: /edit_profile",
-    "/schedule_description": "My working hours",
     "schedule_header": "🗓 Your weekly schedule:",
     "schedule_list_item": "• {weekday} {starts}–{ends}",
     "schedule_empty": (
@@ -334,7 +278,6 @@ EN: dict[str, str] = {
     "schedule_confirm_no": "No",
     "schedule_deleted": "Interval removed.",
     "schedule_delete_not_found": "Interval not found.",
-    "/time_off_description": "Time off / absences",
     "time_off_header": "🚫 Upcoming time off:",
     "time_off_list_item": "• {when}{note}",
     "time_off_empty": (
@@ -419,5 +362,4 @@ EN: dict[str, str] = {
     "hub_admin_set_role_button": "Set role",
     "hub_admin_ban_button": "Ban user",
     "hub_admin_unban_button": "Unban user",
-    "/menu_description": "Open the main menu",
 }
