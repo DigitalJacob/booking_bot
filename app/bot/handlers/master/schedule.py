@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from typing import Literal
 
 from aiogram import F, Router
 from aiogram.filters import StateFilter
@@ -14,7 +15,8 @@ from app.bot.keyboards.schedule import (
     ScheduleConfirmCallback,
     get_weekdays_kb,
     format_interval_line,
-    get_schedule_list_kb,
+    get_schedule_view_kb,
+    get_schedule_edit_kb,
     get_schedule_confirm_delete_kb,
     get_schedule_cancel_kb,
     WEEKDAY_KEYS,
@@ -30,6 +32,8 @@ from app.infrastructure.database.repositories import Repositories
 schedule_router = Router(name="master_schedule")
 schedule_router.message.filter(UserRoleFilter(UserRole.MASTER))
 schedule_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
+
+ScheduleMode = Literal["view", "edit"]
 
 
 def _parse_time(value: str) -> time | None:
@@ -59,6 +63,7 @@ async def show_schedule_list(
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
+        mode: ScheduleMode,
         edit: bool,
 ) -> None:
     rows = await repos.working_hours.list_by_master(
@@ -70,7 +75,11 @@ async def show_schedule_list(
     else:
         text = i18n.get("schedule_empty")
 
-    kb = get_schedule_list_kb(rows=rows, i18n=i18n)
+    if mode == "view":
+        kb = get_schedule_view_kb(i18n)
+    else:
+        kb = get_schedule_edit_kb(rows=rows, i18n=i18n)
+
     if edit:
         await message.edit_text(text=text, reply_markup=kb)
     else:
@@ -86,11 +95,49 @@ async def process_schedule_close(
         user: User,
         i18n: dict[str, str],
 ) -> None:
+    """Back from view → hub schedule section."""
     await return_from_list(
         message=callback.message,
         user=user,
         i18n=i18n,
         state=state,
+    )
+    await callback.answer()
+
+
+@schedule_router.callback_query(ScheduleNavCallback.filter(F.action == "edit"))
+async def process_schedule_edit(
+        callback: CallbackQuery,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    await show_schedule_list(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        mode="edit",
+        edit=True,
+    )
+    await callback.answer()
+
+
+@schedule_router.callback_query(ScheduleNavCallback.filter(F.action == "view"))
+async def process_schedule_view(
+        callback: CallbackQuery,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    """Back from edit → read-only view."""
+    await show_schedule_list(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        mode="view",
+        edit=True,
     )
     await callback.answer()
 
@@ -150,6 +197,7 @@ async def process_schedule_delete_yes(
         repos=repos,
         user=user,
         i18n=i18n,
+        mode="edit",
         edit=True,
     )
 
@@ -168,6 +216,7 @@ async def process_schedule_delete_no(
         repos=repos,
         user=user,
         i18n=i18n,
+        mode="edit",
         edit=True,
     )
     await callback.answer()
@@ -305,20 +354,20 @@ async def process_schedule_save(
         )
 
     await clear_state_keep_hub(state)
-    await callback.message.edit_text(
+    await callback.answer(
         text=i18n.get("schedule_add_ok").format(
             starts=_format_hm(starts),
             ends=_format_hm(ends),
             days=_weekdays_label(selected, i18n),
         ),
     )
-    await callback.answer()
     await show_schedule_list(
         message=callback.message,
         repos=repos,
         user=user,
         i18n=i18n,
-        edit=False,
+        mode="edit",
+        edit=True,
     )
 
 
@@ -356,6 +405,7 @@ async def process_schedule_cancel_cb(
         repos=repos,
         user=user,
         i18n=i18n,
+        mode="edit",
         edit=True,
     )
     await callback.answer()
@@ -382,6 +432,7 @@ async def _hub_working_hours(
         repos=repos,
         user=user,
         i18n=i18n,
+        mode="view",
         edit=True,
     )
 

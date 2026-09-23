@@ -16,7 +16,7 @@ WEEKDAY_KEYS = {
 
 
 class ScheduleNavCallback(CallbackData, prefix="sch"):
-    action: str  # add | close | save | back | cancel
+    action: str  # edit | view | close | add | save | back | cancel
 
 
 class ScheduleWeekdayCallback(CallbackData, prefix="schwd"):
@@ -59,11 +59,32 @@ def get_schedule_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     )
 
 
-def get_schedule_list_kb(
+def get_schedule_view_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    """Read-only schedule: edit entry + back to hub schedule section."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("schedule_edit_button"),
+                    callback_data=ScheduleNavCallback(action="edit").pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("schedule_back_button"),
+                    callback_data=ScheduleNavCallback(action="close").pack(),
+                )
+            ],
+        ]
+    )
+
+
+def get_schedule_edit_kb(
         *,
         rows: list[WorkingHours],
         i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
+    """Edit mode: delete rows, add interval, back to view."""
     buttons: list[list[InlineKeyboardButton]] = []
     for row in rows:
         label = i18n.get("schedule_delete_button").format(
@@ -84,10 +105,14 @@ def get_schedule_list_kb(
             InlineKeyboardButton(
                 text=i18n.get("schedule_add_button"),
                 callback_data=ScheduleNavCallback(action="add").pack(),
-            ),
+            )
+        ]
+    )
+    buttons.append(
+        [
             InlineKeyboardButton(
-                text=i18n.get("schedule_close_button"),
-                callback_data=ScheduleNavCallback(action="close").pack(),
+                text=i18n.get("schedule_back_button"),
+                callback_data=ScheduleNavCallback(action="view").pack(),
             )
         ]
     )

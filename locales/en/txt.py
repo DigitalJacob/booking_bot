@@ -234,11 +234,10 @@ EN: dict[str, str] = {
     "schedule_list_item": "• {weekday} {starts}–{ends}",
     "schedule_empty": (
         "No working hours yet.\n\n"
-        "Add an interval with the button below."
+        "Tap “Edit schedule” to add intervals."
     ),
     "schedule_add_button": "➕ Add",
-    "schedule_close_button": "Close",
-    "schedule_closed": "Schedule closed.",
+    "schedule_edit_button": "✏️ Edit schedule",
     "schedule_weekday_1": "Mon",
     "schedule_weekday_2": "Tue",
     "schedule_weekday_3": "Wed",

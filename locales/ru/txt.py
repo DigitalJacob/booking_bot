@@ -234,11 +234,10 @@ RU: dict[str, str] = {
     "schedule_list_item": "• {weekday} {starts}–{ends}",
     "schedule_empty": (
         "График ещё не задан.\n\n"
-        "Добавьте интервал кнопкой ниже."
+        "Нажмите «Редактировать график», чтобы добавить интервалы."
     ),
     "schedule_add_button": "➕ Добавить",
-    "schedule_close_button": "Закрыть",
-    "schedule_closed": "График закрыт.",
+    "schedule_edit_button": "✏️ Редактировать график",
     "schedule_weekday_1": "Пн",
     "schedule_weekday_2": "Вт",
     "schedule_weekday_3": "Ср",
