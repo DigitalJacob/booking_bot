@@ -371,9 +371,7 @@ RU: dict[str, str] = {
     "time_off_deleted": "Выходной удалён.",
     "time_off_delete_not_found": "Выходной не найден.",
     "services_add_button": "➕ Добавить",
-    "services_close_button": "Закрыть",
     "services_back_button": "← Назад",
-    "services_closed": "Список услуг закрыт.",
     "services_card": (
         "{title}\n"
         "Длительность: {duration} мин\n"

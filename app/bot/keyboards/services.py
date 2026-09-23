@@ -33,13 +33,13 @@ def get_services_list_kb(
     buttons.append(
         [
             InlineKeyboardButton(
+                text=i18n.get("services_back_button"),
+                callback_data=MasterServiceNavCallback(action="close").pack(),
+            ),
+            InlineKeyboardButton(
                 text=i18n.get("services_add_button"),
                 callback_data=MasterServiceNavCallback(action="add").pack(),
             ),
-            InlineKeyboardButton(
-                text=i18n.get("services_close_button"),
-                callback_data=MasterServiceNavCallback(action="close").pack(),
-            )
         ]
     )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
