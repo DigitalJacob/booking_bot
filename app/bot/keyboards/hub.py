@@ -67,11 +67,12 @@ def get_hub_root_kb(
         rows.append([_btn(i18n.get("hub_profile_section_button"), "profile")])
 
     if role == UserRole.ADMIN:
+        rows.append([_btn(i18n.get("hub_admin_user_button"), "admin_user")])
         rows.append(
-            [
-                _btn(i18n.get("hub_moderation_section_button"), "moderation")
-            ],
+            [_btn(i18n.get("hub_admin_set_role_button"), "admin_set_role")]
         )
+        rows.append([_btn(i18n.get("hub_admin_ban_button"), "admin_ban")])
+        rows.append([_btn(i18n.get("hub_admin_unban_button"), "admin_unban")])
 
     rows.append([_btn(i18n.get("hub_settings_section_button"), "settings")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -121,17 +122,5 @@ def get_hub_schedule_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
             [
                 _btn(i18n.get("hub_back_button"), "back")
             ],
-        ]
-    )
-
-
-def get_hub_moderation_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [_btn(i18n.get("hub_admin_user_button"), "admin_user")],
-            [_btn(i18n.get("hub_admin_set_role_button"), "admin_set_role")],
-            [_btn(i18n.get("hub_admin_ban_button"), "admin_ban")],
-            [_btn(i18n.get("hub_admin_unban_button"), "admin_unban")],
-            get_hub_back_home_row(i18n),
         ]
     )

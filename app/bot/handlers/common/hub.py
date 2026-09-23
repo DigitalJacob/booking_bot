@@ -9,7 +9,6 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.keyboards.hub import (
     HubCallback,
     get_hub_back_home_kb,
-    get_hub_moderation_kb,
     get_hub_profile_kb,
     get_hub_schedule_kb,
     get_hub_settings_kb,
@@ -85,16 +84,6 @@ async def show_hub_screen(
         await message.edit_text(
             text=i18n.get("hub_schedule_title"),
             reply_markup=get_hub_schedule_kb(i18n),
-        )
-        return
-
-    if action == "moderation":
-        if role != UserRole.ADMIN:
-            return
-        await state.update_data(hub_screen="moderation", hub_back="root")
-        await message.edit_text(
-            text=i18n.get("hub_moderation_title"),
-            reply_markup=get_hub_moderation_kb(i18n),
         )
         return
 
