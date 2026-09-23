@@ -39,8 +39,8 @@ async def show_hub(
     Show root hub on a single sticky message when possible.
     Returns the hub message_id in use.
 
-    force_new=True: always send a new message (for /start so the user sees
-    a reply at the bottom of the chat) and point sticky at it.
+    force_new=True: always send a new message and point sticky at it
+    (e.g. when the caller needs a fresh reply at the bottom of the chat).
     """
     await state.update_data(hub_screen="root", hub_back="root", list_return="root")
     text = i18n.get("hub_title")

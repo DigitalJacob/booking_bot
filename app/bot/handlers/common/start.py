@@ -77,5 +77,6 @@ async def process_start_command(
         user=user,
         i18n=i18n,
         state=state,
-        force_new=True,
     )
+    with suppress(TelegramBadRequest):
+        await message.delete()
