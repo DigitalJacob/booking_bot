@@ -2,9 +2,11 @@ import logging
 from datetime import datetime
 
 from psycopg import AsyncConnection
+from psycopg.errors import ExclusionViolation, UniqueViolation
 from psycopg.rows import dict_row
 
 from app.domain.enums import AppointmentStatus
+from app.domain.exceptions import TimeConflict
 from app.domain.models.appointment import Appointment
 
 
@@ -38,36 +40,39 @@ class AppointmentsRepository:
             status: AppointmentStatus = AppointmentStatus.PENDING,
     ) -> Appointment:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
-            await cursor.execute(
-                query=f"""
-                    INSERT INTO appointments(
-                        client_user_id,
-                        master_user_id,
-                        service_id,
-                        starts_at,
-                        ends_at,
-                        status
-                    )
-                    VALUES(
-                        %(client_user_id)s,
-                        %(master_user_id)s,
-                        %(service_id)s,
-                        %(starts_at)s,
-                        %(ends_at)s,
-                        %(status)s
-                    )
-                    RETURNING
-                        {_APPOINTMENT_COLUMNS};
-                """,
-                params={
-                    "client_user_id": client_user_id,
-                    "master_user_id": master_user_id,
-                    "service_id": service_id,
-                    "starts_at": starts_at,
-                    "ends_at": ends_at,
-                    "status": status,
-                },
-            )
+            try:
+                await cursor.execute(
+                    query=f"""
+                        INSERT INTO appointments(
+                            client_user_id,
+                            master_user_id,
+                            service_id,
+                            starts_at,
+                            ends_at,
+                            status
+                        )
+                        VALUES(
+                            %(client_user_id)s,
+                            %(master_user_id)s,
+                            %(service_id)s,
+                            %(starts_at)s,
+                            %(ends_at)s,
+                            %(status)s
+                        )
+                        RETURNING
+                            {_APPOINTMENT_COLUMNS};
+                    """,
+                    params={
+                        "client_user_id": client_user_id,
+                        "master_user_id": master_user_id,
+                        "service_id": service_id,
+                        "starts_at": starts_at,
+                        "ends_at": ends_at,
+                        "status": status,
+                    },
+                )
+            except (UniqueViolation, ExclusionViolation) as e:
+                raise TimeConflict from e
             row = await cursor.fetchone()
         logger.info(
             "Appointment added. client=%d, master=%d, service=%d, status=%s",

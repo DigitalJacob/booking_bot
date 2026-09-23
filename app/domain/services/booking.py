@@ -1,8 +1,6 @@
 import logging
 from datetime import datetime, timezone
 
-from psycopg.errors import UniqueViolation, ExclusionViolation
-
 from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
     AppointmentNotFound,
@@ -11,7 +9,6 @@ from app.domain.exceptions import (
     ServiceInactive,
     ServiceNotFound,
     WindowNotAvailable,
-    TimeConflict,
 )
 from app.domain.models import Appointment, Service, TimeWindow
 from app.infrastructure.database.repositories import Repositories
@@ -80,17 +77,14 @@ class BookingService:
         if match is None:
             raise WindowNotAvailable
 
-        try:
-            appointment = await self._repos.appointments.add_appointment(
-                client_user_id=client_user_id,
-                master_user_id=service.master_user_id,
-                service_id=service_id,
-                starts_at=match.starts_at,
-                ends_at=match.ends_at,
-                status=AppointmentStatus.PENDING,
-            )
-        except (UniqueViolation, ExclusionViolation) as e:
-            raise TimeConflict from e
+        appointment = await self._repos.appointments.add_appointment(
+            client_user_id=client_user_id,
+            master_user_id=service.master_user_id,
+            service_id=service_id,
+            starts_at=match.starts_at,
+            ends_at=match.ends_at,
+            status=AppointmentStatus.PENDING,
+        )
 
         logger.info(
             "Booked appointment %d via window: client=%d, master=%d, starts_at=%s",

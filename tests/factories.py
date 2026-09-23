@@ -3,9 +3,8 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import cast
 
-from psycopg.errors import ExclusionViolation
-
 from app.domain.enums import AppointmentStatus
+from app.domain.exceptions import TimeConflict
 from app.domain.models import (
     Appointment,
     Service,
@@ -173,7 +172,7 @@ class FakeAppointmentsRepository:
             ):
                 continue
             if starts_at < existing.ends_at and ends_at > existing.starts_at:
-                raise ExclusionViolation("Overlapping appointment")
+                raise TimeConflict
 
         appointment = make_appointment(
             appointment_id=self._next_id,
