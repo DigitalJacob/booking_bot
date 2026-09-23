@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -8,8 +8,9 @@ from app.domain.models.appointment import Appointment
 
 
 class MasterAppointmentCallback(CallbackData, prefix="mapt"):
-    action: str  # open | back | close | confirm | cancel | week_prev | week_next | week_current
+    action: str  # open | open_day | back | back_week | close | confirm | cancel | week_*
     appointment_id: int = 0
+    day: str = ""  # YYYY-MM-DD for open_day
 
 
 def is_slot_past(
@@ -63,27 +64,11 @@ def get_appointment_actions_kb(
     return InlineKeyboardMarkup(inline_keyboard=[row])
 
 
-def get_master_bookings_list_kb(
+def _week_nav_row(
         *,
-        appointments: list[Appointment],
-        labels: dict[int, str],
         i18n: dict[str, str],
         is_current_week: bool,
-) -> InlineKeyboardMarkup:
-    rows: list[list[InlineKeyboardButton]] = []
-    for appointment in appointments:
-        rows.append(
-            [
-                InlineKeyboardButton(
-                    text=labels.get(appointment.id, str(appointment.id)),
-                    callback_data=MasterAppointmentCallback(
-                        action="open",
-                        appointment_id=appointment.id,
-                    ).pack(),
-                )
-            ]
-        )
-
+) -> list[InlineKeyboardButton]:
     nav: list[InlineKeyboardButton] = [
         InlineKeyboardButton(
             text=i18n.get("master_bookings_week_prev"),
@@ -105,12 +90,66 @@ def get_master_bookings_list_kb(
             callback_data=MasterAppointmentCallback(action="week_next").pack(),
         )
     )
-    rows.append(nav)
+    return nav
+
+
+def get_master_bookings_week_kb(
+        *,
+        day_buttons: list[tuple[date, str]],
+        i18n: dict[str, str],
+        is_current_week: bool,
+) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for day, label in day_buttons:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=label,
+                    callback_data=MasterAppointmentCallback(
+                        action="open_day",
+                        day=day.isoformat(),
+                    ).pack(),
+                )
+            ]
+        )
+    rows.append(_week_nav_row(i18n=i18n, is_current_week=is_current_week))
     rows.append(
         [
             InlineKeyboardButton(
                 text=i18n.get("master_bookings_close_button"),
                 callback_data=MasterAppointmentCallback(action="close").pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def get_master_bookings_day_kb(
+        *,
+        appointments: list[Appointment],
+        labels: dict[int, str],
+        i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for appointment in appointments:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=labels.get(appointment.id, str(appointment.id)),
+                    callback_data=MasterAppointmentCallback(
+                        action="open",
+                        appointment_id=appointment.id,
+                    ).pack(),
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("master_bookings_back_week_button"),
+                callback_data=MasterAppointmentCallback(
+                    action="back_week",
+                ).pack(),
             )
         ]
     )

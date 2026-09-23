@@ -1,5 +1,5 @@
 from contextlib import suppress
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -12,12 +12,14 @@ from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.master import (
     MasterAppointmentCallback,
     get_master_booking_card_kb,
-    get_master_bookings_list_kb,
+    get_master_bookings_day_kb,
+    get_master_bookings_week_kb,
     is_slot_past,
 )
 from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.bot.utils.format import (
     client_contact,
+    combine_local,
     format_dt,
     local_week_bounds,
     status_label,
@@ -43,9 +45,10 @@ today_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _BUTTON_LABEL_MAX = 64
 _WEEK_START_KEY = "bookings_week_start"
+_DAY_KEY = "bookings_day"
 
 
-def _parse_week_start(raw: str | None) -> date | None:
+def _parse_iso_date(raw: str | None) -> date | None:
     if not raw:
         return None
     try:
@@ -54,41 +57,63 @@ def _parse_week_start(raw: str | None) -> date | None:
         return None
 
 
-def _booking_when_parts(
-        *,
-        appointment: Appointment,
-        i18n: dict[str, str],
-        bot_timezone: str,
-) -> tuple[str, str]:
-    local = to_local(appointment.starts_at, bot_timezone)
-    weekday = i18n.get(WEEKDAY_KEYS[local.isoweekday()])
-    when = local.strftime("%d.%m %H:%M")
-    return weekday, when
-
-
-def _list_button_label(
-        *,
-        weekday: str,
-        when: str,
-        title: str,
-        i18n: dict[str, str],
-) -> str:
-    text = i18n.get("master_bookings_list_button").format(
-        weekday=weekday,
-        when=when,
-        title=title,
-    )
-    if len(text) > _BUTTON_LABEL_MAX:
-        return text[: _BUTTON_LABEL_MAX - 1] + "…"
-    return text
-
-
 def _week_range_label(week_start: date) -> str:
     last = week_start + timedelta(days=6)
     return f"{week_start.strftime('%d.%m')}–{last.strftime('%d.%m')}"
 
 
-async def show_master_bookings_list(
+def _day_label(*, day: date, i18n: dict[str, str]) -> str:
+    weekday = i18n.get(WEEKDAY_KEYS[day.isoweekday()])
+    return f"{weekday} {day.strftime('%d.%m')}"
+
+
+def _truncate_button(text: str) -> str:
+    if len(text) > _BUTTON_LABEL_MAX:
+        return text[: _BUTTON_LABEL_MAX - 1] + "…"
+    return text
+
+
+def _active_only(appointments: list[Appointment]) -> list[Appointment]:
+    return [
+        a for a in appointments
+        if a.status in (AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+    ]
+
+
+def _counts_by_local_day(
+        *,
+        appointments: list[Appointment],
+        bot_timezone: str,
+) -> dict[date, int]:
+    counts: dict[date, int] = {}
+    for appointment in appointments:
+        day = to_local(appointment.starts_at, bot_timezone).date()
+        counts[day] = counts.get(day, 0) + 1
+    return counts
+
+
+async def _load_week_active(
+        *,
+        repos: Repositories,
+        user: User,
+        bot_timezone: str,
+        week_start: date | None,
+) -> tuple[date, list[Appointment], bool]:
+    from_dt, to_dt, week_start = local_week_bounds(
+        bot_timezone,
+        week_start=week_start,
+    )
+    appointments = await repos.appointments.list_by_master(
+        master_user_id=user.user_id,
+        from_dt=from_dt,
+        to_dt=to_dt,
+    )
+    active = _active_only(appointments)
+    _, _, current_week_start = local_week_bounds(bot_timezone)
+    return week_start, active, week_start == current_week_start
+
+
+async def show_master_bookings_week(
         *,
         message: Message,
         state: FSMContext,
@@ -99,33 +124,85 @@ async def show_master_bookings_list(
         edit: bool,
 ) -> None:
     data = await state.get_data()
-    week_start = _parse_week_start(data.get(_WEEK_START_KEY))
-    from_dt, to_dt, week_start = local_week_bounds(
-        bot_timezone,
+    week_start = _parse_iso_date(data.get(_WEEK_START_KEY))
+    week_start, active, is_current_week = await _load_week_active(
+        repos=repos,
+        user=user,
+        bot_timezone=bot_timezone,
         week_start=week_start,
     )
-    await state.update_data({_WEEK_START_KEY: week_start.isoformat()})
+    await state.update_data(
+        {
+            _WEEK_START_KEY: week_start.isoformat(),
+            _DAY_KEY: None,
+        }
+    )
+    week_label = _week_range_label(week_start)
+    by_day = _counts_by_local_day(
+        appointments=active,
+        bot_timezone=bot_timezone,
+    )
 
+    if not by_day:
+        text = i18n.get("master_bookings_empty").format(week=week_label)
+        day_buttons: list[tuple[date, str]] = []
+    else:
+        lines: list[str] = []
+        day_buttons = []
+        for day in sorted(by_day):
+            count = by_day[day]
+            day_text = _day_label(day=day, i18n=i18n)
+            day_line = i18n.get("master_bookings_day_button").format(
+                day=day_text,
+                count=count,
+            )
+            lines.append(day_line)
+            day_buttons.append((day, _truncate_button(day_line)))
+        text = (
+            i18n.get("master_bookings_header").format(week=week_label)
+            + "\n\n"
+            + "\n".join(lines)
+        )
+
+    kb = get_master_bookings_week_kb(
+        day_buttons=day_buttons,
+        i18n=i18n,
+        is_current_week=is_current_week,
+    )
+    if edit:
+        await message.edit_text(text=text, reply_markup=kb)
+    else:
+        await message.answer(text=text, reply_markup=kb)
+
+
+async def show_master_bookings_day(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        day: date,
+        edit: bool,
+) -> None:
+    day_start = combine_local(day, time.min, bot_timezone)
+    day_end = day_start + timedelta(days=1)
     appointments = await repos.appointments.list_by_master(
         master_user_id=user.user_id,
-        from_dt=from_dt,
-        to_dt=to_dt,
+        from_dt=day_start,
+        to_dt=day_end,
     )
-    active = [
-        a for a in appointments
-        if a.status in (AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
-    ]
-    week_label = _week_range_label(week_start)
-    _, _, current_week_start = local_week_bounds(bot_timezone)
-    is_current_week = week_start == current_week_start
+    active = _active_only(appointments)
+    await state.update_data({_DAY_KEY: day.isoformat()})
+    day_text = _day_label(day=day, i18n=i18n)
 
     if not active:
-        text = i18n.get("master_bookings_empty").format(week=week_label)
-        kb = get_master_bookings_list_kb(
+        text = i18n.get("master_bookings_day_empty").format(day=day_text)
+        kb = get_master_bookings_day_kb(
             appointments=[],
             labels={},
             i18n=i18n,
-            is_current_week=is_current_week,
         )
     else:
         labels: dict[int, str] = {}
@@ -135,35 +212,30 @@ async def show_master_bookings_list(
                 service_id=appointment.service_id,
             )
             title = service.title if service else "?"
-            weekday, when = _booking_when_parts(
-                appointment=appointment,
-                i18n=i18n,
-                bot_timezone=bot_timezone,
-            )
-            labels[appointment.id] = _list_button_label(
-                weekday=weekday,
-                when=when,
-                title=title,
-                i18n=i18n,
+            local = to_local(appointment.starts_at, bot_timezone)
+            slot_time = local.strftime("%H:%M")
+            labels[appointment.id] = _truncate_button(
+                i18n.get("master_bookings_slot_button").format(
+                    time=slot_time,
+                    title=title,
+                )
             )
             lines.append(
-                i18n.get("master_bookings_item").format(
-                    weekday=weekday,
-                    when=when,
+                i18n.get("master_bookings_day_item").format(
+                    time=slot_time,
                     title=title,
                     status=status_label(appointment.status, i18n),
                 )
             )
         text = (
-            i18n.get("master_bookings_header").format(week=week_label)
+            i18n.get("master_bookings_day_header").format(day=day_text)
             + "\n\n"
             + "\n".join(lines)
         )
-        kb = get_master_bookings_list_kb(
+        kb = get_master_bookings_day_kb(
             appointments=active,
             labels=labels,
             i18n=i18n,
-            is_current_week=is_current_week,
         )
 
     if edit:
@@ -183,23 +255,32 @@ async def _set_week_start(
         _, _, week_start = local_week_bounds(bot_timezone)
     else:
         data = await state.get_data()
-        week_start = _parse_week_start(data.get(_WEEK_START_KEY))
+        week_start = _parse_iso_date(data.get(_WEEK_START_KEY))
         _, _, week_start = local_week_bounds(
             bot_timezone,
             week_start=week_start,
         )
         week_start = week_start + timedelta(weeks=delta_weeks)
-    await state.update_data({_WEEK_START_KEY: week_start.isoformat()})
+    await state.update_data(
+        {
+            _WEEK_START_KEY: week_start.isoformat(),
+            _DAY_KEY: None,
+        }
+    )
 
 
 async def _show_booking_card(
         *,
         message: Message,
+        state: FSMContext,
         appointment: Appointment,
         repos: Repositories,
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
+    day = to_local(appointment.starts_at, bot_timezone).date()
+    await state.update_data({_DAY_KEY: day.isoformat()})
+
     service = await repos.services.get_service(service_id=appointment.service_id)
     title = service.title if service else "?"
     client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
@@ -303,7 +384,7 @@ async def _finish_master_decision(
         ack_text: str,
 ) -> None:
     """
-    Sticky card/list: refresh the week list in place.
+    Sticky card: refresh the day list in place.
     Push notification: restore hub and delete the push.
     """
     await repos.appointments.set_master_notify_message_id(
@@ -318,15 +399,28 @@ async def _finish_master_decision(
         and callback.message.message_id == sticky_id
     )
     if on_sticky:
-        await show_master_bookings_list(
-            message=callback.message,
-            state=state,
-            repos=repos,
-            user=user,
-            i18n=i18n,
-            bot_timezone=bot_timezone,
-            edit=True,
-        )
+        day = _parse_iso_date(data.get(_DAY_KEY))
+        if day is not None:
+            await show_master_bookings_day(
+                message=callback.message,
+                state=state,
+                repos=repos,
+                user=user,
+                i18n=i18n,
+                bot_timezone=bot_timezone,
+                day=day,
+                edit=True,
+            )
+        else:
+            await show_master_bookings_week(
+                message=callback.message,
+                state=state,
+                repos=repos,
+                user=user,
+                i18n=i18n,
+                bot_timezone=bot_timezone,
+                edit=True,
+            )
         await callback.answer(text=ack_text)
         return
 
@@ -355,8 +449,13 @@ async def process_today_command(
 ) -> None:
     await state.update_data(list_return="root", hub_screen="today", hub_back="root")
     _, _, week_start = local_week_bounds(bot_timezone)
-    await state.update_data({_WEEK_START_KEY: week_start.isoformat()})
-    await show_master_bookings_list(
+    await state.update_data(
+        {
+            _WEEK_START_KEY: week_start.isoformat(),
+            _DAY_KEY: None,
+        }
+    )
+    await show_master_bookings_week(
         message=message,
         state=state,
         repos=repos,
@@ -367,10 +466,41 @@ async def process_today_command(
     )
 
 
+@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "open_day"))
+async def process_open_day(
+        callback: CallbackQuery,
+        callback_data: MasterAppointmentCallback,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    day = _parse_iso_date(callback_data.day)
+    if day is None:
+        await callback.answer(
+            text=i18n.get("master_action_failed"),
+            show_alert=True,
+        )
+        return
+    await show_master_bookings_day(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        day=day,
+        edit=True,
+    )
+    await callback.answer()
+
+
 @today_router.callback_query(MasterAppointmentCallback.filter(F.action == "open"))
 async def process_open(
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
+        state: FSMContext,
         repos: Repositories,
         user: User,
         i18n: dict[str, str],
@@ -391,6 +521,7 @@ async def process_open(
 
     await _show_booking_card(
         message=callback.message,
+        state=state,
         appointment=appointment,
         repos=repos,
         i18n=i18n,
@@ -408,7 +539,44 @@ async def process_back(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    await show_master_bookings_list(
+    data = await state.get_data()
+    day = _parse_iso_date(data.get(_DAY_KEY))
+    if day is None:
+        await show_master_bookings_week(
+            message=callback.message,
+            state=state,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            edit=True,
+        )
+    else:
+        await show_master_bookings_day(
+            message=callback.message,
+            state=state,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            day=day,
+            edit=True,
+        )
+    await callback.answer()
+
+
+@today_router.callback_query(
+    MasterAppointmentCallback.filter(F.action == "back_week"),
+)
+async def process_back_week(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await show_master_bookings_week(
         message=callback.message,
         state=state,
         repos=repos,
@@ -436,7 +604,7 @@ async def process_week_prev(
         bot_timezone=bot_timezone,
         delta_weeks=-1,
     )
-    await show_master_bookings_list(
+    await show_master_bookings_week(
         message=callback.message,
         state=state,
         repos=repos,
@@ -464,7 +632,7 @@ async def process_week_next(
         bot_timezone=bot_timezone,
         delta_weeks=1,
     )
-    await show_master_bookings_list(
+    await show_master_bookings_week(
         message=callback.message,
         state=state,
         repos=repos,
@@ -492,7 +660,7 @@ async def process_week_current(
         bot_timezone=bot_timezone,
         to_current=True,
     )
-    await show_master_bookings_list(
+    await show_master_bookings_week(
         message=callback.message,
         state=state,
         repos=repos,
@@ -667,9 +835,12 @@ async def _hub_today(
         hub_screen="today",
         hub_back="root",
         list_return="root",
-        **{_WEEK_START_KEY: week_start.isoformat()},
+        **{
+            _WEEK_START_KEY: week_start.isoformat(),
+            _DAY_KEY: None,
+        },
     )
-    await show_master_bookings_list(
+    await show_master_bookings_week(
         message=message,
         state=state,
         repos=repos,

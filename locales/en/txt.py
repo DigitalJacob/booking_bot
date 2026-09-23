@@ -118,8 +118,11 @@ EN: dict[str, str] = {
     "master_bookings_empty": (
         "No active bookings for the week of {week}."
     ),
-    "master_bookings_item": "• {weekday} {when} — {title} ({status})",
-    "master_bookings_list_button": "{weekday} {when} · {title}",
+    "master_bookings_day_button": "{day} — {count}",
+    "master_bookings_day_header": "{day}",
+    "master_bookings_day_empty": "No active bookings on {day}.",
+    "master_bookings_day_item": "• {time} — {title} ({status})",
+    "master_bookings_slot_button": "{time} · {title}",
     "master_bookings_card": (
         "Appointment\n\n"
         "When: {when}\n"
@@ -138,6 +141,7 @@ EN: dict[str, str] = {
         "✓ Appointment time has already passed"
     ),
     "master_bookings_back_button": "← Back",
+    "master_bookings_back_week_button": "← Week",
     "master_bookings_close_button": "⌂ Menu",
     "master_bookings_week_prev": "←",
     "master_bookings_week_next": "→",
