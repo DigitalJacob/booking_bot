@@ -8,7 +8,7 @@ from app.domain.models.appointment import Appointment
 
 
 class MasterAppointmentCallback(CallbackData, prefix="mapt"):
-    action: str  # open | back | close | confirm | cancel
+    action: str  # open | back | close | confirm | cancel | week_prev | week_next | week_current
     appointment_id: int = 0
 
 
@@ -68,6 +68,7 @@ def get_master_bookings_list_kb(
         appointments: list[Appointment],
         labels: dict[int, str],
         i18n: dict[str, str],
+        is_current_week: bool,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for appointment in appointments:
@@ -82,6 +83,29 @@ def get_master_bookings_list_kb(
                 )
             ]
         )
+
+    nav: list[InlineKeyboardButton] = [
+        InlineKeyboardButton(
+            text=i18n.get("master_bookings_week_prev"),
+            callback_data=MasterAppointmentCallback(action="week_prev").pack(),
+        )
+    ]
+    if not is_current_week:
+        nav.append(
+            InlineKeyboardButton(
+                text=i18n.get("master_bookings_week_current"),
+                callback_data=MasterAppointmentCallback(
+                    action="week_current",
+                ).pack(),
+            )
+        )
+    nav.append(
+        InlineKeyboardButton(
+            text=i18n.get("master_bookings_week_next"),
+            callback_data=MasterAppointmentCallback(action="week_next").pack(),
+        )
+    )
+    rows.append(nav)
     rows.append(
         [
             InlineKeyboardButton(
