@@ -133,24 +133,20 @@ RU: dict[str, str] = {
     ),
     "add_service_enter_title": (
         "Введите название услуги\n"
-        "Например: Маникюр\n\n"
-        "Отмена: /cancel"
+        "Например: Маникюр"
     ),
     "add_service_enter_duration": (
         "Введите длительность в минутах\n"
-        "Например: 60\n\n"
-        "Отмена: /cancel"
+        "Например: 60"
     ),
     "add_service_enter_price": (
         "Введите цену (число) или «-» без цены\n"
-        "Например: 1500 или 1500.50\n\n"
-        "Отмена: /cancel"
+        "Например: 1500 или 1500.50"
     ),
     "add_service_invalid_title": "Название не должно быть пустым (макс. 100 символов).",
     "add_service_invalid_duration": "Введите целое число минут больше 0.",
     "add_service_invalid_price": "Неверный формат цены. Число или «-».",
     "add_service_ok": "Услуга добавлена: {title}, {duration} мин, {price}.",
-    "add_service_cancelled": "Добавление услуги отменено.",
     "my_bookings_header": "Ваши записи:",
     "my_bookings_empty": (
         "У вас нет активных записей.\n\n"
@@ -252,13 +248,11 @@ RU: dict[str, str] = {
     "schedule_weekday_7": "Вс",
     "schedule_enter_starts": (
         "Введите время начала ЧЧ:ММ\n"
-        "Пример: 09:00\n\n"
-        "Отмена: /cancel"
+        "Пример: 09:00"
     ),
     "schedule_enter_ends": (
         "Введите время окончания ЧЧ:ММ\n"
-        "Пример: 18:00\n\n"
-        "Отмена: /cancel"
+        "Пример: 18:00"
     ),
     "schedule_choose_weekdays": (
         "Выберите дни для {starts}–{ends}.\n"
@@ -268,7 +262,6 @@ RU: dict[str, str] = {
     "schedule_invalid_range": "Время окончания должно быть позже начала.",
     "schedule_need_weekday": "Выберите хотя бы один день.",
     "schedule_add_ok": "Добавлено: {starts}–{ends} ({days}).",
-    "schedule_cancelled": "Редактирование графика отменено.",
     "schedule_save_button": "Сохранить",
     "schedule_back_button": "← Назад",
     "schedule_cancel_button": "Отмена",
@@ -286,21 +279,19 @@ RU: dict[str, str] = {
     ),
     "time_off_add_button": "➕ Добавить",
     "time_off_close_button": "Закрыть",
+    "time_off_cancel_button": "Отмена",
     "time_off_closed": "Список выходных закрыт.",
     "time_off_enter_starts": (
         "Введите первый день выходного ДД.ММ.ГГГГ\n"
-        "Пример: 20.09.2026\n\n"
-        "Отмена: /cancel"
+        "Пример: 20.09.2026"
     ),
     "time_off_enter_ends": (
         "Введите последний день выходного ДД.ММ.ГГГГ\n"
-        "Та же дата = один день. Пример: 22.09.2026\n\n"
-        "Отмена: /cancel"
+        "Та же дата = один день. Пример: 22.09.2026"
     ),
     "time_off_invalid_date": "Неверный формат даты. Используйте ДД.ММ.ГГГГ",
     "time_off_invalid_range": "Дата окончания должна быть не раньше даты начала.",
     "time_off_add_ok": "Выходной добавлен: {when}.",
-    "time_off_cancelled": "Редактирование выходных отменено.",
     "time_off_delete_button": "🗑 {item}",
     "time_off_confirm_delete": "Удалить {item}?",
     "time_off_confirm_yes": "Да",
@@ -309,6 +300,7 @@ RU: dict[str, str] = {
     "time_off_delete_not_found": "Выходной не найден.",
     "services_add_button": "➕ Добавить",
     "services_back_button": "← Назад",
+    "services_cancel_button": "Отмена",
     "services_card": (
         "{title}\n"
         "Длительность: {duration} мин\n"
@@ -323,21 +315,17 @@ RU: dict[str, str] = {
     "services_edit_button": "✏️ Изменить",
     "edit_service_enter_title": (
         "Введите новое название\n"
-        "Сейчас: {title}\n\n"
-        "Отмена: /cancel"
+        "Сейчас: {title}"
     ),
     "edit_service_enter_duration": (
         "Введите новую длительность в минутах\n"
-        "Сейчас: {duration}\n\n"
-        "Отмена: /cancel"
+        "Сейчас: {duration}"
     ),
     "edit_service_enter_price": (
         "Введите новую цену (или - чтобы очистить)\n"
-        "Сейчас: {price}\n\n"
-        "Отмена: /cancel"
+        "Сейчас: {price}"
     ),
     "edit_service_ok": "Услуга обновлена: {title}, {duration} мин, {price}.",
-    "edit_service_cancelled": "Редактирование отменено.",
     "hub_title": "Главное меню",
     "hub_settings_title": "Настройки",
     "hub_profile_title": "Профиль",

@@ -2,7 +2,7 @@ import re
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -240,24 +240,6 @@ async def start_profile_flow(
         state=state,
         i18n=i18n,
         text=i18n.get("profile_ask_first_name"),
-    )
-
-
-@profile_router.message(Command(commands="cancel"), StateFilter(ProfileSG))
-async def process_profile_cancel_cmd(
-        message: Message,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
-) -> None:
-    drop_reply_kb = await state.get_state() == ProfileSG.phone.state
-    await _delete_user_input(message)
-    await _finish_profile_flow(
-        message=message,
-        state=state,
-        user=user,
-        i18n=i18n,
-        drop_reply_kb=drop_reply_kb,
     )
 
 

@@ -46,6 +46,19 @@ def format_interval_line(
     )
 
 
+def get_schedule_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("schedule_cancel_button"),
+                    callback_data=ScheduleNavCallback(action="cancel").pack(),
+                )
+            ]
+        ]
+    )
+
+
 def get_schedule_list_kb(
         *,
         rows: list[WorkingHours],

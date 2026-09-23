@@ -4,7 +4,7 @@ from contextlib import suppress
 from aiogram import Bot, F, Router
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, BotCommandScopeChat, InlineKeyboardMarkup
 
@@ -263,23 +263,6 @@ async def start_admin_mod_flow(
 # ---------------------------------------------------------------------------
 # Guided FSM from hub
 # ---------------------------------------------------------------------------
-
-@admin_users_router.message(Command(commands="cancel"), StateFilter(AdminModSG))
-async def process_admin_mod_cancel(
-        message: Message,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-) -> None:
-    with suppress(TelegramBadRequest):
-        await message.delete()
-    await _cancel_admin_flow(
-        message=message,
-        state=state,
-        user=user,
-        i18n=i18n,
-    )
-
 
 @admin_users_router.callback_query(
     AdminNavCallback.filter(F.action == "cancel"),

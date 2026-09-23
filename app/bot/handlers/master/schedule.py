@@ -1,7 +1,7 @@
 from datetime import datetime, time
 
 from aiogram import F, Router
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -16,6 +16,7 @@ from app.bot.keyboards.schedule import (
     format_interval_line,
     get_schedule_list_kb,
     get_schedule_confirm_delete_kb,
+    get_schedule_cancel_kb,
     WEEKDAY_KEYS,
 )
 from app.bot.states.states import ScheduleSG
@@ -180,18 +181,11 @@ async def process_schedule_add(
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(ScheduleSG.starts_time)
-    await callback.message.edit_text(text=i18n.get("schedule_enter_starts"))
+    await callback.message.edit_text(
+        text=i18n.get("schedule_enter_starts"),
+        reply_markup=get_schedule_cancel_kb(i18n),
+    )
     await callback.answer()
-
-
-@schedule_router.message(Command(commands="cancel"), StateFilter(ScheduleSG))
-async def process_schedule_cancel_cmd(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-) -> None:
-    await clear_state_keep_hub(state)
-    await message.answer(text=i18n.get("schedule_cancelled"))
 
 
 @schedule_router.message(StateFilter(ScheduleSG.starts_time))
@@ -202,11 +196,17 @@ async def process_schedule_starts(
 ) -> None:
     starts = _parse_time(message.text or "")
     if starts is None:
-        await message.answer(text=i18n.get("schedule_invalid_time"))
+        await message.answer(
+            text=i18n.get("schedule_invalid_time"),
+            reply_markup=get_schedule_cancel_kb(i18n),
+        )
         return
     await state.update_data(starts_time=starts.isoformat())
     await state.set_state(ScheduleSG.ends_time)
-    await message.answer(text=i18n.get("schedule_enter_ends"))
+    await message.answer(
+        text=i18n.get("schedule_enter_ends"),
+        reply_markup=get_schedule_cancel_kb(i18n),
+    )
 
 
 @schedule_router.message(StateFilter(ScheduleSG.ends_time))
@@ -217,13 +217,19 @@ async def process_schedule_ends(
 ) -> None:
     ends = _parse_time(message.text or "")
     if ends is None:
-        await message.answer(text=i18n.get("schedule_invalid_time"))
+        await message.answer(
+            text=i18n.get("schedule_invalid_time"),
+            reply_markup=get_schedule_cancel_kb(i18n),
+        )
         return
 
     data = await state.get_data()
     starts = time.fromisoformat(data["starts_time"])
     if ends <= starts:
-        await message.answer(text=i18n.get("schedule_invalid_range"))
+        await message.answer(
+            text=i18n.get("schedule_invalid_range"),
+            reply_markup=get_schedule_cancel_kb(i18n),
+        )
         return
 
     await state.update_data(ends_time=ends.isoformat(), weekdays=[])
@@ -326,7 +332,10 @@ async def process_schedule_back(
         i18n: dict[str, str],
 ) -> None:
     await state.set_state(ScheduleSG.ends_time)
-    await callback.message.edit_text(text=i18n.get("schedule_enter_ends"))
+    await callback.message.edit_text(
+        text=i18n.get("schedule_enter_ends"),
+        reply_markup=get_schedule_cancel_kb(i18n),
+    )
     await callback.answer()
 
 
@@ -337,10 +346,18 @@ async def process_schedule_back(
 async def process_schedule_cancel_cb(
         callback: CallbackQuery,
         state: FSMContext,
+        repos: Repositories,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
-    await callback.message.edit_text(text=i18n.get("schedule_cancelled"))
+    await show_schedule_list(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=True,
+    )
     await callback.answer()
 
 

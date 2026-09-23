@@ -9,8 +9,21 @@ class MasterServiceCallback(CallbackData, prefix="msvc"):
 
 
 class MasterServiceNavCallback(CallbackData, prefix="msvcnav"):
-    action: str  # add | close | back | toggle | edit
+    action: str  # add | close | back | toggle | edit | cancel
     service_id: int = 0
+
+
+def get_service_fsm_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("services_cancel_button"),
+                    callback_data=MasterServiceNavCallback(action="cancel").pack(),
+                )
+            ]
+        ]
+    )
 
 
 def get_services_list_kb(

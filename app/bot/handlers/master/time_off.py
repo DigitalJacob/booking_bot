@@ -1,7 +1,7 @@
 from datetime import datetime, date, time, timedelta
 
 from aiogram import F, Router
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -14,6 +14,7 @@ from app.bot.keyboards.time_off import (
     format_time_off_line,
     get_time_off_list_kb,
     get_time_off_confirm_delete_kb,
+    get_time_off_cancel_kb,
 )
 from app.bot.states.states import TimeOffSG
 from app.bot.utils.format import get_zone, combine_local
@@ -192,18 +193,35 @@ async def process_time_off_add(
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(TimeOffSG.starts_date)
-    await callback.message.edit_text(text=i18n.get("time_off_enter_starts"))
+    await callback.message.edit_text(
+        text=i18n.get("time_off_enter_starts"),
+        reply_markup=get_time_off_cancel_kb(i18n),
+    )
     await callback.answer()
 
 
-@time_off_router.message(Command(commands="cancel"), StateFilter(TimeOffSG))
-async def process_time_off_cancel_cmd(
-        message: Message,
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "cancel"),
+    StateFilter(TimeOffSG),
+)
+async def process_time_off_cancel_cb(
+        callback: CallbackQuery,
         state: FSMContext,
+        repos: Repositories,
+        user: User,
         i18n: dict[str, str],
+        bot_timezone: str,
 ) -> None:
     await clear_state_keep_hub(state)
-    await message.answer(text=i18n.get("time_off_cancelled"))
+    await show_time_off_list(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
+    await callback.answer()
 
 
 @time_off_router.message(StateFilter(TimeOffSG.starts_date))
@@ -214,12 +232,18 @@ async def process_time_off_starts(
 ) -> None:
     starts = _parse_date(message.text or "")
     if starts is None:
-        await message.answer(text=i18n.get("time_off_invalid_date"))
+        await message.answer(
+            text=i18n.get("time_off_invalid_date"),
+            reply_markup=get_time_off_cancel_kb(i18n),
+        )
         return
 
     await state.update_data(starts_date=starts.isoformat())
     await state.set_state(TimeOffSG.ends_date)
-    await message.answer(text=i18n.get("time_off_enter_ends"))
+    await message.answer(
+        text=i18n.get("time_off_enter_ends"),
+        reply_markup=get_time_off_cancel_kb(i18n),
+    )
 
 
 @time_off_router.message(StateFilter(TimeOffSG.ends_date))
@@ -233,13 +257,19 @@ async def process_time_off_ends(
 ) -> None:
     ends = _parse_date(message.text or "")
     if ends is None:
-        await message.answer(text=i18n.get("time_off_invalid_date"))
+        await message.answer(
+            text=i18n.get("time_off_invalid_date"),
+            reply_markup=get_time_off_cancel_kb(i18n),
+        )
         return
 
     data = await state.get_data()
     starts = date.fromisoformat(data["starts_date"])
     if ends < starts:
-        await message.answer(text=i18n.get("time_off_invalid_range"))
+        await message.answer(
+            text=i18n.get("time_off_invalid_range"),
+            reply_markup=get_time_off_cancel_kb(i18n),
+        )
         return
 
     starts_at = combine_local(starts, time(0, 0), bot_timezone)

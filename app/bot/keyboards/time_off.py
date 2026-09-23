@@ -43,6 +43,19 @@ def format_time_off_line(
     return i18n.get("time_off_list_item").format(when=when, note=note)
 
 
+def get_time_off_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_cancel_button"),
+                    callback_data=TimeOffNavCallback(action="cancel").pack(),
+                )
+            ]
+        ]
+    )
+
+
 def get_time_off_list_kb(
         *,
         rows: list[TimeOff],

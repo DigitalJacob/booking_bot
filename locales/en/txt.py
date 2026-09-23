@@ -133,24 +133,20 @@ EN: dict[str, str] = {
     ),
     "add_service_enter_title": (
         "Enter the service name\n"
-        "Example: Manicure\n\n"
-        "Cancel: /cancel"
+        "Example: Manicure"
     ),
     "add_service_enter_duration": (
         "Enter the duration in minutes\n"
-        "Example: 60\n\n"
-        "Cancel: /cancel"
+        "Example: 60"
     ),
     "add_service_enter_price": (
         "Enter the price (number) or «-» for no price\n"
-        "Example: 1500 or 1500.50\n\n"
-        "Cancel: /cancel"
+        "Example: 1500 or 1500.50"
     ),
     "add_service_invalid_title": "Name must not be empty (max 100 characters).",
     "add_service_invalid_duration": "Enter a whole number of minutes greater than 0.",
     "add_service_invalid_price": "Invalid price format. Use a number or «-».",
     "add_service_ok": "Service added: {title}, {duration} min, {price}.",
-    "add_service_cancelled": "Adding a service was cancelled.",
     "my_bookings_header": "Your appointments:",
     "my_bookings_empty": (
         "You have no active appointments.\n\n"
@@ -252,13 +248,11 @@ EN: dict[str, str] = {
     "schedule_weekday_7": "Sun",
     "schedule_enter_starts": (
         "Enter the start time as HH:MM\n"
-        "Example: 09:00\n\n"
-        "Cancel: /cancel"
+        "Example: 09:00"
     ),
     "schedule_enter_ends": (
         "Enter the end time as HH:MM\n"
-        "Example: 18:00\n\n"
-        "Cancel: /cancel"
+        "Example: 18:00"
     ),
     "schedule_choose_weekdays": (
         "Select weekdays for {starts}–{ends}.\n"
@@ -268,7 +262,6 @@ EN: dict[str, str] = {
     "schedule_invalid_range": "End time must be after start time.",
     "schedule_need_weekday": "Select at least one weekday.",
     "schedule_add_ok": "Added: {starts}–{ends} ({days}).",
-    "schedule_cancelled": "Schedule editing cancelled.",
     "schedule_save_button": "Save",
     "schedule_back_button": "← Back",
     "schedule_cancel_button": "Cancel",
@@ -286,21 +279,19 @@ EN: dict[str, str] = {
     ),
     "time_off_add_button": "➕ Add",
     "time_off_close_button": "Close",
+    "time_off_cancel_button": "Cancel",
     "time_off_closed": "Time off list closed.",
     "time_off_enter_starts": (
         "Enter the first day off as DD.MM.YYYY\n"
-        "Example: 20.09.2026\n\n"
-        "Cancel: /cancel"
+        "Example: 20.09.2026"
     ),
     "time_off_enter_ends": (
         "Enter the last day off as DD.MM.YYYY\n"
-        "Same date = one day. Example: 22.09.2026\n\n"
-        "Cancel: /cancel"
+        "Same date = one day. Example: 22.09.2026"
     ),
     "time_off_invalid_date": "Invalid date format. Use DD.MM.YYYY",
     "time_off_invalid_range": "The end date must be on or after the start date.",
     "time_off_add_ok": "Time off added: {when}.",
-    "time_off_cancelled": "Time off editing cancelled.",
     "time_off_delete_button": "🗑 {item}",
     "time_off_confirm_delete": "Delete {item}?",
     "time_off_confirm_yes": "Yes",
@@ -309,6 +300,7 @@ EN: dict[str, str] = {
     "time_off_delete_not_found": "Time off not found.",
     "services_add_button": "➕ Add",
     "services_back_button": "← Back",
+    "services_cancel_button": "Cancel",
     "services_card": (
         "{title}\n"
         "Duration: {duration} min\n"
@@ -323,21 +315,17 @@ EN: dict[str, str] = {
     "services_edit_button": "✏️ Edit",
     "edit_service_enter_title": (
         "Enter the new service name\n"
-        "Current: {title}\n\n"
-        "Cancel: /cancel"
+        "Current: {title}"
     ),
     "edit_service_enter_duration": (
         "Enter the new duration in minutes\n"
-        "Current: {duration}\n\n"
-        "Cancel: /cancel"
+        "Current: {duration}"
     ),
     "edit_service_enter_price": (
         "Enter the new price (or - to clear)\n"
-        "Current: {price}\n\n"
-        "Cancel: /cancel"
+        "Current: {price}"
     ),
     "edit_service_ok": "Service updated: {title}, {duration} min, {price}.",
-    "edit_service_cancelled": "Editing cancelled.",
     "hub_title": "Main menu",
     "hub_settings_title": "Settings",
     "hub_profile_title": "Profile",

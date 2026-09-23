@@ -1,7 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from aiogram import F, Router
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
@@ -12,6 +12,7 @@ from app.bot.keyboards.services import (
     MasterServiceNavCallback,
     get_services_list_kb,
     get_service_card_kb,
+    get_service_fsm_cancel_kb,
 )
 from app.bot.states.states import AddServiceSG, EditServiceSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
@@ -227,18 +228,33 @@ async def process_services_add_button(
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(AddServiceSG.title)
-    await callback.message.edit_text(text=i18n.get("add_service_enter_title"))
+    await callback.message.edit_text(
+        text=i18n.get("add_service_enter_title"),
+        reply_markup=get_service_fsm_cancel_kb(i18n),
+    )
     await callback.answer()
 
 
-@services_router.message(Command(commands="cancel"), StateFilter(AddServiceSG))
-async def process_add_service_cancel(
-        message: Message,
+@services_router.callback_query(
+    MasterServiceNavCallback.filter(F.action == "cancel"),
+    StateFilter(AddServiceSG, EditServiceSG),
+)
+async def process_service_fsm_cancel(
+        callback: CallbackQuery,
         state: FSMContext,
+        repos: Repositories,
+        user: User,
         i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
-    await message.answer(text=i18n.get("add_service_cancelled"))
+    await show_services_list(
+        message=callback.message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        edit=True,
+    )
+    await callback.answer()
 
 
 @services_router.message(StateFilter(AddServiceSG.title))
@@ -249,12 +265,18 @@ async def process_add_service_title(
 ) -> None:
     title = (message.text or "").strip()
     if not title or len(title) > 100:
-        await message.answer(text=i18n.get("add_service_invalid_title"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_title"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     await state.update_data(title=title)
     await state.set_state(AddServiceSG.duration)
-    await message.answer(text=i18n.get("add_service_enter_duration"))
+    await message.answer(
+        text=i18n.get("add_service_enter_duration"),
+        reply_markup=get_service_fsm_cancel_kb(i18n),
+    )
 
 
 @services_router.message(StateFilter(AddServiceSG.duration))
@@ -265,17 +287,26 @@ async def process_add_service_duration(
 ) -> None:
     text = (message.text or "").strip()
     if not text.isdigit():
-        await message.answer(text=i18n.get("add_service_invalid_duration"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_duration"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     duration_minutes = int(text)
     if duration_minutes <= 0:
-        await message.answer(text=i18n.get("add_service_invalid_duration"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_duration"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     await state.update_data(duration_minutes=duration_minutes)
     await state.set_state(AddServiceSG.price)
-    await message.answer(text=i18n.get("add_service_enter_price"))
+    await message.answer(
+        text=i18n.get("add_service_enter_price"),
+        reply_markup=get_service_fsm_cancel_kb(i18n),
+    )
 
 
 @services_router.message(StateFilter(AddServiceSG.price))
@@ -289,7 +320,10 @@ async def process_add_service_price(
     try:
         price = _parse_price(message.text or "")
     except InvalidOperation:
-        await message.answer(text=i18n.get("add_service_invalid_price"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_price"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     data = await state.get_data()
@@ -340,18 +374,9 @@ async def process_service_edit(
     await state.set_state(EditServiceSG.title)
     await callback.message.edit_text(
         text=i18n.get("edit_service_enter_title").format(title=service.title),
+        reply_markup=get_service_fsm_cancel_kb(i18n),
     )
     await callback.answer()
-
-
-@services_router.message(Command(commands="cancel"), StateFilter(EditServiceSG))
-async def process_edit_service_cancel(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-) -> None:
-    await clear_state_keep_hub(state)
-    await message.answer(text=i18n.get("edit_service_cancelled"))
 
 
 @services_router.message(StateFilter(EditServiceSG.title))
@@ -364,7 +389,10 @@ async def process_edit_service_title(
 ) -> None:
     title = (message.text or "").strip()
     if not title or len(title) > 100:
-        await message.answer(text=i18n.get("add_service_invalid_title"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_title"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     await state.update_data(title=title)
@@ -381,6 +409,7 @@ async def process_edit_service_title(
         text=i18n.get("edit_service_enter_duration").format(
             duration=service.duration_minutes,
         ),
+        reply_markup=get_service_fsm_cancel_kb(i18n),
     )
 
 
@@ -394,12 +423,18 @@ async def process_edit_service_duration(
 ) -> None:
     text = (message.text or "").strip()
     if not text.isdigit():
-        await message.answer(text=i18n.get("add_service_invalid_duration"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_duration"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     duration_minutes = int(text)
     if duration_minutes <= 0:
-        await message.answer(text=i18n.get("add_service_invalid_duration"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_duration"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     await state.update_data(duration_minutes=duration_minutes)
@@ -416,6 +451,7 @@ async def process_edit_service_duration(
         text=i18n.get("edit_service_enter_price").format(
             price=_format_price(service.price, i18n),
         ),
+        reply_markup=get_service_fsm_cancel_kb(i18n),
     )
 
 
@@ -430,7 +466,10 @@ async def process_edit_service_price(
     try:
         price = _parse_price(message.text or "")
     except InvalidOperation:
-        await message.answer(text=i18n.get("add_service_invalid_price"))
+        await message.answer(
+            text=i18n.get("add_service_invalid_price"),
+            reply_markup=get_service_fsm_cancel_kb(i18n),
+        )
         return
 
     data = await state.get_data()
