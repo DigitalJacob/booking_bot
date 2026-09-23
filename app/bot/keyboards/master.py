@@ -8,8 +8,8 @@ from app.domain.models.appointment import Appointment
 
 
 class MasterAppointmentCallback(CallbackData, prefix="mapt"):
-    action: str
-    appointment_id: int
+    action: str  # open | back | close | confirm | cancel
+    appointment_id: int = 0
 
 
 def is_slot_past(
@@ -28,17 +28,11 @@ def get_appointment_actions_kb(
         i18n: dict[str, str],
         now: datetime | None = None,
         slot_ends_at: datetime | None = None,
-        with_close: bool = True,
 ) -> InlineKeyboardMarkup | None:
-    """
-    Master appointment controls.
-    with_close=False: push notifications (confirm/cancel only; hub opens after).
-    with_close=True: /today cards (Close strips the keyboard).
-    """
+    """Confirm/cancel controls for master booking push notifications."""
     if now is not None and is_slot_past(slot_ends_at=slot_ends_at, now=now):
         return None
 
-    rows: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
 
     if appointment.status == AppointmentStatus.PENDING:
@@ -64,22 +58,87 @@ def get_appointment_actions_kb(
                 ).pack(),
             )
         )
-    if row:
-        rows.append(row)
+    if not row:
+        return None
+    return InlineKeyboardMarkup(inline_keyboard=[row])
 
-    if with_close:
+
+def get_master_bookings_list_kb(
+        *,
+        appointments: list[Appointment],
+        labels: dict[int, str],
+        i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for appointment in appointments:
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=i18n.get("master_close_button"),
+                    text=labels.get(appointment.id, str(appointment.id)),
                     callback_data=MasterAppointmentCallback(
-                        action="close",
+                        action="open",
                         appointment_id=appointment.id,
                     ).pack(),
                 )
             ]
         )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("master_bookings_close_button"),
+                callback_data=MasterAppointmentCallback(action="close").pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
-    if not rows:
-        return None
+
+def get_master_booking_card_kb(
+        *,
+        appointment: Appointment,
+        i18n: dict[str, str],
+        now: datetime,
+) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    past = is_slot_past(slot_ends_at=appointment.ends_at, now=now)
+
+    if not past:
+        actions: list[InlineKeyboardButton] = []
+        if appointment.status == AppointmentStatus.PENDING:
+            actions.append(
+                InlineKeyboardButton(
+                    text=i18n.get("master_confirm_button"),
+                    callback_data=MasterAppointmentCallback(
+                        action="confirm",
+                        appointment_id=appointment.id,
+                    ).pack(),
+                )
+            )
+        if appointment.status in (
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
+        ):
+            actions.append(
+                InlineKeyboardButton(
+                    text=i18n.get("master_cancel_button"),
+                    callback_data=MasterAppointmentCallback(
+                        action="cancel",
+                        appointment_id=appointment.id,
+                    ).pack(),
+                )
+            )
+        if actions:
+            rows.append(actions)
+
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("master_bookings_back_button"),
+                callback_data=MasterAppointmentCallback(
+                    action="back",
+                    appointment_id=appointment.id,
+                ).pack(),
+            )
+        ]
+    )
     return InlineKeyboardMarkup(inline_keyboard=rows)

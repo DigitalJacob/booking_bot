@@ -62,10 +62,19 @@ def format_time(
     return format_dt(dt, tz_name, fmt="%H:%M", fallback=fallback)
 
 
-def local_today_bounds(tz_name: str) -> tuple[datetime, datetime]:
-    """Start of today and start of tomorrow in bot TZ, as aware datetimes."""
+def local_week_bounds(
+        tz_name: str,
+        *,
+        week_start: date | None = None,
+) -> tuple[datetime, datetime, date]:
+    """
+    Monday 00:00 .. next Monday 00:00 in bot TZ.
+    If week_start is None, use the Monday of the current local week.
+    """
     zone = get_zone(tz_name)
-    now_local = datetime.now(zone)
-    start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_local = start_local + timedelta(days=1)
-    return start_local, end_local
+    if week_start is None:
+        today = datetime.now(zone).date()
+        week_start = today - timedelta(days=today.isoweekday() - 1)
+    start_local = datetime.combine(week_start, time.min, tzinfo=zone)
+    end_local = start_local + timedelta(days=7)
+    return start_local, end_local, week_start

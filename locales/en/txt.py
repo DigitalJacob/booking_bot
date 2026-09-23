@@ -114,19 +114,31 @@ EN: dict[str, str] = {
     "book_service_not_found": "Service not found.",
     "book_need_start": "Please send /start first",
     "/today_description": "Today's appointments",
-    "master_today_header": "📅 Today's appointments:",
-    "master_today_empty": "No appointments for today.",
-    "master_today_item": (
-        "{time} — {title} ({status})\n"
+    "master_bookings_header": "Bookings · {week}",
+    "master_bookings_empty": (
+        "No active bookings for the week of {week}."
+    ),
+    "master_bookings_item": "• {weekday} {when} — {title} ({status})",
+    "master_bookings_list_button": "{weekday} {when} · {title}",
+    "master_bookings_card": (
+        "Appointment\n\n"
+        "When: {when}\n"
+        "Service: {title}\n"
+        "Status: {status}\n"
         "Client: {client_name}\n"
         "Phone: {client_phone}"
     ),
-    "master_today_item_past": (
-        "{time} — {title} ({status})\n"
+    "master_bookings_card_past": (
+        "Appointment\n\n"
+        "When: {when}\n"
+        "Service: {title}\n"
+        "Status: {status}\n"
         "Client: {client_name}\n"
-        "Phone: {client_phone}\n"
+        "Phone: {client_phone}\n\n"
         "✓ Appointment time has already passed"
     ),
+    "master_bookings_back_button": "← Back",
+    "master_bookings_close_button": "⌂ Menu",
     "status_pending": "awaiting confirmation",
     "status_confirmed": "confirmed",
     "status_cancelled": "cancelled",
@@ -135,7 +147,6 @@ EN: dict[str, str] = {
     "master_confirmed": "Appointment #{id} confirmed.",
     "master_cancelled": "Appointment #{id} cancelled.",
     "master_action_failed": "Failed to perform action.",
-    "master_close_button": "Close",
     "master_action_past": "Cannot change this appointment: the time has already passed.",
     "master_new_booking": (
         "🔔 New booking\n\n"
@@ -405,6 +416,5 @@ EN: dict[str, str] = {
     "hub_admin_set_role_button": "Set role",
     "hub_admin_ban_button": "Ban user",
     "hub_admin_unban_button": "Unban user",
-    "hub_today_opened": "Today's appointments are below. Tap ⌂ Menu to return.",
     "/menu_description": "Open the main menu",
 }

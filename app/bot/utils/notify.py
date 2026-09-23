@@ -71,7 +71,6 @@ async def notify_appointment(
             i18n=i18n,
             now=datetime.now(timezone.utc),
             slot_ends_at=appointment.ends_at,
-            with_close=False,
         )
     elif with_dismiss:
         reply_markup = get_hub_dismiss_kb(i18n)

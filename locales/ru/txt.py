@@ -114,19 +114,31 @@ RU: dict[str, str] = {
     "book_service_not_found": "Услуга не найдена.",
     "book_need_start": "Сначала отправьте /start",
     "/today_description": "Записи на сегодня",
-    "master_today_header": "📅 Записи на сегодня:",
-    "master_today_empty": "На сегодня записей нет.",
-    "master_today_item": (
-        "{time} — {title} ({status})\n"
+    "master_bookings_header": "Записи · {week}",
+    "master_bookings_empty": (
+        "На неделю {week} активных записей нет."
+    ),
+    "master_bookings_item": "• {weekday} {when} — {title} ({status})",
+    "master_bookings_list_button": "{weekday} {when} · {title}",
+    "master_bookings_card": (
+        "Запись\n\n"
+        "Когда: {when}\n"
+        "Услуга: {title}\n"
+        "Статус: {status}\n"
         "Клиент: {client_name}\n"
         "Телефон: {client_phone}"
     ),
-    "master_today_item_past": (
-        "{time} — {title} ({status})\n"
+    "master_bookings_card_past": (
+        "Запись\n\n"
+        "Когда: {when}\n"
+        "Услуга: {title}\n"
+        "Статус: {status}\n"
         "Клиент: {client_name}\n"
-        "Телефон: {client_phone}\n"
+        "Телефон: {client_phone}\n\n"
         "✓ Время записи уже прошло"
     ),
+    "master_bookings_back_button": "← Назад",
+    "master_bookings_close_button": "⌂ Меню",
     "status_pending": "ожидает подтверждения",
     "status_confirmed": "подтверждена",
     "status_cancelled": "отменена",
@@ -135,7 +147,6 @@ RU: dict[str, str] = {
     "master_confirmed": "Запись #{id} подтверждена.",
     "master_cancelled": "Запись #{id} отменена.",
     "master_action_failed": "Не удалось выполнить действие.",
-    "master_close_button": "Закрыть",
     "master_action_past": "Нельзя изменить запись: время уже прошло.",
     "master_new_booking": (
         "🔔 Новая запись\n\n"
@@ -405,6 +416,5 @@ RU: dict[str, str] = {
     "hub_admin_set_role_button": "Сменить роль",
     "hub_admin_ban_button": "Забанить",
     "hub_admin_unban_button": "Разбанить",
-    "hub_today_opened": "Записи на сегодня ниже. Нажмите ⌂ Меню, чтобы вернуться.",
     "/menu_description": "Открыть главное меню",
 }
