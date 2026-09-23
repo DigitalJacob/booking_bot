@@ -11,7 +11,7 @@ from redis.asyncio import Redis
 from app.bot.handlers.admin import admin_router
 from app.bot.handlers.client import client_router
 from app.bot.handlers.common.hub import hub_router
-from app.bot.handlers.common.others import others_router
+from app.bot.handlers.common.unsupported import unsupported_router
 from app.bot.handlers.common.settings import settings_router
 from app.bot.handlers.common.start import start_router
 from app.bot.handlers.master import master_router
@@ -77,7 +77,7 @@ async def main(config: Config) -> None:
         admin_router,
         client_router,
         master_router,
-        others_router,
+        unsupported_router,
     )
 
     logger.info("Including middlewares...")

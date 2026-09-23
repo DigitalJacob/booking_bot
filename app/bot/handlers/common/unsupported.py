@@ -2,10 +2,10 @@ from aiogram import Router
 from aiogram.types import Message
 
 
-others_router = Router(name="others")
+unsupported_router = Router(name="unsupported")
 
 
-@others_router.message()
+@unsupported_router.message()
 async def process_unsupported_message(
         message: Message,
         i18n: dict[str, str],

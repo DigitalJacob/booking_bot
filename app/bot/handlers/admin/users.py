@@ -12,7 +12,7 @@ from app.bot.filters.filters import UserRoleFilter
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.keyboards.admin import AdminRoleCallback, get_admin_role_kb
 from app.bot.keyboards.hub import get_hub_dismiss_kb, get_hub_home_kb
-from app.bot.keyboards.menu_button import get_main_menu_commands
+from app.bot.bot_commands import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub

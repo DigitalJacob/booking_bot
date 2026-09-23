@@ -9,7 +9,7 @@ from aiogram.types import BotCommandScopeChat, CallbackQuery, Message
 
 from app.bot.filters.filters import LocaleFilter
 from app.bot.keyboards.lang import get_lang_settings_kb
-from app.bot.keyboards.menu_button import get_main_menu_commands
+from app.bot.bot_commands import get_main_menu_commands
 from app.bot.states.states import LangSG
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
 from app.bot.utils.hub_registry import register
