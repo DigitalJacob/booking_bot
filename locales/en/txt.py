@@ -261,8 +261,7 @@ EN: dict[str, str] = {
         "Enter user id or @username"
     ),
     "admin_hub_ask_role": (
-        "Choose a new role for user {user_id}\n\n"
-        "Cancel: /cancel"
+        "Choose a new role for user {user_id}"
     ),
     "admin_cancel_button": "Cancel",
     "admin_role_client_button": "client",

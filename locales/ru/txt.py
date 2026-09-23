@@ -261,8 +261,7 @@ RU: dict[str, str] = {
         "Введите id или @username пользователя"
     ),
     "admin_hub_ask_role": (
-        "Выберите новую роль для пользователя {user_id}\n\n"
-        "Отмена: /cancel"
+        "Выберите новую роль для пользователя {user_id}"
     ),
     "admin_cancel_button": "Отмена",
     "admin_role_client_button": "client",

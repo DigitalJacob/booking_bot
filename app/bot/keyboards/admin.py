@@ -46,5 +46,11 @@ def get_admin_role_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
                     callback_data=AdminRoleCallback(role=UserRole.ADMIN).pack(),
                 ),
             ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("admin_cancel_button"),
+                    callback_data=AdminNavCallback(action="cancel").pack(),
+                )
+            ],
         ]
     )

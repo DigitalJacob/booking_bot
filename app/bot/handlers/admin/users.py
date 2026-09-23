@@ -6,7 +6,7 @@ from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, BotCommandScopeChat
+from aiogram.types import CallbackQuery, Message, BotCommandScopeChat, InlineKeyboardMarkup
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.i18n.translator import resolve_i18n
@@ -44,11 +44,12 @@ async def _show_admin_prompt(
         state: FSMContext,
         text: str,
         i18n: dict[str, str],
+        reply_markup: InlineKeyboardMarkup | None = None,
 ) -> None:
     """Show FSM prompt on the sticky hub message when possible."""
     data = await state.get_data()
     sticky_id = data.get(HUB_MESSAGE_ID_KEY)
-    kb = get_admin_cancel_kb(i18n)
+    kb = reply_markup if reply_markup is not None else get_admin_cancel_kb(i18n)
 
     if sticky_id is not None:
         try:
@@ -560,13 +561,15 @@ async def process_admin_mod_target(
         return
 
     if action == "set_role":
-        # Role step stays on a separate message until the next sticky commit.
         await state.update_data(target_user_id=target.user_id)
         await state.set_state(AdminModSG.role)
-        await message.answer(
+        await _show_admin_prompt(
+            message=message,
+            state=state,
             text=i18n.get("admin_hub_ask_role").format(
                 user_id=target.user_id,
             ),
+            i18n=i18n,
             reply_markup=get_admin_role_kb(i18n),
         )
         return
@@ -608,15 +611,23 @@ async def process_admin_mod_role(
     data = await state.get_data()
     target_user_id = data.get("target_user_id")
     if target_user_id is None:
-        await clear_state_keep_hub(state)
         await callback.answer()
+        await _cancel_admin_flow(
+            message=callback.message,
+            state=state,
+            user=user,
+            i18n=i18n,
+        )
         return
 
     target = await repos.users.get_user_by_id(user_id=int(target_user_id))
     if target is None:
-        await clear_state_keep_hub(state)
-        await callback.message.edit_text(
+        await state.set_state(AdminModSG.target)
+        await _show_admin_prompt(
+            message=callback.message,
+            state=state,
             text=i18n.get("admin_user_not_found").format(target=target_user_id),
+            i18n=i18n,
         )
         await callback.answer()
         return
@@ -632,10 +643,16 @@ async def process_admin_mod_role(
         bot_timezone=bot_timezone,
     )
     if ok:
-        await clear_state_keep_hub(state)
-        await callback.message.edit_text(text=text, reply_markup=get_hub_home_kb(i18n))
+        await _finish_admin_flow(
+            message=callback.message,
+            state=state,
+            user=user,
+            i18n=i18n,
+            result_text=text,
+        )
     else:
-        await callback.message.answer(text=text)
+        await callback.answer(text=text, show_alert=True)
+        return
     await callback.answer()
 
 
