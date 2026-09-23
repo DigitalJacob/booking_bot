@@ -14,7 +14,7 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
             description=i18n.get("/menu_description"),
         ),
     ]
-    if role in (UserRole.CLIENT, UserRole.ADMIN):
+    if role == UserRole.CLIENT:
         commands.extend(
             [
                 BotCommand(

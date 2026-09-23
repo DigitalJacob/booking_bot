@@ -482,7 +482,7 @@ async def _hub_profile_show(
         state: FSMContext,
         **_,
 ) -> None:
-    if user.role == UserRole.MASTER:
+    if user.role != UserRole.CLIENT:
         return
     await state.update_data(hub_screen="profile_show", hub_back="profile")
     if not user.profile_complete:
@@ -508,7 +508,7 @@ async def _hub_profile_edit(
         state: FSMContext,
         **_,
 ) -> None:
-    if user.role == UserRole.MASTER:
+    if user.role != UserRole.CLIENT:
         return
     await state.update_data(hub_screen="profile_edit", hub_back="profile")
     await start_profile_flow(

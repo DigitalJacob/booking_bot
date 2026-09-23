@@ -13,6 +13,7 @@ from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.bot.utils.format import format_dt, status_label, to_local
 from app.bot.utils.hub_registry import register
 from app.bot.utils.notify import notify_appointment, supersede_master_action_push
+from app.domain.enums import UserRole
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
@@ -334,7 +335,7 @@ async def _hub_my_bookings(
         bot_timezone: str | None = None,
         **_,
 ) -> None:
-    if repos is None:
+    if user.role != UserRole.CLIENT or repos is None:
         return
     await state.update_data(
         hub_screen="my_bookings",

@@ -533,7 +533,7 @@ async def _hub_book(
         master_user_id: int | None = None,
         **_,
 ) -> None:
-    if user.role == UserRole.MASTER or repos is None or master_user_id is None:
+    if user.role != UserRole.CLIENT or repos is None or master_user_id is None:
         return
     await state.update_data(hub_screen="book", hub_back="root")
     await start_booking_flow(

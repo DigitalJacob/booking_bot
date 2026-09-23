@@ -69,7 +69,7 @@ async def show_hub_screen(
         return
 
     if action == "profile":
-        if role == UserRole.MASTER:
+        if role != UserRole.CLIENT:
             return
         await state.update_data(hub_screen="profile", hub_back="root")
         await message.edit_text(
