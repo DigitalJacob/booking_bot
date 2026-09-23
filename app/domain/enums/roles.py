@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     CLIENT = "client"
     MASTER = "master"
     ADMIN = "admin"
