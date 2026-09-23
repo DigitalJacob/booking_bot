@@ -258,14 +258,13 @@ RU: dict[str, str] = {
     "admin_role_set": "Пользователю {user_id} установлена роль {role}.",
     "admin_role_changed_notice": "Ваша роль изменена на {role}.",
     "admin_hub_ask_target": (
-        "Введите id или @username пользователя\n\n"
-        "Отмена: /cancel"
+        "Введите id или @username пользователя"
     ),
     "admin_hub_ask_role": (
         "Выберите новую роль для пользователя {user_id}\n\n"
         "Отмена: /cancel"
     ),
-    "admin_hub_cancelled": "Модерация отменена.",
+    "admin_cancel_button": "Отмена",
     "admin_role_client_button": "client",
     "admin_role_master_button": "master",
     "admin_role_admin_button": "admin",

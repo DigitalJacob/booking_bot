@@ -10,12 +10,17 @@ from aiogram.types import CallbackQuery, Message, BotCommandScopeChat
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.i18n.translator import resolve_i18n
-from app.bot.keyboards.admin import AdminRoleCallback, get_admin_role_kb
+from app.bot.keyboards.admin import (
+    AdminNavCallback,
+    AdminRoleCallback,
+    get_admin_cancel_kb,
+    get_admin_role_kb,
+)
 from app.bot.keyboards.hub import get_hub_dismiss_kb, get_hub_home_kb
 from app.bot.bot_commands import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
-from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
+from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
 from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
@@ -27,6 +32,84 @@ logger = logging.getLogger(__name__)
 admin_users_router = Router(name="admin_users")
 admin_users_router.message.filter(UserRoleFilter(UserRole.ADMIN))
 admin_users_router.callback_query.filter(UserRoleFilter(UserRole.ADMIN))
+
+
+def _is_not_modified(exc: TelegramBadRequest) -> bool:
+    return "message is not modified" in str(exc).lower()
+
+
+async def _show_admin_prompt(
+        *,
+        message: Message,
+        state: FSMContext,
+        text: str,
+        i18n: dict[str, str],
+) -> None:
+    """Show FSM prompt on the sticky hub message when possible."""
+    data = await state.get_data()
+    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
+    kb = get_admin_cancel_kb(i18n)
+
+    if sticky_id is not None:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=sticky_id,
+                text=text,
+                reply_markup=kb,
+            )
+            return
+        except TelegramBadRequest as exc:
+            if _is_not_modified(exc):
+                return
+
+    await message.answer(text=text, reply_markup=kb)
+
+
+async def _finish_admin_flow(
+        *,
+        message: Message,
+        state: FSMContext,
+        user: User,
+        i18n: dict[str, str],
+        result_text: str,
+) -> None:
+    """Show the outcome on the sticky message; Home returns to hub root."""
+    await clear_state_keep_hub(state)
+    data = await state.get_data()
+    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
+    kb = get_hub_home_kb(i18n)
+
+    if sticky_id is not None:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=sticky_id,
+                text=result_text,
+                reply_markup=kb,
+            )
+            return
+        except TelegramBadRequest as exc:
+            if _is_not_modified(exc):
+                return
+
+    await message.answer(text=result_text, reply_markup=kb)
+
+
+async def _cancel_admin_flow(
+        *,
+        message: Message,
+        state: FSMContext,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    await clear_state_keep_hub(state)
+    await show_hub(
+        message=message,
+        user=user,
+        i18n=i18n,
+        state=state,
+    )
 
 
 def _parse_target_ref(command: CommandObject) -> str | None:
@@ -214,18 +297,12 @@ async def start_admin_mod_flow(
     await clear_state_keep_hub(state)
     await state.set_state(AdminModSG.target)
     await state.update_data(admin_action=action)
-    await message.edit_text(text=i18n.get("admin_hub_ask_target"))
-
-
-async def _finish_ok(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        i18n: dict[str, str],
-) -> None:
-    await clear_state_keep_hub(state)
-    await message.answer(text=text, reply_markup=get_hub_home_kb(i18n))
+    await _show_admin_prompt(
+        message=message,
+        state=state,
+        text=i18n.get("admin_hub_ask_target"),
+        i18n=i18n,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -361,14 +438,32 @@ async def process_admin_mod_cancel(
         user: User,
         i18n: dict[str, str],
 ) -> None:
-    await clear_state_keep_hub(state)
-    await message.answer(text=i18n.get("admin_hub_cancelled"))
-    await show_hub(
+    with suppress(TelegramBadRequest):
+        await message.delete()
+    await _cancel_admin_flow(
         message=message,
+        state=state,
         user=user,
         i18n=i18n,
+    )
+
+
+@admin_users_router.callback_query(
+    AdminNavCallback.filter(F.action == "cancel"),
+    StateFilter(AdminModSG),
+)
+async def process_admin_mod_cancel_cb(
+        callback: CallbackQuery,
+        state: FSMContext,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    await callback.answer()
+    await _cancel_admin_flow(
+        message=callback.message,
         state=state,
-        force_new=True,
+        user=user,
+        i18n=i18n,
     )
 
 
@@ -385,13 +480,21 @@ async def process_admin_mod_target(
 ) -> None:
     raw = (message.text or "").strip()
     if not raw:
-        await message.answer(text=i18n.get("admin_hub_ask_target"))
+        await _show_admin_prompt(
+            message=message,
+            state=state,
+            text=i18n.get("admin_hub_ask_target"),
+            i18n=i18n,
+        )
         return
 
     target = await lookup_user_ref(repos=repos, raw=raw)
     if target is None:
-        await message.answer(
+        await _show_admin_prompt(
+            message=message,
+            state=state,
             text=i18n.get("admin_user_not_found").format(target=raw),
+            i18n=i18n,
         )
         return
 
@@ -399,11 +502,12 @@ async def process_admin_mod_target(
     action = data.get("admin_action")
 
     if action == "user":
-        await _finish_ok(
+        await _finish_admin_flow(
             message=message,
             state=state,
-            text=_user_card(target, i18n, bot_timezone),
+            user=user,
             i18n=i18n,
+            result_text=_user_card(target, i18n, bot_timezone),
         )
         return
 
@@ -415,9 +519,20 @@ async def process_admin_mod_target(
             i18n=i18n,
         )
         if ok:
-            await _finish_ok(message=message, state=state, text=text, i18n=i18n)
+            await _finish_admin_flow(
+                message=message,
+                state=state,
+                user=user,
+                i18n=i18n,
+                result_text=text,
+            )
         else:
-            await message.answer(text=text)
+            await _show_admin_prompt(
+                message=message,
+                state=state,
+                text=text,
+                i18n=i18n,
+            )
         return
 
     if action == "unban":
@@ -428,12 +543,24 @@ async def process_admin_mod_target(
             i18n=i18n,
         )
         if ok:
-            await _finish_ok(message=message, state=state, text=text, i18n=i18n)
+            await _finish_admin_flow(
+                message=message,
+                state=state,
+                user=user,
+                i18n=i18n,
+                result_text=text,
+            )
         else:
-            await message.answer(text=text)
+            await _show_admin_prompt(
+                message=message,
+                state=state,
+                text=text,
+                i18n=i18n,
+            )
         return
 
     if action == "set_role":
+        # Role step stays on a separate message until the next sticky commit.
         await state.update_data(target_user_id=target.user_id)
         await state.set_state(AdminModSG.role)
         await message.answer(
@@ -444,8 +571,12 @@ async def process_admin_mod_target(
         )
         return
 
-    await clear_state_keep_hub(state)
-    await message.answer(text=i18n.get("admin_hub_cancelled"))
+    await _cancel_admin_flow(
+        message=message,
+        state=state,
+        user=user,
+        i18n=i18n,
+    )
 
 
 @admin_users_router.callback_query(

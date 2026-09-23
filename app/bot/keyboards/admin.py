@@ -8,6 +8,23 @@ class AdminRoleCallback(CallbackData, prefix="admrole"):
     role: str
 
 
+class AdminNavCallback(CallbackData, prefix="admnav"):
+    action: str  # cancel
+
+
+def get_admin_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("admin_cancel_button"),
+                    callback_data=AdminNavCallback(action="cancel").pack(),
+                )
+            ]
+        ]
+    )
+
+
 def get_admin_role_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
