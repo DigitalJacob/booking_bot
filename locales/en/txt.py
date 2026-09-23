@@ -13,7 +13,7 @@ EN: dict[str, str] = {
         "Hello!\n\n"
         "You are signed in as a specialist.\n\n"
         "Commands:\n"
-        "/today — today's appointments\n"
+        "/bookings — weekly appointments\n"
         "/schedule — weekly working hours\n"
         "/time_off — days off / absences\n"
         "/services — my services\n"
@@ -46,7 +46,7 @@ EN: dict[str, str] = {
     ),
     "/help_master": (
         "You are a specialist. Booking management:\n\n"
-        "/today — today's appointments (confirm / cancel)\n"
+        "/bookings — appointments (confirm / cancel)\n"
         "/schedule — weekly working hours\n"
         "/time_off — block days off (absences)\n"
         "/services — list of services\n"
@@ -113,7 +113,7 @@ EN: dict[str, str] = {
     "book_service_inactive": "This service is no longer available.",
     "book_service_not_found": "Service not found.",
     "book_need_start": "Please send /start first",
-    "/today_description": "Today's appointments",
+    "/bookings_description": "Bookings",
     "master_bookings_header": "Bookings · {week}",
     "master_bookings_empty": (
         "No active bookings for the week of {week}."
@@ -161,7 +161,7 @@ EN: dict[str, str] = {
         "Date and time: {when}\n"
         "Client: {client_name}\n"
         "Phone: {client_phone}\n\n"
-        "Today's appointments: /today"
+        "Bookings: /bookings"
     ),
     "/services_description": "My services",
     "services_list_header": "📋 Your services:",
@@ -407,7 +407,7 @@ EN: dict[str, str] = {
     "hub_ok_button": "OK",
     "hub_book_button": "Book",
     "hub_my_bookings_button": "My bookings",
-    "hub_today_button": "Today",
+    "hub_bookings_button": "Bookings",
     "hub_services_button": "Services",
     "hub_schedule_section_button": "Schedule",
     "hub_profile_section_button": "Profile",

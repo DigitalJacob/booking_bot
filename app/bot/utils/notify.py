@@ -7,7 +7,7 @@ from aiogram.types import InlineKeyboardMarkup
 
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.keyboards.hub import get_hub_dismiss_kb
-from app.bot.keyboards.master import get_appointment_actions_kb
+from app.bot.keyboards.bookings import get_appointment_actions_kb
 from app.bot.utils.format import client_contact, format_dt
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories

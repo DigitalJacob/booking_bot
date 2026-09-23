@@ -13,7 +13,7 @@ RU: dict[str, str] = {
         "Привет!\n\n"
         "Вы вошли как мастер.\n\n"
         "Команды:\n"
-        "/today — записи на сегодня\n"
+        "/bookings — записи по неделям\n"
         "/schedule — недельный график\n"
         "/time_off — выходные / отсутствие\n"
         "/services — мои услуги\n"
@@ -46,7 +46,7 @@ RU: dict[str, str] = {
     ),
     "/help_master": (
         "Вы мастер. Управление записью:\n\n"
-        "/today — записи на сегодня (подтвердить / отменить)\n"
+        "/bookings — записи (подтвердить / отменить)\n"
         "/schedule — недельный график\n"
         "/time_off — выходные и отсутствие\n"
         "/services — список услуг\n"
@@ -113,7 +113,7 @@ RU: dict[str, str] = {
     "book_service_inactive": "Услуга больше недоступна.",
     "book_service_not_found": "Услуга не найдена.",
     "book_need_start": "Сначала отправьте /start",
-    "/today_description": "Записи на сегодня",
+    "/bookings_description": "Записи",
     "master_bookings_header": "Записи · {week}",
     "master_bookings_empty": (
         "На неделю {week} активных записей нет."
@@ -161,7 +161,7 @@ RU: dict[str, str] = {
         "Дата и время: {when}\n"
         "Клиент: {client_name}\n"
         "Телефон: {client_phone}\n\n"
-        "Записи на сегодня: /today"
+        "Записи: /bookings"
     ),
     "/services_description": "Мои услуги",
     "services_list_header": "📋 Ваши услуги:",
@@ -407,7 +407,7 @@ RU: dict[str, str] = {
     "hub_ok_button": "OK",
     "hub_book_button": "Запись",
     "hub_my_bookings_button": "Мои записи",
-    "hub_today_button": "Сегодня",
+    "hub_bookings_button": "Записи",
     "hub_services_button": "Услуги",
     "hub_schedule_section_button": "График",
     "hub_profile_section_button": "Профиль",

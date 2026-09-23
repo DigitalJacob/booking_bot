@@ -35,8 +35,8 @@ def get_main_menu_commands(i18n: dict[str, str], role: UserRole) -> list[BotComm
         commands.extend(
             [
                 BotCommand(
-                    command="/today",
-                    description=i18n.get("/today_description"),
+                    command="/bookings",
+                    description=i18n.get("/bookings_description"),
                 ),
                 BotCommand(
                     command="/schedule",

@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
-from app.bot.keyboards.master import (
+from app.bot.keyboards.bookings import (
     MasterAppointmentCallback,
     get_master_booking_card_kb,
     get_master_bookings_day_kb,
@@ -39,9 +39,9 @@ from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 
 
-today_router = Router(name="master_today")
-today_router.message.filter(UserRoleFilter(UserRole.MASTER))
-today_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
+bookings_router = Router(name="master_bookings")
+bookings_router.message.filter(UserRoleFilter(UserRole.MASTER))
+bookings_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _BUTTON_LABEL_MAX = 64
 _WEEK_START_KEY = "bookings_week_start"
@@ -438,8 +438,8 @@ async def _finish_master_decision(
     await callback.answer(text=ack_text)
 
 
-@today_router.message(Command(commands="today"))
-async def process_today_command(
+@bookings_router.message(Command(commands="bookings"))
+async def process_bookings_command(
         message: Message,
         state: FSMContext,
         repos: Repositories,
@@ -447,7 +447,11 @@ async def process_today_command(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    await state.update_data(list_return="root", hub_screen="today", hub_back="root")
+    await state.update_data(
+        list_return="root",
+        hub_screen="bookings",
+        hub_back="root",
+    )
     _, _, week_start = local_week_bounds(bot_timezone)
     await state.update_data(
         {
@@ -466,7 +470,7 @@ async def process_today_command(
     )
 
 
-@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "open_day"))
+@bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "open_day"))
 async def process_open_day(
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
@@ -496,7 +500,7 @@ async def process_open_day(
     await callback.answer()
 
 
-@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "open"))
+@bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "open"))
 async def process_open(
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
@@ -530,7 +534,7 @@ async def process_open(
     await callback.answer()
 
 
-@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "back"))
+@bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "back"))
 async def process_back(
         callback: CallbackQuery,
         state: FSMContext,
@@ -565,7 +569,7 @@ async def process_back(
     await callback.answer()
 
 
-@today_router.callback_query(
+@bookings_router.callback_query(
     MasterAppointmentCallback.filter(F.action == "back_week"),
 )
 async def process_back_week(
@@ -588,7 +592,7 @@ async def process_back_week(
     await callback.answer()
 
 
-@today_router.callback_query(
+@bookings_router.callback_query(
     MasterAppointmentCallback.filter(F.action == "week_prev"),
 )
 async def process_week_prev(
@@ -616,7 +620,7 @@ async def process_week_prev(
     await callback.answer()
 
 
-@today_router.callback_query(
+@bookings_router.callback_query(
     MasterAppointmentCallback.filter(F.action == "week_next"),
 )
 async def process_week_next(
@@ -644,7 +648,7 @@ async def process_week_next(
     await callback.answer()
 
 
-@today_router.callback_query(
+@bookings_router.callback_query(
     MasterAppointmentCallback.filter(F.action == "week_current"),
 )
 async def process_week_current(
@@ -672,7 +676,7 @@ async def process_week_current(
     await callback.answer()
 
 
-@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "close"))
+@bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "close"))
 async def process_close(
         callback: CallbackQuery,
         state: FSMContext,
@@ -688,7 +692,7 @@ async def process_close(
     await callback.answer()
 
 
-@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "confirm"))
+@bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "confirm"))
 async def process_confirm(
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
@@ -753,7 +757,7 @@ async def process_confirm(
     )
 
 
-@today_router.callback_query(MasterAppointmentCallback.filter(F.action == "cancel"))
+@bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "cancel"))
 async def process_cancel(
         callback: CallbackQuery,
         callback_data: MasterAppointmentCallback,
@@ -818,7 +822,7 @@ async def process_cancel(
     )
 
 
-async def _hub_today(
+async def _hub_bookings(
         *,
         message: Message,
         user: User,
@@ -832,7 +836,7 @@ async def _hub_today(
         return
     _, _, week_start = local_week_bounds(bot_timezone)
     await state.update_data(
-        hub_screen="today",
+        hub_screen="bookings",
         hub_back="root",
         list_return="root",
         **{
@@ -851,4 +855,4 @@ async def _hub_today(
     )
 
 
-register("today", _hub_today)
+register("bookings", _hub_bookings)

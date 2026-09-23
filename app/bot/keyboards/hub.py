@@ -58,7 +58,7 @@ def get_hub_root_kb(
     rows: list[list[InlineKeyboardButton]] = []
 
     if role == UserRole.MASTER:
-        rows.append([_btn(i18n.get("hub_today_button"), "today")])
+        rows.append([_btn(i18n.get("hub_bookings_button"), "bookings")])
         rows.append([_btn(i18n.get("hub_services_button"), "services")])
         rows.append([_btn(i18n.get("hub_schedule_section_button"), "schedule")])
     else:
