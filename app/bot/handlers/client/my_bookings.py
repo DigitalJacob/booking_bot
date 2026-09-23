@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.handlers.common.hub import return_from_list
-from app.bot.keyboards.client import (
+from app.bot.keyboards.my_bookings import (
     ClientAppointmentCallback,
     get_my_booking_card_kb,
     get_my_bookings_list_kb,

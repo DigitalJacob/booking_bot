@@ -7,7 +7,7 @@ from aiogram.types import Message, CallbackQuery
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
-from app.bot.keyboards.master_services import (
+from app.bot.keyboards.services import (
     MasterServiceCallback,
     MasterServiceNavCallback,
     get_services_list_kb,
