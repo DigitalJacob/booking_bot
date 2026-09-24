@@ -274,22 +274,26 @@ EN: dict[str, str] = {
     "time_off_list_item": "• {when}{note}",
     "time_off_empty": (
         "No upcoming time off.\n\n"
-        "Block days with the button below."
+        "Tap “Edit” to block days."
     ),
     "time_off_add_button": "➕ Add",
-    "time_off_close_button": "Close",
+    "time_off_edit_button": "✏️ Edit",
+    "time_off_back_button": "← Back",
     "time_off_cancel_button": "Cancel",
-    "time_off_closed": "Time off list closed.",
     "time_off_enter_starts": (
         "Enter the first day off as DD.MM.YYYY\n"
-        "Example: 20.09.2026"
+        "Example: {example}"
     ),
     "time_off_enter_ends": (
         "Enter the last day off as DD.MM.YYYY\n"
-        "Same date = one day. Example: 22.09.2026"
+        "Same date = one day. Example: {example}"
     ),
     "time_off_invalid_date": "Invalid date format. Use DD.MM.YYYY",
     "time_off_invalid_range": "The end date must be on or after the start date.",
+    "time_off_invalid_past": (
+        "A time-off block entirely in the past will not appear "
+        "in the upcoming list. The last day must be today or later."
+    ),
     "time_off_add_ok": "Time off added: {when}.",
     "time_off_delete_button": "🗑 {item}",
     "time_off_confirm_delete": "Delete {item}?",

@@ -8,6 +8,12 @@ from app.domain.models import User
 
 
 HUB_MESSAGE_ID_KEY = "hub_message_id"
+_HUB_NAV_KEYS = (
+    HUB_MESSAGE_ID_KEY,
+    "hub_screen",
+    "hub_back",
+    "list_return",
+)
 
 
 def _role(user: User | None) -> UserRole:
@@ -19,12 +25,16 @@ def _is_not_modified(exc: TelegramBadRequest) -> bool:
 
 
 async def clear_state_keep_hub(state: FSMContext) -> None:
-    """Clear FSM but keep the sticky hub message id."""
+    """Clear FSM but keep sticky hub id and hub navigation keys."""
     data = await state.get_data()
-    hub_id = data.get(HUB_MESSAGE_ID_KEY)
+    keep = {
+        key: data[key]
+        for key in _HUB_NAV_KEYS
+        if key in data and data[key] is not None
+    }
     await state.clear()
-    if hub_id is not None:
-        await state.update_data({HUB_MESSAGE_ID_KEY: hub_id})
+    if keep:
+        await state.update_data(keep)
 
 
 async def show_hub(

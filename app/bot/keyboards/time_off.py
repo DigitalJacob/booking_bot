@@ -8,7 +8,7 @@ from app.domain.models import TimeOff
 
 
 class TimeOffNavCallback(CallbackData, prefix="toff"):
-    action: str  # add | close | cancel
+    action: str  # edit | view | close | add | cancel
 
 
 class TimeOffDeleteCallback(CallbackData, prefix="toffdel"):
@@ -56,12 +56,33 @@ def get_time_off_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     )
 
 
-def get_time_off_list_kb(
+def get_time_off_view_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    """Read-only time off: edit entry + back to hub schedule section."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_edit_button"),
+                    callback_data=TimeOffNavCallback(action="edit").pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_back_button"),
+                    callback_data=TimeOffNavCallback(action="close").pack(),
+                )
+            ],
+        ]
+    )
+
+
+def get_time_off_edit_kb(
         *,
         rows: list[TimeOff],
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> InlineKeyboardMarkup:
+    """Edit mode: delete rows, add block, back to view."""
     buttons: list[list[InlineKeyboardButton]] = []
     for row in rows:
         label = i18n.get("time_off_delete_button").format(
@@ -82,10 +103,14 @@ def get_time_off_list_kb(
             InlineKeyboardButton(
                 text=i18n.get("time_off_add_button"),
                 callback_data=TimeOffNavCallback(action="add").pack(),
-            ),
+            )
+        ]
+    )
+    buttons.append(
+        [
             InlineKeyboardButton(
-                text=i18n.get("time_off_close_button"),
-                callback_data=TimeOffNavCallback(action="close").pack(),
+                text=i18n.get("time_off_back_button"),
+                callback_data=TimeOffNavCallback(action="view").pack(),
             )
         ]
     )
