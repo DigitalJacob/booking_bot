@@ -6,7 +6,7 @@ from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
@@ -20,6 +20,7 @@ from app.bot.keyboards.time_off import (
     get_time_off_edit_kb,
     get_time_off_confirm_delete_kb,
     get_time_off_cancel_kb,
+    get_time_off_kind_kb,
 )
 from app.bot.states.states import TimeOffSG
 from app.bot.utils.format import get_zone, combine_local
@@ -57,12 +58,29 @@ def _parse_date(value: str) -> date | None:
     return None
 
 
+def _parse_time(value: str) -> time | None:
+    value = value.strip()
+    for fmt in ("%H:%M", "%H.%M"):
+        try:
+            return datetime.strptime(value, fmt).time()
+        except ValueError:
+            continue
+    return None
+
+
 def _format_day_range(starts: date, ends: date) -> str:
     start_d = starts.strftime("%d.%m.%Y")
     end_d = ends.strftime("%d.%m.%Y")
     if start_d == end_d:
         return start_d
     return f"{start_d}-{end_d}"
+
+
+def _format_hours_when(day: date, starts: time, ends: time) -> str:
+    return (
+        f"{day.strftime('%d.%m.%Y')} "
+        f"{starts.strftime('%H:%M')}–{ends.strftime('%H:%M')}"
+    )
 
 
 def _is_not_modified(exc: TelegramBadRequest) -> bool:
@@ -80,11 +98,12 @@ async def _show_time_off_prompt(
         state: FSMContext,
         text: str,
         i18n: dict[str, str],
+        reply_markup: InlineKeyboardMarkup | None = None,
 ) -> None:
     """Show FSM prompt on the sticky hub message when possible."""
     data = await state.get_data()
     sticky_id = data.get(HUB_MESSAGE_ID_KEY)
-    kb = get_time_off_cancel_kb(i18n)
+    kb = reply_markup if reply_markup is not None else get_time_off_cancel_kb(i18n)
 
     if sticky_id is not None:
         try:
@@ -100,6 +119,34 @@ async def _show_time_off_prompt(
                 return
 
     await message.answer(text=text, reply_markup=kb)
+
+
+async def _finish_time_off_add(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        when: str,
+) -> None:
+    await clear_state_keep_hub(state)
+    await show_time_off_list(
+        message=message,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        mode="edit",
+        edit=False,
+        state=state,
+        prefer_sticky=True,
+    )
+    await message.answer(
+        text=i18n.get("time_off_add_ok").format(when=when),
+        reply_markup=get_hub_dismiss_kb(i18n),
+    )
 
 
 async def show_time_off_list(
@@ -316,15 +363,56 @@ async def process_time_off_add(
         callback: CallbackQuery,
         state: FSMContext,
         i18n: dict[str, str],
-        bot_timezone: str,
 ) -> None:
     await clear_state_keep_hub(state)
+    await state.set_state(TimeOffSG.choosing_kind)
+    await _show_time_off_prompt(
+        message=callback.message,
+        state=state,
+        text=i18n.get("time_off_choose_kind"),
+        i18n=i18n,
+        reply_markup=get_time_off_kind_kb(i18n),
+    )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "days"),
+    StateFilter(TimeOffSG.choosing_kind),
+)
+async def process_time_off_kind_days(
+        callback: CallbackQuery,
+        state: FSMContext,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
     await state.set_state(TimeOffSG.starts_date)
     example = _today_local(bot_timezone).strftime("%d.%m.%Y")
     await _show_time_off_prompt(
         message=callback.message,
         state=state,
         text=i18n.get("time_off_enter_starts").format(example=example),
+        i18n=i18n,
+    )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "hours"),
+    StateFilter(TimeOffSG.choosing_kind),
+)
+async def process_time_off_kind_hours(
+        callback: CallbackQuery,
+        state: FSMContext,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await state.set_state(TimeOffSG.hours_day)
+    example = _today_local(bot_timezone).strftime("%d.%m.%Y")
+    await _show_time_off_prompt(
+        message=callback.message,
+        state=state,
+        text=i18n.get("time_off_enter_hours_day").format(example=example),
         i18n=i18n,
     )
     await callback.answer()
@@ -416,22 +504,110 @@ async def process_time_off_ends(
         note=None,
     )
 
-    when = _format_day_range(starts, ends)
-    await clear_state_keep_hub(state)
-    await show_time_off_list(
+    await _finish_time_off_add(
         message=message,
+        state=state,
         repos=repos,
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        mode="edit",
-        edit=False,
-        state=state,
-        prefer_sticky=True,
+        when=_format_day_range(starts, ends),
     )
-    await message.answer(
-        text=i18n.get("time_off_add_ok").format(when=when),
-        reply_markup=get_hub_dismiss_kb(i18n),
+
+
+@time_off_router.message(StateFilter(TimeOffSG.hours_day))
+async def process_time_off_hours_day(
+        message: Message,
+        state: FSMContext,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    day = _parse_date(message.text or "")
+    await _delete_user_input(message)
+    if day is None:
+        await message.answer(text=i18n.get("time_off_invalid_date"))
+        return
+
+    if day < _today_local(bot_timezone):
+        await message.answer(text=i18n.get("time_off_invalid_past"))
+        return
+
+    await state.update_data(hours_day=day.isoformat())
+    await state.set_state(TimeOffSG.starts_time)
+    await _show_time_off_prompt(
+        message=message,
+        state=state,
+        text=i18n.get("time_off_enter_hours_starts"),
+        i18n=i18n,
+    )
+
+
+@time_off_router.message(StateFilter(TimeOffSG.starts_time))
+async def process_time_off_hours_starts(
+        message: Message,
+        state: FSMContext,
+        i18n: dict[str, str],
+) -> None:
+    starts = _parse_time(message.text or "")
+    await _delete_user_input(message)
+    if starts is None:
+        await message.answer(text=i18n.get("time_off_invalid_time"))
+        return
+
+    await state.update_data(starts_time=starts.isoformat())
+    await state.set_state(TimeOffSG.ends_time)
+    await _show_time_off_prompt(
+        message=message,
+        state=state,
+        text=i18n.get("time_off_enter_hours_ends"),
+        i18n=i18n,
+    )
+
+
+@time_off_router.message(StateFilter(TimeOffSG.ends_time))
+async def process_time_off_hours_ends(
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    ends = _parse_time(message.text or "")
+    await _delete_user_input(message)
+    if ends is None:
+        await message.answer(text=i18n.get("time_off_invalid_time"))
+        return
+
+    data = await state.get_data()
+    day = date.fromisoformat(data["hours_day"])
+    starts = time.fromisoformat(data["starts_time"])
+    if ends <= starts:
+        await message.answer(text=i18n.get("time_off_invalid_time_range"))
+        return
+
+    starts_at = combine_local(day, starts, bot_timezone)
+    ends_at = combine_local(day, ends, bot_timezone)
+    now_local = datetime.now(get_zone(bot_timezone))
+    if ends_at <= now_local:
+        await message.answer(text=i18n.get("time_off_invalid_hours_past"))
+        return
+
+    await repos.time_off.add(
+        master_user_id=user.user_id,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        note=None,
+    )
+
+    await _finish_time_off_add(
+        message=message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        when=_format_hours_when(day, starts, ends),
     )
 
 

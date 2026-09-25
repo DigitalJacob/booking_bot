@@ -8,7 +8,7 @@ from app.domain.models import TimeOff
 
 
 class TimeOffNavCallback(CallbackData, prefix="toff"):
-    action: str  # edit | view | close | add | cancel
+    action: str  # edit | view | close | add | cancel | days | hours
 
 
 class TimeOffDeleteCallback(CallbackData, prefix="toffdel"):
@@ -27,17 +27,22 @@ def format_time_off_line(
 ) -> str:
     start_local = to_local(row.starts_at, bot_timezone)
     end_local = to_local(row.ends_at, bot_timezone)
-    # full-day half-open: end is next midnight → show last inclusive day
-    end_display = end_local
-    if end_local.time() == time.min:
-        end_display = end_local - timedelta(seconds=1)
 
-    start_d = start_local.strftime("%d.%m.%Y")
-    end_d = end_display.strftime("%d.%m.%Y")
-    if start_d == end_d:
-        when = start_d
+    is_full_day = (
+        start_local.time() == time.min
+        and end_local.time() == time.min
+    )
+    if is_full_day:
+        # half-open: end is next midnight → show last inclusive day
+        end_display = end_local - timedelta(seconds=1)
+        start_d = start_local.strftime("%d.%m.%Y")
+        end_d = end_display.strftime("%d.%m.%Y")
+        when = start_d if start_d == end_d else f"{start_d}-{end_d}"
     else:
-        when = f"{start_d}-{end_d}"
+        day = start_local.strftime("%d.%m.%Y")
+        starts = start_local.strftime("%H:%M")
+        ends = end_local.strftime("%H:%M")
+        when = f"{day} {starts}–{ends}"
 
     note = f" - {row.note}" if row.note else ""
     return i18n.get("time_off_list_item").format(when=when, note=note)
@@ -52,6 +57,32 @@ def get_time_off_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
                     callback_data=TimeOffNavCallback(action="cancel").pack(),
                 )
             ]
+        ]
+    )
+
+
+def get_time_off_kind_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    """Choose full-day range vs hours in one day."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_kind_days_button"),
+                    callback_data=TimeOffNavCallback(action="days").pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_kind_hours_button"),
+                    callback_data=TimeOffNavCallback(action="hours").pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_cancel_button"),
+                    callback_data=TimeOffNavCallback(action="cancel").pack(),
+                )
+            ],
         ]
     )
 

@@ -280,6 +280,9 @@ EN: dict[str, str] = {
     "time_off_edit_button": "✏️ Edit",
     "time_off_back_button": "← Back",
     "time_off_cancel_button": "Cancel",
+    "time_off_choose_kind": "What kind of time off?",
+    "time_off_kind_days_button": "Full day / date range",
+    "time_off_kind_hours_button": "Hours in one day",
     "time_off_enter_starts": (
         "Enter the first day off as DD.MM.YYYY\n"
         "Example: {example}"
@@ -288,11 +291,29 @@ EN: dict[str, str] = {
         "Enter the last day off as DD.MM.YYYY\n"
         "Same date = one day. Example: {example}"
     ),
+    "time_off_enter_hours_day": (
+        "Enter the day as DD.MM.YYYY\n"
+        "Example: {example}"
+    ),
+    "time_off_enter_hours_starts": (
+        "Enter the start time as HH:MM\n"
+        "Example: 14:00"
+    ),
+    "time_off_enter_hours_ends": (
+        "Enter the end time as HH:MM\n"
+        "Example: 16:00"
+    ),
     "time_off_invalid_date": "Invalid date format. Use DD.MM.YYYY",
+    "time_off_invalid_time": "Invalid time format. Use HH:MM",
     "time_off_invalid_range": "The end date must be on or after the start date.",
+    "time_off_invalid_time_range": "The end time must be after the start time.",
     "time_off_invalid_past": (
         "A time-off block entirely in the past will not appear "
         "in the upcoming list. The last day must be today or later."
+    ),
+    "time_off_invalid_hours_past": (
+        "This time window is already in the past and will not appear "
+        "in the upcoming list. Pick a later end time."
     ),
     "time_off_add_ok": "Time off added: {when}.",
     "time_off_delete_button": "🗑 {item}",

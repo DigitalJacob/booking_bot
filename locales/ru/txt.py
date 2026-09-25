@@ -280,6 +280,9 @@ RU: dict[str, str] = {
     "time_off_edit_button": "✏️ Редактировать",
     "time_off_back_button": "← Назад",
     "time_off_cancel_button": "Отмена",
+    "time_off_choose_kind": "Какой выходной добавить?",
+    "time_off_kind_days_button": "Целый день / диапазон",
+    "time_off_kind_hours_button": "Часы в одном дне",
     "time_off_enter_starts": (
         "Введите первый день выходного ДД.ММ.ГГГГ\n"
         "Пример: {example}"
@@ -288,12 +291,30 @@ RU: dict[str, str] = {
         "Введите последний день выходного ДД.ММ.ГГГГ\n"
         "Та же дата = один день. Пример: {example}"
     ),
+    "time_off_enter_hours_day": (
+        "Введите день ДД.ММ.ГГГГ\n"
+        "Пример: {example}"
+    ),
+    "time_off_enter_hours_starts": (
+        "Введите время начала ЧЧ:ММ\n"
+        "Пример: 14:00"
+    ),
+    "time_off_enter_hours_ends": (
+        "Введите время окончания ЧЧ:ММ\n"
+        "Пример: 16:00"
+    ),
     "time_off_invalid_date": "Неверный формат даты. Используйте ДД.ММ.ГГГГ",
+    "time_off_invalid_time": "Неверный формат времени. Используйте ЧЧ:ММ",
     "time_off_invalid_range": "Дата окончания должна быть не раньше даты начала.",
+    "time_off_invalid_time_range": "Время окончания должно быть позже времени начала.",
     "time_off_invalid_past": (
         "Нельзя добавить выходной только в прошлом — "
         "он не попадёт в список ближайших. "
         "Последний день должен быть сегодня или позже."
+    ),
+    "time_off_invalid_hours_past": (
+        "Это окно уже в прошлом и не попадёт в список ближайших. "
+        "Укажите более позднее время окончания."
     ),
     "time_off_add_ok": "Выходной добавлен: {when}.",
     "time_off_delete_button": "🗑 {item}",
