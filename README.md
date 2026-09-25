@@ -98,8 +98,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
   server-side
 - **Services** — catalogue with title, duration and price; add, edit and soft deactivate
 - **Schedule → Working hours** — view / edit repeating weekly intervals
-- **Schedule → Time off** — view / edit upcoming full-day absences (vacation, days off);
-  past-only ranges are rejected because the list shows upcoming blocks only
+- **Schedule → Time off** — view / edit upcoming absences: full days / date ranges
+  or hours in one day; past-only blocks are rejected because the list shows
+  upcoming intervals only
 
 ### For admins
 
@@ -141,7 +142,7 @@ else is inline buttons on the sticky hub message.
 | **Bookings**                           | master   | Week → day → card (confirm / cancel)                      |
 | **Services**                           | master   | List, add, edit, deactivate services                      |
 | **Schedule → Working hours**           | master   | View / edit weekly working intervals                      |
-| **Schedule → Time off**                | master   | View / edit upcoming full-day absences                    |
+| **Schedule → Time off**                | master   | View / edit upcoming absences (full days or hours)        |
 | **User card / Set role / Ban / Unban** | admin    | Moderation flows (id or `@username`)                      |
 | **Settings → Language**                | everyone | Switch RU / EN                                            |
 | **Settings → Help**                    | everyone | Short role-specific help                                  |
@@ -310,8 +311,9 @@ Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads th
 the master's timezone (settings / `.env`) interprets them when computing availability.
 Day-off and breaks are intentionally kept out of this table — they live in the separate `time_off` table.
 
-`time_off` holds concrete `TIMESTAMPTZ` blocks that remove availability; lunch and
-cancelled hours use the same table. Weekly open hours stay in `working_hours`.
+`time_off` holds concrete `TIMESTAMPTZ` blocks that remove availability — full days
+(midnight → next midnight) or same-day clock windows from the hub. Weekly open hours
+stay in `working_hours`.
 
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
@@ -374,7 +376,7 @@ booking_bot/
 ## Roadmap
 
 - Per-master timezone setting (currently: bot-wide `TIMEZONE` in `.env`)
-- Partial-day time off (hours, not only full days)
+- Gap / lead-time settings UI (`master_settings.gap_minutes` already applied in availability)
 - Multi-master support, letting clients pick a master first
 - Appointment reminders ahead of the scheduled time
 - Per-language service titles set by the master
