@@ -103,13 +103,28 @@ class AvailabilityService:
                     end = cursor + duration
                     start_utc = _as_utc(cursor)
                     end_utc = _as_utc(end)
-                    if start_utc >= earliest and not any(
-                        _overlaps(start_utc, end_utc, b0, b1)
+
+                    if start_utc < earliest:
+                        cursor += step
+                        continue
+
+                    blocking_ends = [
+                        b1
                         for b0, b1 in busy
-                    ):
-                        windows.append(
-                            TimeWindow(starts_at=start_utc, ends_at=end_utc),
-                        )
+                        if _overlaps(start_utc, end_utc, b0, b1)
+                    ]
+                    if blocking_ends:
+                        # Jump to the end of the blocking busy (includes gap).
+                        jump_to = max(blocking_ends).astimezone(zone)
+                        if jump_to <= cursor:
+                            cursor += step
+                        else:
+                            cursor = jump_to
+                        continue
+
+                    windows.append(
+                        TimeWindow(starts_at=start_utc, ends_at=end_utc),
+                    )
                     cursor += step
             day += timedelta(days=1)
 

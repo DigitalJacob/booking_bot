@@ -305,6 +305,35 @@ async def test_gap_after_appointment():
 
 
 @pytest.mark.asyncio
+async def test_gap_advances_cursor_when_step_is_coarser():
+    """Default step (= duration 60) + gap 15 → next start at 10:15, not 11:00."""
+    busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc)  # 09:00
+    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)    # 10:00
+    repos = make_availability_repos(
+        settings=_settings(
+            slot_step_minutes=None,
+            gap_minutes=15,
+            booking_horizon_days=1,
+        ),
+        working_hours=[_working()],
+        appointments=[_appointment(starts_at=busy_start, ends_at=busy_end)],
+    )
+    service = AvailabilityService(repos)
+
+    windows = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        now=NOW,
+    )
+
+    starts = _starts(windows)
+    assert datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc) not in starts
+    assert datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc) not in starts
+    assert datetime(2026, 9, 10, 7, 15, tzinfo=timezone.utc) in starts
+    assert datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc) not in starts
+
+
+@pytest.mark.asyncio
 async def test_min_lead_filters_early_slots():
     """now=10:30 MSK, min_lead=0 → 09:00 and 10:00 already gone."""
     now = datetime(2026, 9, 10, 7, 30, tzinfo=timezone.utc)  # 10:30 MSK
