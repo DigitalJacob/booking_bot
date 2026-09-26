@@ -101,6 +101,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Schedule → Time off** — view / edit upcoming absences: full days / date ranges
   or hours in one day; past-only blocks are rejected because the list shows
   upcoming intervals only
+- **Schedule → Break between appointments** — set `gap_minutes` (pause after each
+  visit before the next bookable start; `0` = back-to-back)
 
 ### For admins
 
@@ -121,7 +123,7 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Profile gate** — **Book** asks for the contact profile first; everything else stays
   available without it
 - **Inline Cancel** — multi-step flows (booking, profile, services, schedule, time off,
-  admin) abort with a button, not a slash command
+  gap, admin) abort with a button, not a slash command
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
   admin lookups by username keep working
 - **Concurrency safety** — a database exclusion constraint, not an application check,
@@ -143,6 +145,7 @@ else is inline buttons on the sticky hub message.
 | **Services**                           | master   | List, add, edit, deactivate services                      |
 | **Schedule → Working hours**           | master   | View / edit weekly working intervals                      |
 | **Schedule → Time off**                | master   | View / edit upcoming absences (full days or hours)        |
+| **Schedule → Break between appointments** | master | Set pause after each visit (`gap_minutes`)             |
 | **User card / Set role / Ban / Unban** | admin    | Moderation flows (id or `@username`)                      |
 | **Settings → Language**                | everyone | Switch RU / EN                                            |
 | **Settings → Help**                    | everyone | Short role-specific help                                  |
@@ -303,8 +306,9 @@ Availability for **Book** is computed from `working_hours`, minus `time_off` and
 existing appointments (`AvailabilityService`), using `master_settings` for step, gap,
 lead time and horizon.
 
-`master_settings.gap_minutes` defaults to `0` (back-to-back). `slot_step_minutes` is
-`NULL` until customized and means “step equals the chosen service duration”.
+`master_settings.gap_minutes` defaults to `0` (back-to-back) and is editable under
+**Schedule → Break between appointments**. `slot_step_minutes` is `NULL` until
+customized and means “step equals the chosen service duration”.
 Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads this table.
 
 `working_hours` stores repeating weekly intervals as local wall-clock `TIME` values;
@@ -376,7 +380,7 @@ booking_bot/
 ## Roadmap
 
 - Per-master timezone setting (currently: bot-wide `TIMEZONE` in `.env`)
-- Gap / lead-time settings UI (`master_settings.gap_minutes` already applied in availability)
+- Slot grid step UI (`slot_step_minutes`; today defaults to service duration)
 - Multi-master support, letting clients pick a master first
 - Appointment reminders ahead of the scheduled time
 - Per-language service titles set by the master
