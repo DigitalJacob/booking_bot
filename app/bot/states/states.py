@@ -45,6 +45,10 @@ class TimeOffSG(StatesGroup):
     ends_time = State()
 
 
+class GapSG(StatesGroup):
+    value = State()
+
+
 class AdminModSG(StatesGroup):
     target = State()
     role = State()

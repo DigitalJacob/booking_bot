@@ -87,3 +87,38 @@ class MasterSettingsRepository:
             master_user_id,
         )
         return MasterSettings.from_db_row(row)
+
+    async def update_gap_minutes(
+            self,
+            *,
+            master_user_id: int,
+            gap_minutes: int,
+    ) -> MasterSettings | None:
+        """Update gap_minutes; returns None if the master has no settings row."""
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query=cast(
+                    LiteralString,
+                    f"""
+                        UPDATE master_settings
+                        SET
+                            gap_minutes = %(gap_minutes)s,
+                            updated_at = NOW()
+                        WHERE master_user_id = %(master_user_id)s
+                        RETURNING {_SELECT_COLUMNS};
+                    """,
+                ),
+                params={
+                    "master_user_id": master_user_id,
+                    "gap_minutes": gap_minutes,
+                },
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Master gap_minutes updated. master_user_id=%d, gap_minutes=%d",
+            master_user_id,
+            gap_minutes,
+        )
+        return MasterSettings.from_db_row(row)

@@ -322,6 +322,23 @@ EN: dict[str, str] = {
     "time_off_confirm_no": "No",
     "time_off_deleted": "Time off removed.",
     "time_off_delete_not_found": "Time off not found.",
+    "gap_view": (
+        "⏱ Break after each appointment: {minutes} min\n\n"
+        "Clients cannot book the next slot until this pause ends. "
+        "0 = back-to-back."
+    ),
+    "gap_edit_button": "✏️ Change",
+    "gap_back_button": "← Back",
+    "gap_cancel_button": "Cancel",
+    "gap_enter": (
+        "Enter the break after each appointment in minutes "
+        "(0 = no break).\n"
+        "Example: 15"
+    ),
+    "gap_invalid": "Enter a whole number of minutes (0 or more).",
+    "gap_invalid_max": "Maximum is {max} minutes.",
+    "gap_saved": "Break set to {minutes} min.",
+    "gap_save_failed": "Could not save the break. Try again.",
     "services_add_button": "➕ Add",
     "services_back_button": "← Back",
     "services_cancel_button": "Cancel",
@@ -366,6 +383,7 @@ EN: dict[str, str] = {
     "hub_settings_section_button": "Settings",
     "hub_working_hours_button": "Working hours",
     "hub_time_off_button": "Time off",
+    "hub_gap_button": "Break between appointments",
     "hub_profile_show_button": "Show profile",
     "hub_profile_edit_button": "Edit profile",
     "hub_lang_button": "Language",

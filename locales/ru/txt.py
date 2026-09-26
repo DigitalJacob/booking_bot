@@ -323,6 +323,23 @@ RU: dict[str, str] = {
     "time_off_confirm_no": "Нет",
     "time_off_deleted": "Выходной удалён.",
     "time_off_delete_not_found": "Выходной не найден.",
+    "gap_view": (
+        "⏱ Перерыв после приёма: {minutes} мин\n\n"
+        "Следующая запись клиента не начнётся раньше, чем закончится эта пауза. "
+        "0 = без перерыва."
+    ),
+    "gap_edit_button": "✏️ Изменить",
+    "gap_back_button": "← Назад",
+    "gap_cancel_button": "Отмена",
+    "gap_enter": (
+        "Введите перерыв после приёма в минутах "
+        "(0 = без перерыва).\n"
+        "Пример: 15"
+    ),
+    "gap_invalid": "Введите целое число минут (0 или больше).",
+    "gap_invalid_max": "Максимум — {max} минут.",
+    "gap_saved": "Перерыв установлен: {minutes} мин.",
+    "gap_save_failed": "Не удалось сохранить перерыв. Попробуйте ещё раз.",
     "services_add_button": "➕ Добавить",
     "services_back_button": "← Назад",
     "services_cancel_button": "Отмена",
@@ -367,6 +384,7 @@ RU: dict[str, str] = {
     "hub_settings_section_button": "Настройки",
     "hub_working_hours_button": "Рабочие часы",
     "hub_time_off_button": "Выходные",
+    "hub_gap_button": "Перерыв между записями",
     "hub_profile_show_button": "Показать профиль",
     "hub_profile_edit_button": "Изменить профиль",
     "hub_lang_button": "Язык",
