@@ -49,6 +49,10 @@ class GapSG(StatesGroup):
     value = State()
 
 
+class MinLeadSG(StatesGroup):
+    value = State()
+
+
 class AdminModSG(StatesGroup):
     target = State()
     role = State()

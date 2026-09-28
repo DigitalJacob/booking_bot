@@ -339,6 +339,23 @@ EN: dict[str, str] = {
     "gap_invalid_max": "Maximum is {max} minutes.",
     "gap_saved": "Break set to {minutes} min.",
     "gap_save_failed": "Could not save the break. Try again.",
+    "min_lead_view": (
+        "⏳ Minimum lead time: {minutes} min\n\n"
+        "Clients cannot book a start sooner than this many minutes from now. "
+        "0 = allow booking immediately."
+    ),
+    "min_lead_edit_button": "✏️ Change",
+    "min_lead_back_button": "← Back",
+    "min_lead_cancel_button": "Cancel",
+    "min_lead_enter": (
+        "Enter the minimum lead time in minutes "
+        "(0 = allow booking immediately).\n"
+        "Example: 60"
+    ),
+    "min_lead_invalid": "Enter a whole number of minutes (0 or more).",
+    "min_lead_invalid_max": "Maximum is {max} minutes (24 hours).",
+    "min_lead_saved": "Minimum lead time set to {minutes} min.",
+    "min_lead_save_failed": "Could not save the lead time. Try again.",
     "services_add_button": "➕ Add",
     "services_back_button": "← Back",
     "services_cancel_button": "Cancel",
@@ -384,6 +401,7 @@ EN: dict[str, str] = {
     "hub_working_hours_button": "Working hours",
     "hub_time_off_button": "Time off",
     "hub_gap_button": "Break between appointments",
+    "hub_min_lead_button": "Minimum lead time",
     "hub_profile_show_button": "Show profile",
     "hub_profile_edit_button": "Edit profile",
     "hub_lang_button": "Language",

@@ -340,6 +340,23 @@ RU: dict[str, str] = {
     "gap_invalid_max": "Максимум — {max} минут.",
     "gap_saved": "Перерыв установлен: {minutes} мин.",
     "gap_save_failed": "Не удалось сохранить перерыв. Попробуйте ещё раз.",
+    "min_lead_view": (
+        "⏳ Минимальный запас до записи: {minutes} мин\n\n"
+        "Клиент не увидит слоты раньше, чем через столько минут от сейчас. "
+        "0 = можно записаться сразу."
+    ),
+    "min_lead_edit_button": "✏️ Изменить",
+    "min_lead_back_button": "← Назад",
+    "min_lead_cancel_button": "Отмена",
+    "min_lead_enter": (
+        "Введите минимальный запас до записи в минутах "
+        "(0 = можно сразу).\n"
+        "Пример: 60"
+    ),
+    "min_lead_invalid": "Введите целое число минут (0 или больше).",
+    "min_lead_invalid_max": "Максимум — {max} минут (24 часа).",
+    "min_lead_saved": "Минимальный запас установлен: {minutes} мин.",
+    "min_lead_save_failed": "Не удалось сохранить запас. Попробуйте ещё раз.",
     "services_add_button": "➕ Добавить",
     "services_back_button": "← Назад",
     "services_cancel_button": "Отмена",
@@ -385,6 +402,7 @@ RU: dict[str, str] = {
     "hub_working_hours_button": "Рабочие часы",
     "hub_time_off_button": "Выходные",
     "hub_gap_button": "Перерыв между записями",
+    "hub_min_lead_button": "Минимальный запас",
     "hub_profile_show_button": "Показать профиль",
     "hub_profile_edit_button": "Изменить профиль",
     "hub_lang_button": "Язык",

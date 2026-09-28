@@ -122,3 +122,39 @@ class MasterSettingsRepository:
             gap_minutes,
         )
         return MasterSettings.from_db_row(row)
+
+    async def update_min_lead_minutes(
+            self,
+            *,
+            master_user_id: int,
+            min_lead_minutes: int,
+    ) -> MasterSettings | None:
+        """Update min_lead_minutes; returns None if no settings row."""
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query=cast(
+                    LiteralString,
+                    f"""
+                        UPDATE master_settings
+                        SET
+                            min_lead_minutes = %(min_lead_minutes)s,
+                            updated_at = NOW()
+                        WHERE master_user_id = %(master_user_id)s
+                        RETURNING {_SELECT_COLUMNS};
+                    """,
+                ),
+                params={
+                    "master_user_id": master_user_id,
+                    "min_lead_minutes": min_lead_minutes,
+                },
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Master min_lead_minutes updated. master_user_id=%d, "
+            "min_lead_minutes=%d",
+            master_user_id,
+            min_lead_minutes,
+        )
+        return MasterSettings.from_db_row(row)
