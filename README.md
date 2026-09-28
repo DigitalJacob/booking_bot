@@ -103,6 +103,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
   upcoming intervals only
 - **Schedule → Break between appointments** — set `gap_minutes` (pause after each
   visit before the next bookable start; `0` = back-to-back)
+- **Schedule → Minimum lead time** — set `min_lead_minutes` (clients cannot book a
+  start sooner than this many minutes from now; `0` = allow immediately)
 
 ### For admins
 
@@ -123,7 +125,7 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Profile gate** — **Book** asks for the contact profile first; everything else stays
   available without it
 - **Inline Cancel** — multi-step flows (booking, profile, services, schedule, time off,
-  gap, admin) abort with a button, not a slash command
+  gap, min lead, admin) abort with a button, not a slash command
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
   admin lookups by username keep working
 - **Concurrency safety** — a database exclusion constraint, not an application check,
@@ -136,21 +138,22 @@ failure halfway through a booking cannot leave a half-written appointment behind
 The Telegram ☰ menu exposes only **`/start`** (restart / open the hub). Everything
 else is inline buttons on the sticky hub message.
 
-| Hub path                               | Role     | What it does                                              |
-|----------------------------------------|----------|-----------------------------------------------------------|
-| **Book**                               | client   | Book an appointment (asks for the profile first if empty) |
-| **My bookings**                        | client   | Upcoming appointments (open / cancel)                     |
-| **Profile → Show / Edit**              | client   | View or update name and phone                             |
-| **Bookings**                           | master   | Week → day → card (confirm / cancel)                      |
-| **Services**                           | master   | List, add, edit, deactivate services                      |
-| **Schedule → Working hours**           | master   | View / edit weekly working intervals                      |
-| **Schedule → Time off**                | master   | View / edit upcoming absences (full days or hours)        |
-| **Schedule → Break between appointments** | master | Set pause after each visit (`gap_minutes`)             |
-| **User card / Set role / Ban / Unban** | admin    | Moderation flows (id or `@username`)                      |
-| **Settings → Language**                | everyone | Switch RU / EN                                            |
-| **Settings → Help**                    | everyone | Short role-specific help                                  |
-| **← Back** / **⌂ Menu**                | everyone | Hub navigation                                            |
-| **OK**                                 | everyone | Dismiss a result / status notice                          |
+| Hub path                                   | Role     | What it does                                               |
+|--------------------------------------------|----------|------------------------------------------------------------|
+| **Book**                                   | client   | Book an appointment (asks for the profile first if empty)  |
+| **My bookings**                            | client   | Upcoming appointments (open / cancel)                      |
+| **Profile → Show / Edit**                  | client   | View or update name and phone                              |
+| **Bookings**                               | master   | Week → day → card (confirm / cancel)                       |
+| **Services**                               | master   | List, add, edit, deactivate services                       |
+| **Schedule → Working hours**               | master   | View / edit weekly working intervals                       |
+| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)         |
+| **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                 |
+| **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)         |
+| **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                       |
+| **Settings → Language**                    | everyone | Switch RU / EN                                             |
+| **Settings → Help**                        | everyone | Short role-specific help                                   |
+| **← Back** / **⌂ Menu**                    | everyone | Hub navigation                                             |
+| **OK**                                     | everyone | Dismiss a result / status notice                           |
 
 ## Roles
 
@@ -307,8 +310,11 @@ existing appointments (`AvailabilityService`), using `master_settings` for step,
 lead time and horizon.
 
 `master_settings.gap_minutes` defaults to `0` (back-to-back) and is editable under
-**Schedule → Break between appointments**. `slot_step_minutes` is `NULL` until
-customized and means “step equals the chosen service duration”.
+**Schedule → Break between appointments**. `min_lead_minutes` defaults to `0` and is
+editable under **Schedule → Minimum lead time**. `slot_step_minutes` is `NULL` until
+customized and means “step equals the chosen service duration” (when a candidate
+overlaps a busy block including gap, availability jumps to that block’s end so the
+next start can land on `ends_at + gap` even with a coarser step).
 Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads this table.
 
 `working_hours` stores repeating weekly intervals as local wall-clock `TIME` values;
@@ -342,8 +348,8 @@ pytest
 ```
 
 ```
-.....................                                       [100%]
-21 passed in 0.16s
+......................                                       [100%]
+22 passed in 0.16s
 ```
 
 The suite covers `BookingService` and `AvailabilityService`: window booking rules,
