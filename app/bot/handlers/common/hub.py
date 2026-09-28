@@ -33,6 +33,23 @@ def _help_text(role: UserRole | None, i18n: dict[str, str]) -> str:
     return i18n.get("/help")
 
 
+def _is_not_modified(exc: TelegramBadRequest) -> bool:
+    return "message is not modified" in str(exc).lower()
+
+
+async def _edit_section(
+        message: Message,
+        *,
+        text: str,
+        reply_markup,
+) -> None:
+    try:
+        await message.edit_text(text=text, reply_markup=reply_markup)
+    except TelegramBadRequest as exc:
+        if not _is_not_modified(exc):
+            raise
+
+
 async def show_hub_screen(
         *,
         message: Message,
@@ -58,8 +75,13 @@ async def show_hub_screen(
         return
 
     if action == "settings":
-        await state.update_data(hub_screen="settings", hub_back="root")
-        await message.edit_text(
+        await state.update_data(
+            hub_screen="settings",
+            hub_back="root",
+            hub_message_id=message.message_id,
+        )
+        await _edit_section(
+            message,
             text=i18n.get("hub_settings_title"),
             reply_markup=get_hub_settings_kb(i18n),
         )
@@ -68,8 +90,13 @@ async def show_hub_screen(
     if action == "profile":
         if role != UserRole.CLIENT:
             return
-        await state.update_data(hub_screen="profile", hub_back="root")
-        await message.edit_text(
+        await state.update_data(
+            hub_screen="profile",
+            hub_back="root",
+            hub_message_id=message.message_id,
+        )
+        await _edit_section(
+            message,
             text=i18n.get("hub_profile_title"),
             reply_markup=get_hub_profile_kb(i18n),
         )
@@ -78,16 +105,26 @@ async def show_hub_screen(
     if action == "schedule":
         if role != UserRole.MASTER:
             return
-        await state.update_data(hub_screen="schedule", hub_back="root")
-        await message.edit_text(
+        await state.update_data(
+            hub_screen="schedule",
+            hub_back="root",
+            hub_message_id=message.message_id,
+        )
+        await _edit_section(
+            message,
             text=i18n.get("hub_schedule_title"),
             reply_markup=get_hub_schedule_kb(i18n),
         )
         return
 
     if action == "help":
-        await state.update_data(hub_screen="help", hub_back="settings")
-        await message.edit_text(
+        await state.update_data(
+            hub_screen="help",
+            hub_back="settings",
+            hub_message_id=message.message_id,
+        )
+        await _edit_section(
+            message,
             text=_help_text(role, i18n),
             reply_markup=get_hub_back_home_kb(i18n),
         )
@@ -194,6 +231,10 @@ async def process_hub_back(
 
     data = await state.get_data()
     target = data.get("hub_back") or "root"
+    # Stale hub_back equal to the current screen would re-edit the same
+    # message and look like a dead Back button — step up to root.
+    if target == data.get("hub_screen"):
+        target = "root"
     await show_hub_screen(
         message=callback.message,
         user=user,
