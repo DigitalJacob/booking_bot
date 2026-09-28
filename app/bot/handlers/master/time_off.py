@@ -24,7 +24,11 @@ from app.bot.keyboards.time_off import (
 )
 from app.bot.states.states import TimeOffSG
 from app.bot.utils.format import get_zone, combine_local
-from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub
+from app.bot.utils.hub_nav import (
+    HUB_MESSAGE_ID_KEY,
+    clear_state_keep_hub,
+    show_hub_prompt,
+)
 from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
@@ -100,25 +104,14 @@ async def _show_time_off_prompt(
         i18n: dict[str, str],
         reply_markup: InlineKeyboardMarkup | None = None,
 ) -> None:
-    """Show FSM prompt on the sticky hub message when possible."""
-    data = await state.get_data()
-    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
+    """Show FSM prompt on the tapped hub message / sticky when possible."""
     kb = reply_markup if reply_markup is not None else get_time_off_cancel_kb(i18n)
-
-    if sticky_id is not None:
-        try:
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=int(sticky_id),
-                text=text,
-                reply_markup=kb,
-            )
-            return
-        except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
-                return
-
-    await message.answer(text=text, reply_markup=kb)
+    await show_hub_prompt(
+        message=message,
+        state=state,
+        text=text,
+        reply_markup=kb,
+    )
 
 
 async def _finish_time_off_add(

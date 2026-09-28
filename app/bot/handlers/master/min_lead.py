@@ -15,7 +15,11 @@ from app.bot.keyboards.min_lead import (
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import MinLeadSG
-from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub
+from app.bot.utils.hub_nav import (
+    HUB_MESSAGE_ID_KEY,
+    clear_state_keep_hub,
+    show_hub_prompt,
+)
 from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import MasterSettings, User
@@ -62,24 +66,12 @@ async def _show_min_lead_prompt(
         text: str,
         i18n: dict[str, str],
 ) -> None:
-    data = await state.get_data()
-    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
-    kb = get_min_lead_cancel_kb(i18n)
-
-    if sticky_id is not None:
-        try:
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=int(sticky_id),
-                text=text,
-                reply_markup=kb,
-            )
-            return
-        except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
-                return
-
-    await message.answer(text=text, reply_markup=kb)
+    await show_hub_prompt(
+        message=message,
+        state=state,
+        text=text,
+        reply_markup=get_min_lead_cancel_kb(i18n),
+    )
 
 
 async def show_min_lead_screen(

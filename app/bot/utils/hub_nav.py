@@ -1,6 +1,8 @@
+from contextlib import suppress
+
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import InlineKeyboardMarkup, Message
 
 from app.bot.keyboards.hub import get_hub_root_kb
 from app.domain.enums import UserRole
@@ -35,6 +37,68 @@ async def clear_state_keep_hub(state: FSMContext) -> None:
     await state.clear()
     if keep:
         await state.update_data(keep)
+
+
+async def show_hub_prompt(
+        *,
+        message: Message,
+        state: FSMContext,
+        text: str,
+        reply_markup: InlineKeyboardMarkup,
+) -> None:
+    """
+    Show an FSM prompt on the message the user is looking at when possible.
+
+    Bot message (callback.message): re-point sticky if it differs, then edit
+    that message. User text: edit the sticky hub (cannot edit the user message).
+    """
+    data = await state.get_data()
+    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
+    bot = message.bot
+    chat_id = message.chat.id
+    is_bot_message = bool(message.from_user and message.from_user.is_bot)
+
+    if is_bot_message:
+        if sticky_id is None or int(sticky_id) != message.message_id:
+            if sticky_id is not None:
+                with suppress(TelegramBadRequest):
+                    await bot.edit_message_reply_markup(
+                        chat_id=chat_id,
+                        message_id=int(sticky_id),
+                        reply_markup=None,
+                    )
+            await state.update_data({HUB_MESSAGE_ID_KEY: message.message_id})
+        try:
+            await message.edit_text(text=text, reply_markup=reply_markup)
+            return
+        except TelegramBadRequest as exc:
+            if _is_not_modified(exc):
+                return
+        sent = await message.answer(text=text, reply_markup=reply_markup)
+        await state.update_data({HUB_MESSAGE_ID_KEY: sent.message_id})
+        return
+
+    if sticky_id is not None:
+        try:
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=int(sticky_id),
+                text=text,
+                reply_markup=reply_markup,
+            )
+            return
+        except TelegramBadRequest as exc:
+            if _is_not_modified(exc):
+                return
+            with suppress(TelegramBadRequest):
+                await bot.edit_message_reply_markup(
+                    chat_id=chat_id,
+                    message_id=int(sticky_id),
+                    reply_markup=None,
+                )
+
+    sent = await message.answer(text=text, reply_markup=reply_markup)
+    await state.update_data({HUB_MESSAGE_ID_KEY: sent.message_id})
 
 
 async def show_hub(
