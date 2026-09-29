@@ -450,10 +450,57 @@ EN: dict[str, str] = {
     "hub_settings_title": "Settings",
     "hub_profile_title": "Profile",
     "hub_schedule_title": "Schedule",
-    "work_days_stub": (
-        "Monthly work-day setup is coming in the next update.\n"
-        "The bot is in monthly mode — slots are not built from calendar days yet."
+    "work_days_choose_month": "Choose a month:",
+    "work_days_choose_days": "Select work days for {month}:",
+    "work_days_enter_starts": (
+        "Enter start time as HH:MM\n"
+        "Example: 09:00"
     ),
+    "work_days_enter_starts_hint": (
+        "Current: {starts}–{ends}.\n\n"
+        "Enter start time as HH:MM\n"
+        "Example: 09:00"
+    ),
+    "work_days_enter_ends": (
+        "Enter end time as HH:MM\n"
+        "Example: 18:00"
+    ),
+    "work_days_confirm": (
+        "Set {count} work day(s) in {month} "
+        "from {starts}–{ends}?"
+    ),
+    "work_days_confirm_clear": (
+        "Clear all work days in {month}? "
+        "Those days will be closed for booking."
+    ),
+    "work_days_confirm_off": (
+        "Make day off: {dates}?\n"
+        "Other days stay unchanged ({starts}–{ends})."
+    ),
+    "work_days_no_changes": "Nothing changed.",
+    "work_days_month_unavailable": "That month is not available.",
+    "work_days_saved": (
+        "Saved: {count} day(s) in {month}, {starts}–{ends}."
+    ),
+    "work_days_off_saved": "Day(s) off: {dates}.",
+    "work_days_cleared": "Work days in {month} cleared.",
+    "work_days_next_button": "Next",
+    "work_days_back_button": "← Back",
+    "work_days_cancel_button": "Cancel",
+    "work_days_confirm_yes": "Yes",
+    "work_days_confirm_no": "No",
+    "work_days_month_1": "January",
+    "work_days_month_2": "February",
+    "work_days_month_3": "March",
+    "work_days_month_4": "April",
+    "work_days_month_5": "May",
+    "work_days_month_6": "June",
+    "work_days_month_7": "July",
+    "work_days_month_8": "August",
+    "work_days_month_9": "September",
+    "work_days_month_10": "October",
+    "work_days_month_11": "November",
+    "work_days_month_12": "December",
     "hub_back_button": "← Back",
     "hub_home_button": "⌂ Menu",
     "hub_ok_button": "OK",

@@ -451,10 +451,57 @@ RU: dict[str, str] = {
     "hub_settings_title": "Настройки",
     "hub_profile_title": "Профиль",
     "hub_schedule_title": "График",
-    "work_days_stub": (
-        "Настройка рабочих дней по календарю появится в следующем обновлении.\n"
-        "Сейчас бот в режиме monthly — слоты пока не считаются из дней месяца."
+    "work_days_choose_month": "Выберите месяц:",
+    "work_days_choose_days": "Выберите рабочие дни на {month}:",
+    "work_days_enter_starts": (
+        "Введите время начала работы в формате ЧЧ:ММ\n"
+        "Например: 09:00"
     ),
+    "work_days_enter_starts_hint": (
+        "Сейчас: {starts}–{ends}.\n\n"
+        "Введите время начала работы в формате ЧЧ:ММ\n"
+        "Например: 09:00"
+    ),
+    "work_days_enter_ends": (
+        "Введите время окончания работы в формате ЧЧ:ММ\n"
+        "Например: 18:00"
+    ),
+    "work_days_confirm": (
+        "Установить рабочие дни ({count}) на {month} "
+        "с {starts}–{ends}?"
+    ),
+    "work_days_confirm_clear": (
+        "Убрать все рабочие дни на {month}? "
+        "Дни станут выходными для записи."
+    ),
+    "work_days_confirm_off": (
+        "Сделать выходным: {dates}?\n"
+        "Остальные дни без изменений ({starts}–{ends})."
+    ),
+    "work_days_no_changes": "Ничего не изменилось.",
+    "work_days_month_unavailable": "Этот месяц недоступен.",
+    "work_days_saved": (
+        "Сохранено: {count} дн. на {month}, {starts}–{ends}."
+    ),
+    "work_days_off_saved": "Выходные: {dates}.",
+    "work_days_cleared": "Рабочие дни на {month} сняты.",
+    "work_days_next_button": "Далее",
+    "work_days_back_button": "← Назад",
+    "work_days_cancel_button": "Отмена",
+    "work_days_confirm_yes": "Да",
+    "work_days_confirm_no": "Нет",
+    "work_days_month_1": "Январь",
+    "work_days_month_2": "Февраль",
+    "work_days_month_3": "Март",
+    "work_days_month_4": "Апрель",
+    "work_days_month_5": "Май",
+    "work_days_month_6": "Июнь",
+    "work_days_month_7": "Июль",
+    "work_days_month_8": "Август",
+    "work_days_month_9": "Сентябрь",
+    "work_days_month_10": "Октябрь",
+    "work_days_month_11": "Ноябрь",
+    "work_days_month_12": "Декабрь",
     "hub_back_button": "← Назад",
     "hub_home_button": "⌂ Меню",
     "hub_ok_button": "OK",

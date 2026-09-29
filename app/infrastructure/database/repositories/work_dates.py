@@ -81,12 +81,18 @@ class WorkDatesRepository:
             year: int,
             month: int,
             work_dates: list[date],
-            starts_time: time,
-            ends_time: time,
+            starts_time: time | None = None,
+            ends_time: time | None = None,
     ) -> list[WorkDate]:
-        """Replace all open days in the month with the given dates and hours."""
-        if ends_time <= starts_time:
-            raise ValueError("ends_time must be after starts_time")
+        """Replace all open days in the month with the given dates and hours.
+
+        Empty work_dates clears the month (all days become days off).
+        """
+        if work_dates:
+            if starts_time is None or ends_time is None:
+                raise ValueError("starts_time and ends_time are required")
+            if ends_time <= starts_time:
+                raise ValueError("ends_time must be after starts_time")
 
         first = date(year, month, 1)
         if month == 12:

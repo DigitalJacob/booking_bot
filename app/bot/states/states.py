@@ -65,6 +65,14 @@ class SlotStepSG(StatesGroup):
     value = State()
 
 
+class WorkDaysSG(StatesGroup):
+    choosing_month = State()
+    choosing_days = State()
+    starts_time = State()
+    ends_time = State()
+    confirming = State()
+
+
 class AdminModSG(StatesGroup):
     target = State()
     role = State()
