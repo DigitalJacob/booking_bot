@@ -105,6 +105,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
   visit before the next bookable start; `0` = back-to-back)
 - **Schedule → Minimum lead time** — set `min_lead_minutes` (clients cannot book a
   start sooner than this many minutes from now; `0` = allow immediately)
+- **Schedule → Slot grid step** — set `slot_step_minutes` (spacing between offered
+  start times; default / reset = step equals the chosen service duration)
 
 ### For admins
 
@@ -125,7 +127,7 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Profile gate** — **Book** asks for the contact profile first; everything else stays
   available without it
 - **Inline Cancel** — multi-step flows (booking, profile, services, schedule, time off,
-  gap, min lead, admin) abort with a button, not a slash command
+  gap, min lead, slot step, admin) abort with a button, not a slash command
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
   admin lookups by username keep working
 - **Concurrency safety** — a database exclusion constraint, not an application check,
@@ -149,6 +151,7 @@ else is inline buttons on the sticky hub message.
 | **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)         |
 | **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                 |
 | **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)         |
+| **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration) |
 | **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                       |
 | **Settings → Language**                    | everyone | Switch RU / EN                                             |
 | **Settings → Help**                        | everyone | Short role-specific help                                   |
@@ -312,7 +315,8 @@ lead time and horizon.
 `master_settings.gap_minutes` defaults to `0` (back-to-back) and is editable under
 **Schedule → Break between appointments**. `min_lead_minutes` defaults to `0` and is
 editable under **Schedule → Minimum lead time**. `slot_step_minutes` is `NULL` until
-customized and means “step equals the chosen service duration” (when a candidate
+customized (editable under **Schedule → Slot grid step**, with a reset to “use service
+duration”) and means “step equals the chosen service duration” (when a candidate
 overlaps a busy block including gap, availability jumps to that block’s end so the
 next start can land on `ends_at + gap` even with a coarser step).
 Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads this table.
@@ -386,7 +390,6 @@ booking_bot/
 ## Roadmap
 
 - Per-master timezone setting (currently: bot-wide `TIMEZONE` in `.env`)
-- Slot grid step UI (`slot_step_minutes`; today defaults to service duration)
 - Multi-master support, letting clients pick a master first
 - Appointment reminders ahead of the scheduled time
 - Per-language service titles set by the master
