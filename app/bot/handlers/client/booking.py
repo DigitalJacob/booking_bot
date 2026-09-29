@@ -187,6 +187,7 @@ async def process_service_choice(
         state: FSMContext,
         repos: Repositories,
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -207,6 +208,7 @@ async def process_service_choice(
     windows = await booking.list_available_windows(
         master_user_id=master_user_id,
         duration_minutes=service.duration_minutes,
+        schedule_mode=schedule_mode,
     )
     days = _unique_days(windows, bot_timezone)
     if not days:
@@ -235,6 +237,7 @@ async def process_day_choice(
         state: FSMContext,
         repos: Repositories,
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -246,6 +249,7 @@ async def process_day_choice(
         await booking.list_available_windows(
             master_user_id=master_user_id,
             duration_minutes=service_duration,
+            schedule_mode=schedule_mode,
         ),
         day,
         bot_timezone,
@@ -279,6 +283,7 @@ async def process_window_choice(
         state: FSMContext,
         repos: Repositories,
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -299,6 +304,7 @@ async def process_window_choice(
         await booking.list_available_windows(
             master_user_id=master_user_id,
             duration_minutes=service.duration_minutes,
+            schedule_mode=schedule_mode,
         ),
         day,
         bot_timezone,
@@ -343,6 +349,7 @@ async def process_confirm(
         repos: Repositories,
         user: User | None,
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     if user is None:
         await callback.answer(
@@ -359,6 +366,7 @@ async def process_confirm(
             client_user_id=user.user_id,
             service_id=fsm_data["service_id"],
             starts_at=datetime.fromisoformat(fsm_data["starts_at"]),
+            schedule_mode=schedule_mode,
         )
     except (TimeConflict, WindowNotAvailable):
         await callback.answer(
@@ -432,6 +440,7 @@ async def process_back(
         state: FSMContext,
         repos: Repositories,
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     current = await state.get_state()
     fsm_data = await state.get_data()
@@ -460,6 +469,7 @@ async def process_back(
         windows = await booking.list_available_windows(
             master_user_id=master_user_id,
             duration_minutes=fsm_data["service_duration"],
+            schedule_mode=schedule_mode,
         )
         days = _unique_days(windows, bot_timezone)
         await state.set_state(BookingSG.choosing_day)
@@ -478,6 +488,7 @@ async def process_back(
             await booking.list_available_windows(
                 master_user_id=master_user_id,
                 duration_minutes=fsm_data["service_duration"],
+                schedule_mode=schedule_mode,
             ),
             day,
             bot_timezone,

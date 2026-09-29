@@ -1,4 +1,4 @@
-from datetime import datetime, time, timezone
+from datetime import date, datetime, time, timezone
 from typing import cast
 
 import pytest
@@ -9,6 +9,7 @@ from app.domain.models import (
     MasterSettings,
     TimeOff,
     WorkingHours,
+    WorkDate,
 )
 from app.domain.services.availability import AvailabilityService
 from app.infrastructure.database.repositories import (
@@ -21,6 +22,7 @@ from app.infrastructure.database.repositories import (
     WorkingHoursRepository,
     WorkDatesRepository,
 )
+from tests.factories import FakeWorkDatesRepository
 
 
 MASTER_ID = 100
@@ -59,6 +61,23 @@ def _working(
         id=row_id,
         master_user_id=MASTER_ID,
         weekday=weekday,
+        starts_time=starts,
+        ends_time=ends,
+        created_at=CREATED,
+    )
+
+
+def _work_date(
+        *,
+        work_date: date,
+        starts: time = time(9, 0),
+        ends: time = time(12, 0),
+        row_id: int = 1,
+) -> WorkDate:
+    return WorkDate(
+        id=row_id,
+        master_user_id=MASTER_ID,
+        work_date=work_date,
         starts_time=starts,
         ends_time=ends,
         created_at=CREATED,
@@ -178,6 +197,7 @@ def make_availability_repos(
         *,
         settings: MasterSettings | None = None,
         working_hours: list[WorkingHours] | None = None,
+        work_dates: list[WorkDate] | None = None,
         time_offs: list[TimeOff] | None = None,
         appointments: list[Appointment] | None = None,
 ) -> Repositories:
@@ -196,7 +216,10 @@ def make_availability_repos(
             WorkingHoursRepository,
             FakeWorkingHoursRepository(working_hours or []),
         ),
-        work_dates=cast(WorkDatesRepository, None),
+        work_dates=cast(
+            WorkDatesRepository,
+            FakeWorkDatesRepository(work_dates or []),
+        ),
         time_off=cast(
             TimeOffRepository,
             FakeTimeOffRepository(time_offs or []),
@@ -376,6 +399,96 @@ async def test_cancelled_appointment_does_not_block():
     windows = await service.list_windows(
         master_user_id=MASTER_ID,
         duration_minutes=60,
+        now=NOW,
+    )
+
+    assert len(windows) == 3
+
+
+@pytest.mark.asyncio
+async def test_monthly_open_day_builds_grid():
+    """Open 2026-09-10 in work_dates → same 09/10/11 MSK grid as weekly."""
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        work_dates=[_work_date(work_date=date(2026, 9, 10))],
+    )
+    service = AvailabilityService(repos)
+
+    windows = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        schedule_mode="monthly",
+        now=NOW,
+    )
+
+    assert _starts(windows) == [
+        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_monthly_empty_day_has_no_windows():
+    """Horizon day without work_dates row → no slots (weekly hours ignored)."""
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        working_hours=[_working()],
+        work_dates=[],
+    )
+    service = AvailabilityService(repos)
+
+    windows = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        schedule_mode="monthly",
+        now=NOW,
+    )
+
+    assert windows == []
+
+
+@pytest.mark.asyncio
+async def test_monthly_time_off_blocks_window():
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        work_dates=[_work_date(work_date=date(2026, 9, 10))],
+        time_offs=[
+            _time_off(
+                starts_at=datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc),
+                ends_at=datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+            ),
+        ],
+    )
+    service = AvailabilityService(repos)
+
+    windows = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        schedule_mode="monthly",
+        now=NOW,
+    )
+
+    assert _starts(windows) == [
+        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_weekly_ignores_work_dates():
+    """weekly mode still uses weekday hours, not work_dates."""
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        working_hours=[_working()],
+        work_dates=[],
+    )
+    service = AvailabilityService(repos)
+
+    windows = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        schedule_mode="weekly",
         now=NOW,
     )
 

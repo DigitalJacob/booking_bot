@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from app.domain.enums import AppointmentStatus
@@ -30,10 +30,16 @@ class AvailabilityService:
             *,
             master_user_id: int,
             duration_minutes: int,
+            schedule_mode: str = "weekly",
             now: datetime | None = None,
     ) -> list[TimeWindow]:
         if duration_minutes <= 0:
             raise ValueError("Duration_minutes must be positive")
+        if schedule_mode not in ("weekly", "monthly"):
+            raise ValueError(
+                f"schedule_mode must be 'weekly' or 'monthly', "
+                f"got: {schedule_mode!r}"
+            )
 
         now = _as_utc(now or datetime.now(timezone.utc))
         settings = await self._repos.master_settings.get_by_master(
@@ -52,12 +58,22 @@ class AvailabilityService:
         range_from = datetime.combine(start_day, time.min, tzinfo=zone)
         range_to = datetime.combine(end_day, time.min, tzinfo=zone)
 
-        working = await self._repos.working_hours.list_by_master(
-            master_user_id=master_user_id,
-        )
         by_weekday: dict[int, list] = {}
-        for row in working:
-            by_weekday.setdefault(row.weekday, []).append(row)
+        by_date: dict[date, list] = {}
+        if schedule_mode == "monthly":
+            work_dates = await self._repos.work_dates.list_by_master(
+                master_user_id=master_user_id,
+                from_date=start_day,
+                to_date=end_day,
+            )
+            for row in work_dates:
+                by_date.setdefault(row.work_date, []).append(row)
+        else:
+            working = await self._repos.working_hours.list_by_master(
+                master_user_id=master_user_id,
+            )
+            for row in working:
+                by_weekday.setdefault(row.weekday, []).append(row)
 
         time_offs = await self._repos.time_off.list_by_master(
             master_user_id=master_user_id,
@@ -91,12 +107,17 @@ class AvailabilityService:
         windows: list[TimeWindow] = []
         day = start_day
         while day < end_day:
-            for wh in by_weekday.get(day.isoweekday(), []):
+            if schedule_mode == "monthly":
+                intervals = by_date.get(day, [])
+            else:
+                intervals = by_weekday.get(day.isoweekday(), [])
+
+            for interval in intervals:
                 day_start = datetime.combine(
-                    day, wh.starts_time, tzinfo=zone,
+                    day, interval.starts_time, tzinfo=zone,
                 )
                 day_end = datetime.combine(
-                    day, wh.ends_time, tzinfo=zone,
+                    day, interval.ends_time, tzinfo=zone,
                 )
                 cursor = day_start
                 while cursor + duration <= day_end:

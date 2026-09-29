@@ -33,11 +33,13 @@ class BookingService:
             *,
             master_user_id: int,
             duration_minutes: int,
+            schedule_mode: str = "weekly",
             now: datetime | None = None,
     ) -> list[TimeWindow]:
         return await AvailabilityService(self._repos).list_windows(
             master_user_id=master_user_id,
             duration_minutes=duration_minutes,
+            schedule_mode=schedule_mode,
             now=now,
         )
 
@@ -47,6 +49,7 @@ class BookingService:
             client_user_id: int,
             service_id: int,
             starts_at: datetime,
+            schedule_mode: str = "weekly",
             now: datetime | None = None
     ) -> Appointment:
         if now is None:
@@ -65,6 +68,7 @@ class BookingService:
         windows = await self.list_available_windows(
             master_user_id=service.master_user_id,
             duration_minutes=service.duration_minutes,
+            schedule_mode=schedule_mode,
             now=now,
         )
         match = next(
