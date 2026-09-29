@@ -356,6 +356,27 @@ EN: dict[str, str] = {
     "min_lead_invalid_max": "Maximum is {max} minutes (24 hours).",
     "min_lead_saved": "Minimum lead time set to {minutes} min.",
     "min_lead_save_failed": "Could not save the lead time. Try again.",
+    "slot_step_view": (
+        "📐 Slot grid step: {step}\n\n"
+        "How often to offer appointment start times. "
+        "“Use service duration” means the step equals the chosen service."
+    ),
+    "slot_step_value_default": "same as service duration",
+    "slot_step_value_minutes": "{minutes} min",
+    "slot_step_edit_button": "✏️ Change",
+    "slot_step_back_button": "← Back",
+    "slot_step_cancel_button": "Cancel",
+    "slot_step_default_button": "Use service duration",
+    "slot_step_enter": (
+        "Enter the grid step in minutes (whole number from 1).\n"
+        "Example: 15\n\n"
+        "Or tap “Use service duration”."
+    ),
+    "slot_step_invalid": "Enter a whole number of minutes (1 or more).",
+    "slot_step_invalid_max": "Maximum is {max} minutes.",
+    "slot_step_saved": "Grid step set to {minutes} min.",
+    "slot_step_saved_default": "Grid step: same as service duration.",
+    "slot_step_save_failed": "Could not save the grid step. Try again.",
     "services_add_button": "➕ Add",
     "services_back_button": "← Back",
     "services_cancel_button": "Cancel",
@@ -402,6 +423,7 @@ EN: dict[str, str] = {
     "hub_time_off_button": "Time off",
     "hub_gap_button": "Break between appointments",
     "hub_min_lead_button": "Minimum lead time",
+    "hub_slot_step_button": "Slot grid step",
     "hub_profile_show_button": "Show profile",
     "hub_profile_edit_button": "Edit profile",
     "hub_lang_button": "Language",

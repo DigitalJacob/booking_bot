@@ -53,6 +53,10 @@ class MinLeadSG(StatesGroup):
     value = State()
 
 
+class SlotStepSG(StatesGroup):
+    value = State()
+
+
 class AdminModSG(StatesGroup):
     target = State()
     role = State()

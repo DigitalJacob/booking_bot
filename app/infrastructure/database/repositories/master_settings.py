@@ -158,3 +158,39 @@ class MasterSettingsRepository:
             min_lead_minutes,
         )
         return MasterSettings.from_db_row(row)
+
+    async def update_slot_step_minutes(
+            self,
+            *,
+            master_user_id: int,
+            slot_step_minutes: int | None,
+    ) -> MasterSettings | None:
+        """Update slot_step_minutes (None = service duration); None row if missing."""
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query=cast(
+                    LiteralString,
+                    f"""
+                        UPDATE master_settings
+                        SET
+                            slot_step_minutes = %(slot_step_minutes)s,
+                            updated_at = NOW()
+                        WHERE master_user_id = %(master_user_id)s
+                        RETURNING {_SELECT_COLUMNS};
+                    """,
+                ),
+                params={
+                    "master_user_id": master_user_id,
+                    "slot_step_minutes": slot_step_minutes,
+                },
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Master slot_step_minutes updated. master_user_id=%d, "
+            "slot_step_minutes=%s",
+            master_user_id,
+            slot_step_minutes,
+        )
+        return MasterSettings.from_db_row(row)

@@ -126,6 +126,9 @@ def get_hub_schedule_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
                 _btn(i18n.get("hub_min_lead_button"), "min_lead")
             ],
             [
+                _btn(i18n.get("hub_slot_step_button"), "slot_step")
+            ],
+            [
                 _btn(i18n.get("hub_back_button"), "back")
             ],
         ]

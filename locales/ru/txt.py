@@ -357,6 +357,27 @@ RU: dict[str, str] = {
     "min_lead_invalid_max": "Максимум — {max} минут (24 часа).",
     "min_lead_saved": "Минимальный запас установлен: {minutes} мин.",
     "min_lead_save_failed": "Не удалось сохранить запас. Попробуйте ещё раз.",
+    "slot_step_view": (
+        "📐 Шаг сетки слотов: {step}\n\n"
+        "Как часто предлагать время начала записи. "
+        "«Как длительность услуги» — шаг равен выбранной услуге."
+    ),
+    "slot_step_value_default": "как длительность услуги",
+    "slot_step_value_minutes": "{minutes} мин",
+    "slot_step_edit_button": "✏️ Изменить",
+    "slot_step_back_button": "← Назад",
+    "slot_step_cancel_button": "Отмена",
+    "slot_step_default_button": "Как длительность услуги",
+    "slot_step_enter": (
+        "Введите шаг сетки в минутах (целое число от 1).\n"
+        "Пример: 15\n\n"
+        "Или нажмите «Как длительность услуги»."
+    ),
+    "slot_step_invalid": "Введите целое число минут (1 или больше).",
+    "slot_step_invalid_max": "Максимум — {max} минут.",
+    "slot_step_saved": "Шаг сетки установлен: {minutes} мин.",
+    "slot_step_saved_default": "Шаг сетки: как длительность услуги.",
+    "slot_step_save_failed": "Не удалось сохранить шаг сетки. Попробуйте ещё раз.",
     "services_add_button": "➕ Добавить",
     "services_back_button": "← Назад",
     "services_cancel_button": "Отмена",
@@ -403,6 +424,7 @@ RU: dict[str, str] = {
     "hub_time_off_button": "Выходные",
     "hub_gap_button": "Перерыв между записями",
     "hub_min_lead_button": "Минимальный запас",
+    "hub_slot_step_button": "Шаг сетки",
     "hub_profile_show_button": "Показать профиль",
     "hub_profile_edit_button": "Изменить профиль",
     "hub_lang_button": "Язык",
