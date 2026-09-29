@@ -69,6 +69,14 @@ RU: dict[str, str] = {
     "book_service_inactive": "Услуга больше недоступна.",
     "book_service_not_found": "Услуга не найдена.",
     "book_need_start": "Сначала отправьте /start",
+    "catalog_header": "📋 Услуги мастера — выберите, чтобы посмотреть:",
+    "catalog_empty": "Сейчас нет доступных услуг.",
+    "catalog_back_button": "← Назад",
+    "catalog_to_list_button": "← К списку",
+    "catalog_not_found": "Услуга не найдена или больше недоступна.",
+    "catalog_price_empty": "уточняется",
+    "catalog_card_duration": "Длительность: {duration} мин",
+    "catalog_card_price": "Цена: {price}",
     "master_bookings_header": "Записи · {week}\n{total}",
     "master_bookings_empty": (
         "На неделю {week} активных записей нет."

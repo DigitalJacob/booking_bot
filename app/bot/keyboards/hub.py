@@ -63,6 +63,7 @@ def get_hub_root_kb(
         rows.append([_btn(i18n.get("hub_schedule_section_button"), "schedule")])
     elif role == UserRole.CLIENT:
         rows.append([_btn(i18n.get("hub_book_button"), "book")])
+        rows.append([_btn(i18n.get("hub_catalog_button"), "catalog")])
         rows.append([_btn(i18n.get("hub_my_bookings_button"), "my_bookings")])
         rows.append([_btn(i18n.get("hub_profile_section_button"), "profile")])
 

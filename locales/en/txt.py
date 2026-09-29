@@ -69,6 +69,14 @@ EN: dict[str, str] = {
     "book_service_inactive": "This service is no longer available.",
     "book_service_not_found": "Service not found.",
     "book_need_start": "Please send /start first",
+    "catalog_header": "📋 Master’s services — tap one to view:",
+    "catalog_empty": "No services available right now.",
+    "catalog_back_button": "← Back",
+    "catalog_to_list_button": "← Back to list",
+    "catalog_not_found": "Service not found or no longer available.",
+    "catalog_price_empty": "TBD",
+    "catalog_card_duration": "Duration: {duration} min",
+    "catalog_card_price": "Price: {price}",
     "master_bookings_header": "Bookings · {week}\n{total}",
     "master_bookings_empty": (
         "No active bookings for the week of {week}."
