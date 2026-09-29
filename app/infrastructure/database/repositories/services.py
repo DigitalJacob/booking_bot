@@ -9,6 +9,18 @@ from app.domain.models.service import Service
 
 logger = logging.getLogger(__name__)
 
+_SELECT_COLUMNS = """
+    id,
+    master_user_id,
+    title,
+    duration_minutes,
+    price,
+    is_active,
+    description,
+    photo_file_id,
+    created_at
+"""
+
 
 class ServicesRepository:
     def __init__(self, conn: AsyncConnection) -> None:
@@ -25,7 +37,7 @@ class ServicesRepository:
     ) -> Service:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     INSERT INTO services(
                         master_user_id,
                         title,
@@ -40,14 +52,7 @@ class ServicesRepository:
                         %(price)s,
                         %(is_active)s
                     )
-                    RETURNING
-                        id,
-                        master_user_id,
-                        title,
-                        duration_minutes,
-                        price,
-                        is_active,
-                        created_at;
+                    RETURNING {_SELECT_COLUMNS};
                 """,
                 params={
                     "master_user_id": master_user_id,
@@ -73,15 +78,8 @@ class ServicesRepository:
     ) -> Service | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
-                    SELECT
-                        id,
-                        master_user_id,
-                        title,
-                        duration_minutes,
-                        price,
-                        is_active,
-                        created_at
+                query=f"""
+                    SELECT {_SELECT_COLUMNS}
                     FROM services
                     WHERE id = %s;
                 """,
@@ -98,15 +96,8 @@ class ServicesRepository:
     ) -> list[Service]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
-                    SELECT
-                        id,
-                        master_user_id,
-                        title,
-                        duration_minutes,
-                        price,
-                        is_active,
-                        created_at
+                query=f"""
+                    SELECT {_SELECT_COLUMNS}
                     FROM services
                     WHERE master_user_id = %(master_user_id)s
                       AND (%(active_only)s = FALSE OR is_active = TRUE)
@@ -132,7 +123,7 @@ class ServicesRepository:
         """Update only if the service belongs to this master. Returns None if missing."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     UPDATE services
                     SET
                         title = %(title)s,
@@ -140,14 +131,7 @@ class ServicesRepository:
                         price = %(price)s
                     WHERE id = %(service_id)s
                         AND master_user_id = %(master_user_id)s
-                    RETURNING
-                        id,
-                        master_user_id,
-                        title,
-                        duration_minutes,
-                        price,
-                        is_active,
-                        created_at;
+                    RETURNING {_SELECT_COLUMNS};
                 """,
                 params={
                     "service_id": service_id,
@@ -168,6 +152,70 @@ class ServicesRepository:
         )
         return Service.from_db_row(row)
 
+    async def update_description(
+            self,
+            *,
+            service_id: int,
+            master_user_id: int,
+            description: str | None,
+    ) -> Service | None:
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query=f"""
+                    UPDATE services
+                    SET description = %(description)s
+                    WHERE id = %(service_id)s
+                        AND master_user_id = %(master_user_id)s
+                    RETURNING {_SELECT_COLUMNS};
+                """,
+                params={
+                    "service_id": service_id,
+                    "master_user_id": master_user_id,
+                    "description": description,
+                },
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Service description updated. id=%d, master_user_id=%d",
+            service_id,
+            master_user_id,
+        )
+        return Service.from_db_row(row)
+
+    async def update_photo_file_id(
+            self,
+            *,
+            service_id: int,
+            master_user_id: int,
+            photo_file_id: str | None,
+    ) -> Service | None:
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query=f"""
+                    UPDATE services
+                    SET photo_file_id = %(photo_file_id)s
+                    WHERE id = %(service_id)s
+                        AND master_user_id = %(master_user_id)s
+                    RETURNING {_SELECT_COLUMNS};
+                """,
+                params={
+                    "service_id": service_id,
+                    "master_user_id": master_user_id,
+                    "photo_file_id": photo_file_id,
+                },
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Service photo_file_id updated. id=%d, master_user_id=%d",
+            service_id,
+            master_user_id,
+        )
+        return Service.from_db_row(row)
+
     async def set_active(
             self,
             *,
@@ -178,19 +226,12 @@ class ServicesRepository:
         """Toggle is_active only if the service belongs to this master."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
+                query=f"""
                     UPDATE services
                     SET is_active = %(is_active)s
                     WHERE id = %(service_id)s
                         AND master_user_id = %(master_user_id)s
-                    RETURNING
-                        id,
-                        master_user_id,
-                        title,
-                        duration_minutes,
-                        price,
-                        is_active,
-                        created_at;
+                    RETURNING {_SELECT_COLUMNS};
                 """,
                 params={
                     "service_id": service_id,

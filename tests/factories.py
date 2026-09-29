@@ -44,6 +44,8 @@ def make_service(
         duration_minutes=duration_minutes,
         price=Decimal("1500"),
         is_active=is_active,
+        description=None,
+        photo_file_id=None,
         created_at=NOW,
     )
 

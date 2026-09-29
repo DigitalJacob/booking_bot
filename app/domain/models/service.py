@@ -12,6 +12,8 @@ class Service:
     duration_minutes: int
     price: Decimal | None
     is_active: bool
+    description: str | None
+    photo_file_id: str | None
     created_at: datetime
 
     @classmethod
@@ -23,5 +25,7 @@ class Service:
             duration_minutes=row["duration_minutes"],
             price=row["price"],
             is_active=row["is_active"],
+            description=row.get("description"),
+            photo_file_id=row.get("photo_file_id"),
             created_at=row["created_at"],
         )

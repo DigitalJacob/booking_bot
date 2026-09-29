@@ -1,0 +1,3 @@
+ALTER TABLE services
+    ADD COLUMN IF NOT EXISTS description VARCHAR(1000),
+    ADD COLUMN IF NOT EXISTS photo_file_id VARCHAR(512);
