@@ -9,7 +9,9 @@ class MasterServiceCallback(CallbackData, prefix="msvc"):
 
 
 class MasterServiceNavCallback(CallbackData, prefix="msvcnav"):
-    action: str  # add | close | back | toggle | edit | cancel
+    # add | close | back | toggle | edit | cancel |
+    # description | photo | clear_description | clear_photo
+    action: str
     service_id: int = 0
 
 
@@ -22,6 +24,48 @@ def get_service_fsm_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
                     callback_data=MasterServiceNavCallback(action="cancel").pack(),
                 )
             ]
+        ]
+    )
+
+
+def get_service_description_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("services_clear_description_button"),
+                    callback_data=MasterServiceNavCallback(
+                        action="clear_description",
+                    ).pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("services_cancel_button"),
+                    callback_data=MasterServiceNavCallback(action="cancel").pack(),
+                )
+            ],
+        ]
+    )
+
+
+def get_service_photo_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("services_clear_photo_button"),
+                    callback_data=MasterServiceNavCallback(
+                        action="clear_photo",
+                    ).pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("services_cancel_button"),
+                    callback_data=MasterServiceNavCallback(action="cancel").pack(),
+                )
+            ],
         ]
     )
 
@@ -75,6 +119,24 @@ def get_service_card_kb(
                     text=i18n.get("services_edit_button"),
                     callback_data=MasterServiceNavCallback(
                         action="edit",
+                        service_id=service.id,
+                    ).pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("services_description_button"),
+                    callback_data=MasterServiceNavCallback(
+                        action="description",
+                        service_id=service.id,
+                    ).pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("services_photo_button"),
+                    callback_data=MasterServiceNavCallback(
+                        action="photo",
                         service_id=service.id,
                     ).pack(),
                 )

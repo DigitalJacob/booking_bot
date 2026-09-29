@@ -3,6 +3,7 @@ RU: dict[str, str] = {
         "Я помогаю записаться на услугу и управлять визитами.\n\n"
         "Всё управление — кнопками главного меню:\n"
         "• Запись — записаться к мастеру\n"
+        "• Услуги — описание и фото услуг\n"
         "• Мои записи — ваши визиты\n"
         "• Профиль — контакты для связи\n"
         "• Настройки — язык и эта справка\n\n"
@@ -385,14 +386,46 @@ RU: dict[str, str] = {
         "{title}\n"
         "Длительность: {duration} мин\n"
         "Цена: {price}\n"
-        "Статус: {status}"
+        "Статус: {status}\n"
+        "Описание: {description}\n"
+        "Фото: {photo}"
     ),
+    "services_card_media": (
+        "{title}\n"
+        "Длительность: {duration} мин\n"
+        "Цена: {price}\n"
+        "Статус: {status}\n"
+        "Описание: {description}"
+    ),
+    "services_description_empty": "не указано",
+    "services_photo_yes": "есть",
+    "services_photo_no": "нет",
     "services_not_found": "Услуга не найдена.",
     "services_deactivate_button": "⏸ Деактивировать",
     "services_activate_button": "▶️ Включить",
     "services_deactivated": "Услуга деактивирована.",
     "services_activated": "Услуга включена.",
     "services_edit_button": "✏️ Изменить",
+    "services_description_button": "📝 Описание",
+    "services_photo_button": "🖼 Фото",
+    "services_clear_description_button": "Удалить описание",
+    "services_clear_photo_button": "Удалить фото",
+    "services_enter_description": (
+        "Введите описание услуги (макс. {max} символов).\n"
+        "Сейчас: {description}"
+    ),
+    "services_invalid_description": (
+        "Описание не должно быть пустым и длиннее {max} символов."
+    ),
+    "services_description_saved": "Описание сохранено.",
+    "services_description_cleared": "Описание удалено.",
+    "services_enter_photo": (
+        "Отправьте одно фото услуги (не файл и не альбом).\n"
+        "Сейчас: {photo}"
+    ),
+    "services_invalid_photo": "Нужно именно фото (не документ и не альбом).",
+    "services_photo_saved": "Фото сохранено.",
+    "services_photo_cleared": "Фото удалено.",
     "edit_service_enter_title": (
         "Введите новое название\n"
         "Сейчас: {title}"
@@ -414,6 +447,7 @@ RU: dict[str, str] = {
     "hub_home_button": "⌂ Меню",
     "hub_ok_button": "OK",
     "hub_book_button": "Запись",
+    "hub_catalog_button": "Услуги",
     "hub_my_bookings_button": "Мои записи",
     "hub_bookings_button": "Записи",
     "hub_services_button": "Услуги",

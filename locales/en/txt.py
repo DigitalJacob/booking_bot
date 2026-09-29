@@ -3,6 +3,7 @@ EN: dict[str, str] = {
         "I help you book a service and manage appointments.\n\n"
         "Everything is controlled from the main menu buttons:\n"
         "• Book — book an appointment\n"
+        "• Services — descriptions and photos\n"
         "• My bookings — your visits\n"
         "• Profile — contact details\n"
         "• Settings — language and this help\n\n"
@@ -384,14 +385,46 @@ EN: dict[str, str] = {
         "{title}\n"
         "Duration: {duration} min\n"
         "Price: {price}\n"
-        "Status: {status}"
+        "Status: {status}\n"
+        "Description: {description}\n"
+        "Photo: {photo}"
     ),
+    "services_card_media": (
+        "{title}\n"
+        "Duration: {duration} min\n"
+        "Price: {price}\n"
+        "Status: {status}\n"
+        "Description: {description}"
+    ),
+    "services_description_empty": "not set",
+    "services_photo_yes": "yes",
+    "services_photo_no": "no",
     "services_not_found": "Service not found.",
     "services_deactivate_button": "⏸ Deactivate",
     "services_activate_button": "▶️ Activate",
     "services_deactivated": "Service deactivated.",
     "services_activated": "Service activated.",
     "services_edit_button": "✏️ Edit",
+    "services_description_button": "📝 Description",
+    "services_photo_button": "🖼 Photo",
+    "services_clear_description_button": "Remove description",
+    "services_clear_photo_button": "Remove photo",
+    "services_enter_description": (
+        "Enter the service description (max {max} characters).\n"
+        "Current: {description}"
+    ),
+    "services_invalid_description": (
+        "Description must not be empty and at most {max} characters."
+    ),
+    "services_description_saved": "Description saved.",
+    "services_description_cleared": "Description removed.",
+    "services_enter_photo": (
+        "Send one photo of the service (not a file or album).\n"
+        "Current: {photo}"
+    ),
+    "services_invalid_photo": "Send a photo (not a document or album).",
+    "services_photo_saved": "Photo saved.",
+    "services_photo_cleared": "Photo removed.",
     "edit_service_enter_title": (
         "Enter the new service name\n"
         "Current: {title}"
@@ -413,6 +446,7 @@ EN: dict[str, str] = {
     "hub_home_button": "⌂ Menu",
     "hub_ok_button": "OK",
     "hub_book_button": "Book",
+    "hub_catalog_button": "Services",
     "hub_my_bookings_button": "My bookings",
     "hub_bookings_button": "Bookings",
     "hub_services_button": "Services",

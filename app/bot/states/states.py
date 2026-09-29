@@ -24,6 +24,14 @@ class EditServiceSG(StatesGroup):
     price = State()
 
 
+class ServiceDescriptionSG(StatesGroup):
+    value = State()
+
+
+class ServicePhotoSG(StatesGroup):
+    value = State()
+
+
 class ProfileSG(StatesGroup):
     first_name = State()
     last_name = State()
