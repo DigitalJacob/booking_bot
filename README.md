@@ -81,6 +81,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
   first booking, via a share-contact button or manual input; editable later from
   **Profile**
 - **Guided booking** — **Book**: service → day → time → confirmation
+- **Services catalog** — browse active services with description and photo (separate
+  from booking; card opens as a new message)
 - **Only bookable times are shown** — windows outside working hours, blocked by
   time off, already taken, or in the past are filtered out before the client sees them
 - **My bookings** — sticky list of upcoming appointments; open a card to cancel
@@ -96,7 +98,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **One-tap confirm / decline** — from a booking card or directly from the new-booking
   push; past slots are read-only (no action buttons), and a stale button is rejected
   server-side
-- **Services** — catalogue with title, duration and price; add, edit and soft deactivate
+- **Services** — catalogue with title, duration, price, description and photo; add,
+  edit (including description/photo from the card) and soft deactivate
 - **Schedule → Working hours** — view / edit repeating weekly intervals
 - **Schedule → Time off** — view / edit upcoming absences: full days / date ranges
   or hours in one day; past-only blocks are rejected because the list shows
@@ -143,10 +146,11 @@ else is inline buttons on the sticky hub message.
 | Hub path                                   | Role     | What it does                                               |
 |--------------------------------------------|----------|------------------------------------------------------------|
 | **Book**                                   | client   | Book an appointment (asks for the profile first if empty)  |
+| **Services**                               | client   | Browse active services (description / photo)               |
 | **My bookings**                            | client   | Upcoming appointments (open / cancel)                      |
 | **Profile → Show / Edit**                  | client   | View or update name and phone                              |
 | **Bookings**                               | master   | Week → day → card (confirm / cancel)                       |
-| **Services**                               | master   | List, add, edit, deactivate services                       |
+| **Services**                               | master   | List, add, edit, description/photo, deactivate             |
 | **Schedule → Working hours**               | master   | View / edit weekly working intervals                       |
 | **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)         |
 | **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                 |
@@ -296,11 +300,15 @@ on startup.
 | Table             | Purpose                                                                                         |
 |-------------------|-------------------------------------------------------------------------------------------------|
 | `users`           | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone) |
-| `services`        | Master's offerings: title, duration, price, active flag                                         |
+| `services`        | Master's offerings: title, duration, price, description, photo file id, active flag             |
 | `appointments`    | Client, service, status, and concrete time range (`starts_at` / `ends_at`)                      |
 | `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon                              |
 | `working_hours`   | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                     |
 | `time_off`        | Absolute blocked intervals (day off, break, vacation) per master                                |
+
+`services.description` (optional, up to 1000 characters) and `photo_file_id` (Telegram
+photo file id) are set from the master's service card and shown in the client
+**Services** catalog. Booking still uses title / duration / price only.
 
 `appointments.status` is one of `pending`, `confirmed`, `cancelled`.
 
