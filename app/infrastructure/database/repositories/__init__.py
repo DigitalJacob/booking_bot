@@ -9,6 +9,7 @@ from app.infrastructure.database.repositories.master_settings import (
     MasterSettingsRepository,
 )
 from app.infrastructure.database.repositories.working_hours import WorkingHoursRepository
+from app.infrastructure.database.repositories.work_dates import WorkDatesRepository
 from app.infrastructure.database.repositories.time_off import TimeOffRepository
 
 
@@ -19,6 +20,7 @@ class Repositories:
     appointments: AppointmentsRepository
     master_settings: MasterSettingsRepository
     working_hours: WorkingHoursRepository
+    work_dates: WorkDatesRepository
     time_off: TimeOffRepository
 
     @classmethod
@@ -29,6 +31,7 @@ class Repositories:
             appointments=AppointmentsRepository(conn),
             master_settings=MasterSettingsRepository(conn),
             working_hours=WorkingHoursRepository(conn),
+            work_dates=WorkDatesRepository(conn),
             time_off=TimeOffRepository(conn),
         )
 
@@ -40,5 +43,6 @@ __all__ = [
     "UsersRepository",
     "MasterSettingsRepository",
     "WorkingHoursRepository",
+    "WorkDatesRepository",
     "TimeOffRepository",
 ]

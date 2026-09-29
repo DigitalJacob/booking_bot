@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, time, timezone
 from decimal import Decimal
 from typing import cast
 
@@ -10,6 +10,7 @@ from app.domain.models import (
     Service,
     MasterSettings,
     WorkingHours,
+    WorkDate,
     TimeOff,
 )
 from app.infrastructure.database.repositories import (
@@ -19,6 +20,7 @@ from app.infrastructure.database.repositories import (
     UsersRepository,
     MasterSettingsRepository,
     WorkingHoursRepository,
+    WorkDatesRepository,
     TimeOffRepository,
 )
 
@@ -122,6 +124,95 @@ class FakeWorkingHoursRepository:
             and (weekday is None or row.weekday == weekday)
         ]
         return sorted(result, key=lambda row: (row.weekday, row.starts_time))
+
+
+class FakeWorkDatesRepository:
+    def __init__(self, rows: list[WorkDate] | None = None) -> None:
+        self._rows = list(rows or [])
+
+    async def list_by_master(
+            self,
+            *,
+            master_user_id: int,
+            from_date: date | None = None,
+            to_date: date | None = None,
+    ) -> list[WorkDate]:
+        result = []
+        for row in self._rows:
+            if row.master_user_id != master_user_id:
+                continue
+            if from_date is not None and row.work_date < from_date:
+                continue
+            if to_date is not None and row.work_date >= to_date:
+                continue
+            result.append(row)
+        return sorted(result, key=lambda row: (row.work_date, row.starts_time))
+
+    async def list_month(
+            self,
+            *,
+            master_user_id: int,
+            year: int,
+            month: int,
+    ) -> list[WorkDate]:
+        first = date(year, month, 1)
+        if month == 12:
+            to_date = date(year + 1, 1, 1)
+        else:
+            to_date = date(year, month + 1, 1)
+        return await self.list_by_master(
+            master_user_id=master_user_id,
+            from_date=first,
+            to_date=to_date,
+        )
+
+    async def replace_month(
+            self,
+            *,
+            master_user_id: int,
+            year: int,
+            month: int,
+            work_dates: list[date],
+            starts_time: time,
+            ends_time: time,
+    ) -> list[WorkDate]:
+        if ends_time <= starts_time:
+            raise ValueError("ends_time must be after starts_time")
+        first = date(year, month, 1)
+        if month == 12:
+            to_date = date(year + 1, 1, 1)
+        else:
+            to_date = date(year, month + 1, 1)
+        for day in work_dates:
+            if day.year != year or day.month != month:
+                raise ValueError(
+                    f"work_date {day.isoformat()} is outside {year}-{month:02d}"
+                )
+        self._rows = [
+            row for row in self._rows
+            if not (
+                row.master_user_id == master_user_id
+                and first <= row.work_date < to_date
+            )
+        ]
+        next_id = max((row.id for row in self._rows), default=0) + 1
+        for day in sorted(set(work_dates)):
+            self._rows.append(
+                WorkDate(
+                    id=next_id,
+                    master_user_id=master_user_id,
+                    work_date=day,
+                    starts_time=starts_time,
+                    ends_time=ends_time,
+                    created_at=NOW,
+                )
+            )
+            next_id += 1
+        return await self.list_month(
+            master_user_id=master_user_id,
+            year=year,
+            month=month,
+        )
 
 
 class FakeTimeOffRepository:
@@ -255,6 +346,7 @@ def make_repos(
         appointments: list[Appointment] | None = None,
         settings: MasterSettings | None = None,
         working_hours: list[WorkingHours] | None = None,
+        work_dates: list[WorkDate] | None = None,
         time_offs: list[TimeOff] | None = None,
 ) -> Repositories:
     return Repositories(
@@ -274,6 +366,10 @@ def make_repos(
         working_hours=cast(
             WorkingHoursRepository,
             FakeWorkingHoursRepository(working_hours or []),
+        ),
+        work_dates=cast(
+            WorkDatesRepository,
+            FakeWorkDatesRepository(work_dates or []),
         ),
         time_off=cast(
             TimeOffRepository,

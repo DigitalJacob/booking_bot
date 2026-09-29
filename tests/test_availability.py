@@ -19,6 +19,7 @@ from app.infrastructure.database.repositories import (
     TimeOffRepository,
     UsersRepository,
     WorkingHoursRepository,
+    WorkDatesRepository,
 )
 
 
@@ -195,6 +196,7 @@ def make_availability_repos(
             WorkingHoursRepository,
             FakeWorkingHoursRepository(working_hours or []),
         ),
+        work_dates=cast(WorkDatesRepository, None),
         time_off=cast(
             TimeOffRepository,
             FakeTimeOffRepository(time_offs or []),
