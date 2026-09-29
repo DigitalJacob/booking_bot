@@ -451,6 +451,10 @@ RU: dict[str, str] = {
     "hub_settings_title": "Настройки",
     "hub_profile_title": "Профиль",
     "hub_schedule_title": "График",
+    "work_days_stub": (
+        "Настройка рабочих дней по календарю появится в следующем обновлении.\n"
+        "Сейчас бот в режиме monthly — слоты пока не считаются из дней месяца."
+    ),
     "hub_back_button": "← Назад",
     "hub_home_button": "⌂ Меню",
     "hub_ok_button": "OK",
@@ -463,6 +467,7 @@ RU: dict[str, str] = {
     "hub_profile_section_button": "Профиль",
     "hub_settings_section_button": "Настройки",
     "hub_working_hours_button": "Рабочие часы",
+    "hub_work_days_button": "Рабочие дни",
     "hub_time_off_button": "Выходные",
     "hub_gap_button": "Перерыв между записями",
     "hub_min_lead_button": "Минимальный запас",

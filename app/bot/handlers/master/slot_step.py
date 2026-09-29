@@ -182,12 +182,14 @@ async def process_slot_step_close(
         state: FSMContext,
         user: User,
         i18n: dict[str, str],
+        schedule_mode: str,
 ) -> None:
     await return_from_list(
         message=callback.message,
         user=user,
         i18n=i18n,
         state=state,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 

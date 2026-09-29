@@ -15,6 +15,7 @@ class BotSettings:
     admin_ids: list[int]
     master_user_id: int
     timezone: str
+    schedule_mode: str
 
 
 @dataclass
@@ -98,6 +99,13 @@ def load_config(path: str | None = None) -> Config:
             f"TIMEZONE must be a valid IANA name, got: {timezone_name!r}"
         ) from e
 
+    schedule_mode = env.str("SCHEDULE_MODE", default="weekly").strip().lower()
+    if schedule_mode not in ("weekly", "monthly"):
+        raise ValueError(
+            "SCHEDULE_MODE must be 'weekly' or 'monthly', "
+            f"got: {schedule_mode!r}"
+        )
+
     proxy_ip = env.str("PROXY_IP", default='').strip()
     proxy = None
     if proxy_ip:
@@ -138,6 +146,7 @@ def load_config(path: str | None = None) -> Config:
             admin_ids=admin_ids,
             master_user_id=master_user_id,
             timezone=timezone_name,
+            schedule_mode=schedule_mode,
         ),
         db=db,
         redis=redis,

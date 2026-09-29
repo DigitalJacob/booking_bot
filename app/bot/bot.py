@@ -96,6 +96,7 @@ async def main(config: Config) -> None:
             admin_ids=config.bot.admin_ids,
             master_user_id=config.bot.master_user_id,
             bot_timezone=config.bot.timezone,
+            schedule_mode=config.bot.schedule_mode,
         )
     except Exception:
         logger.exception("Bot polling failed")

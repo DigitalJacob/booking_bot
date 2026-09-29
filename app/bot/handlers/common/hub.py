@@ -61,6 +61,7 @@ async def show_hub_screen(
         bot_timezone: str | None = None,
         master_user_id: int | None = None,
         locales: list[str] | None = None,
+        schedule_mode: str = "weekly",
 ) -> None:
     """Open a hub section or a registered leaf by action name."""
     role = user.role
@@ -113,7 +114,10 @@ async def show_hub_screen(
         await _edit_section(
             message,
             text=i18n.get("hub_schedule_title"),
-            reply_markup=get_hub_schedule_kb(i18n),
+            reply_markup=get_hub_schedule_kb(
+                i18n,
+                schedule_mode=schedule_mode,
+            ),
         )
         return
 
@@ -149,6 +153,7 @@ async def return_from_list(
         user: User,
         i18n: dict[str, str],
         state: FSMContext,
+        schedule_mode: str = "weekly",
 ) -> None:
     """Close a list UI: back to schedule section or hub root."""
     data = await state.get_data()
@@ -159,6 +164,7 @@ async def return_from_list(
         i18n=i18n,
         state=state,
         action=target,
+        schedule_mode=schedule_mode,
     )
 
 
@@ -224,6 +230,7 @@ async def process_hub_back(
         bot_timezone: str,
         master_user_id: int,
         locales: list[str],
+        schedule_mode: str,
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -245,6 +252,7 @@ async def process_hub_back(
         bot_timezone=bot_timezone,
         master_user_id=master_user_id,
         locales=locales,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 
@@ -260,6 +268,7 @@ async def process_hub_action(
         bot_timezone: str,
         master_user_id: int,
         locales: list[str],
+        schedule_mode: str,
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -275,5 +284,6 @@ async def process_hub_action(
         bot_timezone=bot_timezone,
         master_user_id=master_user_id,
         locales=locales,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()

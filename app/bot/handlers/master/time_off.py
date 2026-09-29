@@ -214,6 +214,7 @@ async def process_time_off_close(
         state: FSMContext,
         user: User,
         i18n: dict[str, str],
+        schedule_mode: str,
 ) -> None:
     """Back from view → hub schedule section."""
     await return_from_list(
@@ -221,6 +222,7 @@ async def process_time_off_close(
         user=user,
         i18n=i18n,
         state=state,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 

@@ -111,12 +111,18 @@ def get_hub_profile_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     )
 
 
-def get_hub_schedule_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+def get_hub_schedule_kb(
+        i18n: dict[str, str],
+        *,
+        schedule_mode: str = "weekly",
+) -> InlineKeyboardMarkup:
+    if schedule_mode == "monthly":
+        hours_row = [_btn(i18n.get("hub_work_days_button"), "work_days")]
+    else:
+        hours_row = [_btn(i18n.get("hub_working_hours_button"), "working_hours")]
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                _btn(i18n.get("hub_working_hours_button"), "working_hours")
-            ],
+            hours_row,
             [
                 _btn(i18n.get("hub_time_off_button"), "time_off")
             ],

@@ -450,6 +450,10 @@ EN: dict[str, str] = {
     "hub_settings_title": "Settings",
     "hub_profile_title": "Profile",
     "hub_schedule_title": "Schedule",
+    "work_days_stub": (
+        "Monthly work-day setup is coming in the next update.\n"
+        "The bot is in monthly mode — slots are not built from calendar days yet."
+    ),
     "hub_back_button": "← Back",
     "hub_home_button": "⌂ Menu",
     "hub_ok_button": "OK",
@@ -462,6 +466,7 @@ EN: dict[str, str] = {
     "hub_profile_section_button": "Profile",
     "hub_settings_section_button": "Settings",
     "hub_working_hours_button": "Working hours",
+    "hub_work_days_button": "Work days",
     "hub_time_off_button": "Time off",
     "hub_gap_button": "Break between appointments",
     "hub_min_lead_button": "Minimum lead time",
