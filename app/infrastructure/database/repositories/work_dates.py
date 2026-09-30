@@ -74,6 +74,94 @@ class WorkDatesRepository:
             to_date=to_date,
         )
 
+    async def delete_dates(
+            self,
+            *,
+            master_user_id: int,
+            work_dates: list[date],
+    ) -> int:
+        """Delete specific open days. Returns number of deleted rows."""
+        days = sorted(set(work_dates))
+        if not days:
+            return 0
+        async with self._conn.cursor() as cursor:
+            await cursor.execute(
+                query="""
+                    DELETE FROM work_dates
+                    WHERE master_user_id = %(master_user_id)s
+                        AND work_date = ANY(%(work_dates)s);
+                """,
+                params={
+                    "master_user_id": master_user_id,
+                    "work_dates": days,
+                },
+            )
+            deleted = cursor.rowcount
+        logger.info(
+            "Work dates deleted. master_user_id=%d, count=%d",
+            master_user_id,
+            deleted,
+        )
+        return deleted
+
+    async def upsert_dates(
+            self,
+            *,
+            master_user_id: int,
+            work_dates: list[date],
+            starts_time: time,
+            ends_time: time,
+    ) -> list[WorkDate]:
+        """Insert or update hours for the given days only."""
+        if ends_time <= starts_time:
+            raise ValueError("ends_time must be after starts_time")
+        days = sorted(set(work_dates))
+        if not days:
+            return []
+
+        rows: list[dict] = []
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            for day in days:
+                await cursor.execute(
+                    query=f"""
+                        INSERT INTO work_dates (
+                            master_user_id,
+                            work_date,
+                            starts_time,
+                            ends_time
+                        )
+                        VALUES (
+                            %(master_user_id)s,
+                            %(work_date)s,
+                            %(starts_time)s,
+                            %(ends_time)s
+                        )
+                        ON CONFLICT (master_user_id, work_date) DO UPDATE
+                        SET
+                            starts_time = EXCLUDED.starts_time,
+                            ends_time = EXCLUDED.ends_time
+                        RETURNING {_SELECT_COLUMNS};
+                    """,
+                    params={
+                        "master_user_id": master_user_id,
+                        "work_date": day,
+                        "starts_time": starts_time,
+                        "ends_time": ends_time,
+                    },
+                )
+                row = await cursor.fetchone()
+                if row is not None:
+                    rows.append(row)
+
+        logger.info(
+            "Work dates upserted. master_user_id=%d, count=%d, %s-%s",
+            master_user_id,
+            len(days),
+            starts_time,
+            ends_time,
+        )
+        return [WorkDate.from_db_row(row) for row in rows]
+
     async def replace_month(
             self,
             *,

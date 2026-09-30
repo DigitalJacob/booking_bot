@@ -162,21 +162,11 @@ async def _show_starts_prompt(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    data = await state.get_data()
     await state.set_state(WorkDaysSG.starts_time)
-    starts_iso = data.get("wd_starts")
-    ends_iso = data.get("wd_ends")
-    if starts_iso and ends_iso:
-        text = i18n.get("work_days_enter_starts_hint").format(
-            starts=_format_hm(time.fromisoformat(starts_iso)),
-            ends=_format_hm(time.fromisoformat(ends_iso)),
-        )
-    else:
-        text = i18n.get("work_days_enter_starts")
     await show_hub_prompt(
         message=message,
         state=state,
-        text=text,
+        text=i18n.get("work_days_enter_starts"),
         reply_markup=get_work_days_cancel_kb(i18n),
     )
 
@@ -224,19 +214,14 @@ async def _show_confirm(
             month=month_label(year, month, i18n),
         )
     elif mode == "off":
-        starts = time.fromisoformat(data["wd_starts"])
-        ends = time.fromisoformat(data["wd_ends"])
         text = i18n.get("work_days_confirm_off").format(
             dates=_format_day_list(removed),
-            starts=_format_hm(starts),
-            ends=_format_hm(ends),
         )
     else:
         starts = time.fromisoformat(data["wd_starts"])
         ends = time.fromisoformat(data["wd_ends"])
         text = i18n.get("work_days_confirm").format(
-            count=len(days),
-            month=month_label(year, month, i18n),
+            dates=_format_day_list(added),
             starts=_format_hm(starts),
             ends=_format_hm(ends),
         )
@@ -344,33 +329,14 @@ async def _apply_work_days_save(
     data = await state.get_data()
     year = int(data["wd_year"])
     month = int(data["wd_month"])
-    days = [date.fromisoformat(value) for value in data.get("wd_days") or []]
-    _, _, removed, _ = _day_sets(data)
-    confirm_mode = data.get("wd_confirm_mode") or ("clear" if not days else "set")
+    _, _, removed, added = _day_sets(data)
+    removed_dates = [date.fromisoformat(value) for value in removed]
+    added_dates = [date.fromisoformat(value) for value in added]
+    confirm_mode = data.get("wd_confirm_mode") or (
+        "clear" if not (data.get("wd_days") or []) else "set"
+    )
 
-    if days:
-        starts = time.fromisoformat(data["wd_starts"])
-        ends = time.fromisoformat(data["wd_ends"])
-        await repos.work_dates.replace_month(
-            master_user_id=user.user_id,
-            year=year,
-            month=month,
-            work_dates=days,
-            starts_time=starts,
-            ends_time=ends,
-        )
-        if confirm_mode == "off":
-            saved_text = i18n.get("work_days_off_saved").format(
-                dates=_format_day_list(removed),
-            )
-        else:
-            saved_text = i18n.get("work_days_saved").format(
-                count=len(days),
-                month=month_label(year, month, i18n),
-                starts=_format_hm(starts),
-                ends=_format_hm(ends),
-            )
-    else:
+    if confirm_mode == "clear":
         await repos.work_dates.replace_month(
             master_user_id=user.user_id,
             year=year,
@@ -379,6 +345,33 @@ async def _apply_work_days_save(
         )
         saved_text = i18n.get("work_days_cleared").format(
             month=month_label(year, month, i18n),
+        )
+    elif confirm_mode == "off":
+        await repos.work_dates.delete_dates(
+            master_user_id=user.user_id,
+            work_dates=removed_dates,
+        )
+        saved_text = i18n.get("work_days_off_saved").format(
+            dates=_format_day_list(removed),
+        )
+    else:
+        if removed_dates:
+            await repos.work_dates.delete_dates(
+                master_user_id=user.user_id,
+                work_dates=removed_dates,
+            )
+        starts = time.fromisoformat(data["wd_starts"])
+        ends = time.fromisoformat(data["wd_ends"])
+        await repos.work_dates.upsert_dates(
+            master_user_id=user.user_id,
+            work_dates=added_dates,
+            starts_time=starts,
+            ends_time=ends,
+        )
+        saved_text = i18n.get("work_days_saved").format(
+            dates=_format_day_list(added),
+            starts=_format_hm(starts),
+            ends=_format_hm(ends),
         )
 
     await clear_state_keep_hub(state)
@@ -565,8 +558,8 @@ async def process_work_days_next(
         )
         return
 
-    # Only days off (no new open days) → keep hours, skip time prompts.
-    if removed and not added and data.get("wd_starts") and data.get("wd_ends"):
+    # Only days off (no new open days) → delete those days only.
+    if removed and not added:
         await _show_confirm(
             message=callback.message,
             state=state,
@@ -576,7 +569,7 @@ async def process_work_days_next(
         await callback.answer()
         return
 
-    # New open day(s) (or first fill) → ask hours for the whole selection.
+    # New open day(s) → ask hours for those days only (upsert later).
     await _show_starts_prompt(
         message=callback.message,
         state=state,

@@ -166,6 +166,63 @@ class FakeWorkDatesRepository:
             to_date=to_date,
         )
 
+    async def delete_dates(
+            self,
+            *,
+            master_user_id: int,
+            work_dates: list[date],
+    ) -> int:
+        days = sorted(set(work_dates))
+        if not days:
+            return 0
+        before = len(self._rows)
+        day_set = set(days)
+        self._rows = [
+            row for row in self._rows
+            if not (
+                row.master_user_id == master_user_id
+                and row.work_date in day_set
+            )
+        ]
+        return before - len(self._rows)
+
+    async def upsert_dates(
+            self,
+            *,
+            master_user_id: int,
+            work_dates: list[date],
+            starts_time: time,
+            ends_time: time,
+    ) -> list[WorkDate]:
+        if ends_time <= starts_time:
+            raise ValueError("ends_time must be after starts_time")
+        days = sorted(set(work_dates))
+        if not days:
+            return []
+        day_set = set(days)
+        self._rows = [
+            row for row in self._rows
+            if not (
+                row.master_user_id == master_user_id
+                and row.work_date in day_set
+            )
+        ]
+        next_id = max((row.id for row in self._rows), default=0) + 1
+        result: list[WorkDate] = []
+        for day in days:
+            row = WorkDate(
+                id=next_id,
+                master_user_id=master_user_id,
+                work_date=day,
+                starts_time=starts_time,
+                ends_time=ends_time,
+                created_at=NOW,
+            )
+            self._rows.append(row)
+            result.append(row)
+            next_id += 1
+        return result
+
     async def replace_month(
             self,
             *,

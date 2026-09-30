@@ -457,31 +457,23 @@ RU: dict[str, str] = {
         "Введите время начала работы в формате ЧЧ:ММ\n"
         "Например: 09:00"
     ),
-    "work_days_enter_starts_hint": (
-        "Сейчас: {starts}–{ends}.\n\n"
-        "Введите время начала работы в формате ЧЧ:ММ\n"
-        "Например: 09:00"
-    ),
     "work_days_enter_ends": (
         "Введите время окончания работы в формате ЧЧ:ММ\n"
         "Например: 18:00"
     ),
     "work_days_confirm": (
-        "Установить рабочие дни ({count}) на {month} "
+        "Установить рабочие дни {dates} "
         "с {starts}–{ends}?"
     ),
     "work_days_confirm_clear": (
         "Убрать все рабочие дни на {month}? "
         "Дни станут выходными для записи."
     ),
-    "work_days_confirm_off": (
-        "Сделать выходным: {dates}?\n"
-        "Остальные дни без изменений ({starts}–{ends})."
-    ),
+    "work_days_confirm_off": "Сделать выходным: {dates}?",
     "work_days_no_changes": "Ничего не изменилось.",
     "work_days_month_unavailable": "Этот месяц недоступен.",
     "work_days_saved": (
-        "Сохранено: {count} дн. на {month}, {starts}–{ends}."
+        "Сохранено: {dates}, {starts}–{ends}."
     ),
     "work_days_off_saved": "Выходные: {dates}.",
     "work_days_cleared": "Рабочие дни на {month} сняты.",

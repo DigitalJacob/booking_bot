@@ -456,31 +456,23 @@ EN: dict[str, str] = {
         "Enter start time as HH:MM\n"
         "Example: 09:00"
     ),
-    "work_days_enter_starts_hint": (
-        "Current: {starts}–{ends}.\n\n"
-        "Enter start time as HH:MM\n"
-        "Example: 09:00"
-    ),
     "work_days_enter_ends": (
         "Enter end time as HH:MM\n"
         "Example: 18:00"
     ),
     "work_days_confirm": (
-        "Set {count} work day(s) in {month} "
+        "Set work days {dates} "
         "from {starts}–{ends}?"
     ),
     "work_days_confirm_clear": (
         "Clear all work days in {month}? "
         "Those days will be closed for booking."
     ),
-    "work_days_confirm_off": (
-        "Make day off: {dates}?\n"
-        "Other days stay unchanged ({starts}–{ends})."
-    ),
+    "work_days_confirm_off": "Make day off: {dates}?",
     "work_days_no_changes": "Nothing changed.",
     "work_days_month_unavailable": "That month is not available.",
     "work_days_saved": (
-        "Saved: {count} day(s) in {month}, {starts}–{ends}."
+        "Saved: {dates}, {starts}–{ends}."
     ),
     "work_days_off_saved": "Day(s) off: {dates}.",
     "work_days_cleared": "Work days in {month} cleared.",
