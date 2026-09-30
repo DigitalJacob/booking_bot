@@ -11,10 +11,10 @@
 A Telegram bot that runs appointment booking for a small service business — a barber,
 a nail studio, a private tutor. Clients leave a short contact profile once, pick a
 service, see only the times that actually fit it, and book in a few taps. The
-master manages services, a weekly schedule and time off, sees the client's name and
-phone on every card, and confirms or declines either from the **Bookings** screen or
-straight from the new-booking notification. Both sides get notified on every status
-change.
+master manages services, schedule (weekly hours or monthly open days, chosen at
+deploy) and time off, sees the client's name and phone on every card, and confirms
+or declines either from the **Bookings** screen or straight from the new-booking
+notification. Both sides get notified on every status change.
 
 Navigation is a sticky inline hub opened by `/start` — there are no other slash
 commands. Built on a layered architecture with the business logic isolated from
@@ -83,8 +83,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Guided booking** — **Book**: service → day → time → confirmation
 - **Services catalog** — browse active services with description and photo (separate
   from booking; card opens as a new message)
-- **Only bookable times are shown** — windows outside working hours, blocked by
-  time off, already taken, or in the past are filtered out before the client sees them
+- **Only bookable times are shown** — windows outside the master's open schedule
+  (weekly hours or monthly open days), blocked by time off, already taken, or in
+  the past are filtered out before the client sees them
 - **My bookings** — sticky list of upcoming appointments; open a card to cancel
 - **Self-service cancellation** — cancel your own booking; the master is notified
 - **Status notifications** — a message arrives when the master confirms or declines
@@ -100,10 +101,17 @@ failure halfway through a booking cannot leave a half-written appointment behind
   server-side
 - **Services** — catalogue with title, duration, price, description and photo; add,
   edit (including description/photo from the card) and soft deactivate
-- **Schedule → Working hours** — view / edit repeating weekly intervals
+- **Schedule → Working hours** *(when `SCHEDULE_MODE=weekly`)* — view / edit
+  repeating weekly intervals
+- **Schedule → Work days** *(when `SCHEDULE_MODE=monthly`)* — pick open days on a
+  month calendar, set hours for newly selected days (other days keep their hours),
+  close days with an optional warn if bookings exist; **Show current schedule**
+  lists saved days and hours
 - **Schedule → Time off** — view / edit upcoming absences: full days / date ranges
   or hours in one day; past-only blocks are rejected because the list shows
   upcoming intervals only
+  (in monthly mode, a full closed day is usually an untoggled work day; use
+  time off for a partial-day block inside an open day)
 - **Schedule → Break between appointments** — set `gap_minutes` (pause after each
   visit before the next bookable start; `0` = back-to-back)
 - **Schedule → Minimum lead time** — set `min_lead_minutes` (clients cannot book a
@@ -151,7 +159,8 @@ else is inline buttons on the sticky hub message.
 | **Profile → Show / Edit**                  | client   | View or update name and phone                              |
 | **Bookings**                               | master   | Week → day → card (confirm / cancel)                       |
 | **Services**                               | master   | List, add, edit, description/photo, deactivate             |
-| **Schedule → Working hours**               | master   | View / edit weekly working intervals                       |
+| **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals               |
+| **Schedule → Work days**                   | master   | Monthly mode: calendar open days, hours, schedule summary  |
 | **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)         |
 | **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                 |
 | **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)         |
@@ -166,11 +175,11 @@ else is inline buttons on the sticky hub message.
 
 Three roles, all stored in the database — nothing is hardcoded in the source.
 
-| Role      | Gets                                                                                  |
-|-----------|---------------------------------------------------------------------------------------|
-| `client`  | Contact profile, booking, and managing their own appointments. Default for new users. |
-| `master`  | Service catalogue, weekly schedule, time off, and the weekly appointment list.        |
-| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.       |
+| Role      | Gets                                                                                                       |
+|-----------|------------------------------------------------------------------------------------------------------------|
+| `client`  | Contact profile, booking, and managing their own appointments. Default for new users.                      |
+| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off, and the weekly appointment list. |
+| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                            |
 
 ### First run: bootstrapping the master
 
@@ -267,6 +276,7 @@ All settings come from `.env`. Start from `.env.example`.
 | `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                           |
 | `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                                       |
 | `TIMEZONE`                                                            | IANA timezone for display and local schedule input (default `Europe/Moscow`); storage stays UTC |
+| `SCHEDULE_MODE`                                                       | `weekly` or `monthly` — schedule shape for this deploy (pick once; switching is not supported)  |
 | `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                  |
 | `LOG_FORMAT`                                                          | Python logging format string                                                                    |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                            |
@@ -293,18 +303,20 @@ Use `PROXY_TYPE=socks5` for SOCKS. Leave the lines commented to connect directly
 
 ## Database Schema
 
-Core booking tables (plus `schema_migrations`, `master_settings`, `working_hours` and `time_off`).
+Core booking tables (plus `schema_migrations`, `master_settings`, `working_hours`,
+`work_dates` and `time_off`).
 Schema is applied by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
 on startup.
 
-| Table             | Purpose                                                                                         |
-|-------------------|-------------------------------------------------------------------------------------------------|
-| `users`           | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone) |
-| `services`        | Master's offerings: title, duration, price, description, photo file id, active flag             |
-| `appointments`    | Client, service, status, and concrete time range (`starts_at` / `ends_at`)                      |
-| `master_settings` | Per-master timezone, grid step, gap, lead time and booking horizon                              |
-| `working_hours`   | Weekly template: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                     |
-| `time_off`        | Absolute blocked intervals (day off, break, vacation) per master                                |
+| Table              | Purpose                                                                                          |
+|--------------------|--------------------------------------------------------------------------------------------------|
+| `users`            | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone)  |
+| `services`         | Master's offerings: title, duration, price, description, photo file id, active flag              |
+| `appointments`     | Client, service, status, and concrete time range (`starts_at` / `ends_at`)                       |
+| `master_settings`  | Per-master timezone, grid step, gap, lead time and booking horizon                               |
+| `working_hours`    | Weekly mode: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                          |
+| `work_dates`       | Monthly mode: concrete open dates with local `starts_time` / `ends_time` (unique per master+day) |
+| `time_off`         | Absolute blocked intervals (day off, break, vacation) per master                                 |
 
 `services.description` (optional, up to 1000 characters) and `photo_file_id` (Telegram
 photo file id) are set from the master's service card and shown in the client
@@ -316,9 +328,12 @@ Appointments store `starts_at` / `ends_at`. Active appointments for the same mas
 cannot overlap in time: a GiST `EXCLUDE` on `tstzrange(starts_at, ends_at, '[)')`
 enforces that.
 
-Availability for **Book** is computed from `working_hours`, minus `time_off` and
-existing appointments (`AvailabilityService`), using `master_settings` for step, gap,
-lead time and horizon.
+Availability for **Book** is computed from the schedule for this deploy
+(`SCHEDULE_MODE`): **`weekly`** uses `working_hours` by weekday; **`monthly`** uses
+`work_dates` for concrete open days. In both modes, `time_off` and existing
+appointments are subtracted (`AvailabilityService`), using `master_settings` for
+step, gap, lead time and horizon. Switching mode does not migrate data — after a
+change you must restart and fill the matching schedule tables.
 
 `master_settings.gap_minutes` defaults to `0` (back-to-back) and is editable under
 **Schedule → Break between appointments**. `min_lead_minutes` defaults to `0` and is
@@ -331,12 +346,19 @@ Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads th
 
 `working_hours` stores repeating weekly intervals as local wall-clock `TIME` values;
 the master's timezone (settings / `.env`) interprets them when computing availability.
-Day-off and breaks are intentionally kept out of this table — they live in the separate `time_off` table.
+Used when `SCHEDULE_MODE=weekly`.
+
+`work_dates` stores concrete open calendar days with one local interval per day
+(`UNIQUE (master_user_id, work_date)`). Used when `SCHEDULE_MODE=monthly`. Saving
+hours upserts only the newly selected days; closing days deletes those rows (with a
+confirm if pending/confirmed appointments fall on them — bookings are kept).
+
+Day-off and breaks are intentionally kept out of the weekly template — they live in
+the separate `time_off` table. In monthly mode, closing a full day is an untoggled
+work day; use `time_off` for a partial-day block inside an open day.
 
 `time_off` holds concrete `TIMESTAMPTZ` blocks that remove availability — full days
-(midnight → next midnight) or same-day clock windows from the hub. Weekly open hours
-stay in `working_hours`.
-
+(midnight → next midnight) or same-day clock windows from the hub.
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
 ### Schema migrations
@@ -360,12 +382,13 @@ pytest
 ```
 
 ```
-......................                                       [100%]
-22 passed in 0.16s
+..........................                                       [100%]
+26 passed in 0.16s
 ```
 
-The suite covers `BookingService` and `AvailabilityService`: window booking rules,
-confirm and cancel transitions with permission checks, and client appointment listing filters.
+The suite covers `BookingService` and `AvailabilityService`: window booking rules
+(including monthly open days), confirm and cancel transitions with permission checks,
+and client appointment listing filters.
 
 ## Project Structure
 
