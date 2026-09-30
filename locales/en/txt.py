@@ -476,6 +476,10 @@ EN: dict[str, str] = {
     ),
     "work_days_off_saved": "Day(s) off: {dates}.",
     "work_days_cleared": "Work days in {month} cleared.",
+    "work_days_summary_button": "Show current schedule",
+    "work_days_summary_header": "Schedule for {month}:",
+    "work_days_summary_item": "• {date} {starts}–{ends}",
+    "work_days_summary_empty": "No work days set for {month} yet.",
     "work_days_warn_header": (
         "There are bookings on days you are closing. "
         "Days will close; bookings stay:\n\n"

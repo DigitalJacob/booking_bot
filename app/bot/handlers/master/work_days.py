@@ -579,6 +579,50 @@ async def process_work_days_next(
 
 
 @work_days_router.callback_query(
+    WorkDaysNavCallback.filter(F.action == "summary"),
+    StateFilter(WorkDaysSG.choosing_days),
+)
+async def process_work_days_summary(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+) -> None:
+    data = await state.get_data()
+    year = int(data["wd_year"])
+    month = int(data["wd_month"])
+    label = month_label(year, month, i18n)
+    rows = await repos.work_dates.list_month(
+        master_user_id=user.user_id,
+        year=year,
+        month=month,
+    )
+    if not rows:
+        text = i18n.get("work_days_summary_empty").format(month=label)
+    else:
+        lines = [
+            i18n.get("work_days_summary_header").format(month=label),
+            "",
+        ]
+        for row in rows:
+            lines.append(
+                i18n.get("work_days_summary_item").format(
+                    date=row.work_date.strftime("%d.%m"),
+                    starts=_format_hm(row.starts_time),
+                    ends=_format_hm(row.ends_time),
+                )
+            )
+        text = "\n".join(lines)
+
+    await callback.message.answer(
+        text=text,
+        reply_markup=get_hub_dismiss_kb(i18n),
+    )
+    await callback.answer()
+
+
+@work_days_router.callback_query(
     WorkDaysNavCallback.filter(F.action == "back"),
     StateFilter(WorkDaysSG.choosing_days),
 )

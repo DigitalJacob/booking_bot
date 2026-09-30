@@ -477,6 +477,10 @@ RU: dict[str, str] = {
     ),
     "work_days_off_saved": "Выходные: {dates}.",
     "work_days_cleared": "Рабочие дни на {month} сняты.",
+    "work_days_summary_button": "Показать текущий график",
+    "work_days_summary_header": "График на {month}:",
+    "work_days_summary_item": "• {date} {starts}–{ends}",
+    "work_days_summary_empty": "На {month} рабочих дней пока нет.",
     "work_days_warn_header": (
         "На закрываемых днях есть записи. "
         "Дни закроются, записи останутся:\n\n"
