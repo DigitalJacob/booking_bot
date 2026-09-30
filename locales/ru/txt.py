@@ -485,6 +485,16 @@ RU: dict[str, str] = {
     ),
     "work_days_off_saved": "Выходные: {dates}.",
     "work_days_cleared": "Рабочие дни на {month} сняты.",
+    "work_days_warn_header": (
+        "На закрываемых днях есть записи. "
+        "Дни закроются, записи останутся:\n\n"
+        "{list}\n\n"
+        "Сохранить всё равно?"
+    ),
+    "work_days_warn_item": "• {when} — {client}",
+    "work_days_warn_more": "…и ещё {n}",
+    "work_days_warn_anyway": "Всё равно сохранить",
+    "work_days_warn_back": "← К календарю",
     "work_days_next_button": "Далее",
     "work_days_back_button": "← Назад",
     "work_days_cancel_button": "Отмена",

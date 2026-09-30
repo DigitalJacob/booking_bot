@@ -1,5 +1,5 @@
 from contextlib import suppress
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -19,14 +19,15 @@ from app.bot.keyboards.work_days import (
     get_work_days_cancel_kb,
     get_work_days_confirm_kb,
     get_work_days_months_kb,
+    get_work_days_warn_kb,
     month_label,
 )
 from app.bot.states.states import WorkDaysSG
-from app.bot.utils.format import get_zone
+from app.bot.utils.format import client_contact, format_dt, get_zone, to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.hub_registry import register
-from app.domain.enums import UserRole
-from app.domain.models import User
+from app.domain.enums import AppointmentStatus, UserRole
+from app.domain.models import Appointment, User
 from app.infrastructure.database.repositories import Repositories
 
 
@@ -35,6 +36,7 @@ work_days_router.message.filter(UserRoleFilter(UserRole.MASTER))
 work_days_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _MONTH_CHOICES = 3
+_MAX_WARN_LINES = 8
 
 
 def _parse_time(value: str) -> time | None:
@@ -245,6 +247,157 @@ async def _show_confirm(
         state=state,
         text=text,
         reply_markup=get_work_days_confirm_kb(i18n),
+    )
+
+
+async def _appointments_on_removed_days(
+        *,
+        repos: Repositories,
+        master_user_id: int,
+        data: dict,
+        bot_timezone: str,
+) -> list[Appointment]:
+    _, _, removed, _ = _day_sets(data)
+    if not removed:
+        return []
+
+    removed_dates = {date.fromisoformat(value) for value in removed}
+    zone = get_zone(bot_timezone)
+    from_day = min(removed_dates)
+    to_day = max(removed_dates) + timedelta(days=1)
+    rows = await repos.appointments.list_by_master(
+        master_user_id=master_user_id,
+        from_dt=datetime.combine(from_day, time.min, tzinfo=zone),
+        to_dt=datetime.combine(to_day, time.min, tzinfo=zone),
+    )
+    result: list[Appointment] = []
+    for appointment in rows:
+        if appointment.status not in (
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
+        ):
+            continue
+        local_day = to_local(appointment.starts_at, bot_timezone).date()
+        if local_day in removed_dates:
+            result.append(appointment)
+    return result
+
+
+async def _warn_bookings_text(
+        *,
+        repos: Repositories,
+        appointments: list[Appointment],
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> str:
+    lines: list[str] = []
+    for appointment in appointments[:_MAX_WARN_LINES]:
+        client = await repos.users.get_user_by_id(
+            user_id=appointment.client_user_id,
+        )
+        name, _ = client_contact(client)
+        lines.append(
+            i18n.get("work_days_warn_item").format(
+                when=format_dt(appointment.starts_at, bot_timezone),
+                client=name,
+            )
+        )
+    extra = len(appointments) - _MAX_WARN_LINES
+    if extra > 0:
+        lines.append(i18n.get("work_days_warn_more").format(n=extra))
+    return i18n.get("work_days_warn_header").format(list="\n".join(lines))
+
+
+async def _show_warn_bookings(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        appointments: list[Appointment],
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    text = await _warn_bookings_text(
+        repos=repos,
+        appointments=appointments,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await state.set_state(WorkDaysSG.warn_bookings)
+    await show_hub_prompt(
+        message=message,
+        state=state,
+        text=text,
+        reply_markup=get_work_days_warn_kb(i18n),
+    )
+
+
+async def _apply_work_days_save(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    data = await state.get_data()
+    year = int(data["wd_year"])
+    month = int(data["wd_month"])
+    days = [date.fromisoformat(value) for value in data.get("wd_days") or []]
+    _, _, removed, _ = _day_sets(data)
+    confirm_mode = data.get("wd_confirm_mode") or ("clear" if not days else "set")
+
+    if days:
+        starts = time.fromisoformat(data["wd_starts"])
+        ends = time.fromisoformat(data["wd_ends"])
+        await repos.work_dates.replace_month(
+            master_user_id=user.user_id,
+            year=year,
+            month=month,
+            work_dates=days,
+            starts_time=starts,
+            ends_time=ends,
+        )
+        if confirm_mode == "off":
+            saved_text = i18n.get("work_days_off_saved").format(
+                dates=_format_day_list(removed),
+            )
+        else:
+            saved_text = i18n.get("work_days_saved").format(
+                count=len(days),
+                month=month_label(year, month, i18n),
+                starts=_format_hm(starts),
+                ends=_format_hm(ends),
+            )
+    else:
+        await repos.work_dates.replace_month(
+            master_user_id=user.user_id,
+            year=year,
+            month=month,
+            work_dates=[],
+        )
+        saved_text = i18n.get("work_days_cleared").format(
+            month=month_label(year, month, i18n),
+        )
+
+    await clear_state_keep_hub(state)
+    await state.update_data(
+        hub_screen="work_days",
+        hub_back="schedule",
+        list_return="schedule",
+    )
+    await show_work_days_months(
+        message=message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await message.answer(
+        text=saved_text,
+        reply_markup=get_hub_dismiss_kb(i18n),
     )
 
 
@@ -515,7 +668,7 @@ async def process_work_days_ends(
 
 @work_days_router.callback_query(
     WorkDaysNavCallback.filter(F.action == "confirm_no"),
-    StateFilter(WorkDaysSG.confirming),
+    StateFilter(WorkDaysSG.confirming, WorkDaysSG.warn_bookings),
 )
 async def process_work_days_confirm_no(
         callback: CallbackQuery,
@@ -539,52 +692,25 @@ async def process_work_days_confirm_yes(
         bot_timezone: str,
 ) -> None:
     data = await state.get_data()
-    year = int(data["wd_year"])
-    month = int(data["wd_month"])
-    days = [date.fromisoformat(value) for value in data.get("wd_days") or []]
-    _, _, removed, _ = _day_sets(data)
-    confirm_mode = data.get("wd_confirm_mode") or ("clear" if not days else "set")
-
-    if days:
-        starts = time.fromisoformat(data["wd_starts"])
-        ends = time.fromisoformat(data["wd_ends"])
-        await repos.work_dates.replace_month(
-            master_user_id=user.user_id,
-            year=year,
-            month=month,
-            work_dates=days,
-            starts_time=starts,
-            ends_time=ends,
-        )
-        if confirm_mode == "off":
-            saved_text = i18n.get("work_days_off_saved").format(
-                dates=_format_day_list(removed),
-            )
-        else:
-            saved_text = i18n.get("work_days_saved").format(
-                count=len(days),
-                month=month_label(year, month, i18n),
-                starts=_format_hm(starts),
-                ends=_format_hm(ends),
-            )
-    else:
-        await repos.work_dates.replace_month(
-            master_user_id=user.user_id,
-            year=year,
-            month=month,
-            work_dates=[],
-        )
-        saved_text = i18n.get("work_days_cleared").format(
-            month=month_label(year, month, i18n),
-        )
-
-    await clear_state_keep_hub(state)
-    await state.update_data(
-        hub_screen="work_days",
-        hub_back="schedule",
-        list_return="schedule",
+    conflicting = await _appointments_on_removed_days(
+        repos=repos,
+        master_user_id=user.user_id,
+        data=data,
+        bot_timezone=bot_timezone,
     )
-    await show_work_days_months(
+    if conflicting:
+        await _show_warn_bookings(
+            message=callback.message,
+            state=state,
+            repos=repos,
+            appointments=conflicting,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+        )
+        await callback.answer()
+        return
+
+    await _apply_work_days_save(
         message=callback.message,
         state=state,
         repos=repos,
@@ -593,10 +719,29 @@ async def process_work_days_confirm_yes(
         bot_timezone=bot_timezone,
     )
     await callback.answer()
-    await callback.message.answer(
-        text=saved_text,
-        reply_markup=get_hub_dismiss_kb(i18n),
+
+
+@work_days_router.callback_query(
+    WorkDaysNavCallback.filter(F.action == "save_anyway"),
+    StateFilter(WorkDaysSG.warn_bookings),
+)
+async def process_work_days_save_anyway(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _apply_work_days_save(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
     )
+    await callback.answer()
 
 
 async def _hub_work_days(

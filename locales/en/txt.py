@@ -484,6 +484,16 @@ EN: dict[str, str] = {
     ),
     "work_days_off_saved": "Day(s) off: {dates}.",
     "work_days_cleared": "Work days in {month} cleared.",
+    "work_days_warn_header": (
+        "There are bookings on days you are closing. "
+        "Days will close; bookings stay:\n\n"
+        "{list}\n\n"
+        "Save anyway?"
+    ),
+    "work_days_warn_item": "• {when} — {client}",
+    "work_days_warn_more": "…and {n} more",
+    "work_days_warn_anyway": "Save anyway",
+    "work_days_warn_back": "← Back to calendar",
     "work_days_next_button": "Next",
     "work_days_back_button": "← Back",
     "work_days_cancel_button": "Cancel",

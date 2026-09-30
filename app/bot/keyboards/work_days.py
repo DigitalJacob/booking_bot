@@ -7,7 +7,7 @@ from app.bot.keyboards.schedule import WEEKDAY_KEYS
 
 
 class WorkDaysNavCallback(CallbackData, prefix="wd"):
-    action: str  # close | cancel | next | back | confirm_yes | confirm_no
+    action: str  # close|cancel|next|back|confirm_yes|confirm_no|save_anyway
 
 
 class WorkDaysMonthCallback(CallbackData, prefix="wdm"):
@@ -154,6 +154,29 @@ def get_work_days_confirm_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     text=i18n.get("work_days_cancel_button"),
                     callback_data=WorkDaysNavCallback(action="cancel").pack(),
+                )
+            ],
+        ]
+    )
+
+
+def get_work_days_warn_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("work_days_warn_anyway"),
+                    callback_data=WorkDaysNavCallback(
+                        action="save_anyway",
+                    ).pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("work_days_warn_back"),
+                    callback_data=WorkDaysNavCallback(
+                        action="confirm_no",
+                    ).pack(),
                 )
             ],
         ]

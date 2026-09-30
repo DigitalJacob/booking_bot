@@ -71,6 +71,7 @@ class WorkDaysSG(StatesGroup):
     starts_time = State()
     ends_time = State()
     confirming = State()
+    warn_bookings = State()
 
 
 class AdminModSG(StatesGroup):
