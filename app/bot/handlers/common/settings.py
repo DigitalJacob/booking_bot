@@ -3,7 +3,7 @@ from contextlib import suppress
 from aiogram import Bot, F, Router
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import CommandStart, StateFilter
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, CallbackQuery, Message
 
@@ -55,7 +55,11 @@ async def _finish_lang_flow(
             )
 
 
-@settings_router.message(StateFilter(LangSG.lang), ~CommandStart())
+@settings_router.message(
+    StateFilter(LangSG.lang),
+    ~CommandStart(),
+    ~Command("menu"),
+)
 async def process_any_message_when_lang(
         message: Message,
         bot: Bot,

@@ -7,7 +7,7 @@ EN: dict[str, str] = {
         "• My bookings — your visits\n"
         "• Profile — contact details\n"
         "• Settings — language and this help\n\n"
-        "Send /start to open the menu again."
+        "Send /start to refresh the menu; /menu sends a new menu message."
     ),
     "/help_master": (
         "You are a specialist. Use the main menu buttons:\n\n"
@@ -16,7 +16,7 @@ EN: dict[str, str] = {
         "• Services — catalogue and add\n"
         "• Schedule — working hours and time off\n"
         "• Settings — language and this help\n\n"
-        "Send /start to open the menu again."
+        "Send /start to refresh the menu; /menu sends a new menu message."
     ),
     "/help_admin": (
         "You are a bot administrator. Moderation is on "
@@ -25,7 +25,7 @@ EN: dict[str, str] = {
         "• Set role\n"
         "• Ban / Unban\n"
         "• Settings — language and this help\n\n"
-        "Send /start to open the menu again."
+        "Send /start to refresh the menu; /menu sends a new menu message."
     ),
     "client_booking_confirmed": (
         "Your appointment has been confirmed.\n\n"
@@ -43,7 +43,8 @@ EN: dict[str, str] = {
     "en": "🇬🇧 English",
     "save_lang_button_text": "✅ Save",
     "cancel_lang_button_text": "Cancel",
-    "/start_description": "Restart the bot",
+    "/start_description": "Start bot/refresh menu",
+    "/menu_description": "New menu message",
     "book_choose_service": "Choose a service",
     "book_choose_day": "Choose a day",
     "book_choose_window": "Choose a time",
