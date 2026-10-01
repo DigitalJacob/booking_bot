@@ -16,9 +16,9 @@ deploy) and time off, sees the client's name and phone on every card, and confir
 or declines either from the **Bookings** screen or straight from the new-booking
 notification. Both sides get notified on every status change.
 
-Navigation is a sticky inline hub opened by `/start` — there are no other slash
-commands. Built on a layered architecture with the business logic isolated from
-Telegram and SQL, and covered by unit tests.
+Navigation is a sticky inline hub: `/start` refreshes it in place, `/menu` posts a
+fresh hub message (useful after clearing the chat). Built on a layered architecture
+with the business logic isolated from Telegram and SQL, and covered by unit tests.
 
 ## Tech Stack
 
@@ -57,7 +57,7 @@ app/
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
     ├── utils/        # Notifications, sticky hub helpers, shared formatting
-    ├── bot_commands.py  # Telegram ☰ menu (/start only)
+    ├── bot_commands.py  # Telegram ☰ menu (/start, /menu)
     └── i18n/         # Locale resolution
 ```
 
@@ -130,8 +130,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ### Platform
 
-- **Sticky hub** — `/start` opens (or reuses) one role-specific button menu; screens
-  edit that message in place instead of flooding the chat
+- **Sticky hub** — `/start` opens or reuses one role-specific button menu; `/menu`
+  always sends a new hub message and points sticky navigation at it; screens edit
+  that message in place instead of flooding the chat
 - **Bilingual interface** — Russian and English, switchable at runtime under
   **Settings → Language**
 - **Language resolution chain** — explicit choice → Telegram client language → default
@@ -148,8 +149,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ## Navigation
 
-The Telegram ☰ menu exposes only **`/start`** (restart / open the hub). Everything
-else is inline buttons on the sticky hub message.
+The Telegram ☰ menu exposes **`/start`** (start / refresh the sticky hub) and
+**`/menu`** (new hub message — e.g. after the chat was cleared). Everything else
+is inline buttons on the sticky hub message.
 
 | Hub path                                   | Role     | What it does                                               |
 |--------------------------------------------|----------|------------------------------------------------------------|
@@ -403,7 +405,7 @@ booking_bot/
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
 │   │   ├── states/         # FSM state groups
 │   │   ├── utils/          # Notifications, hub helpers, shared formatting
-│   │   ├── bot_commands.py # Telegram ☰ menu (/start only)
+│   │   ├── bot_commands.py # Telegram ☰ menu (/start, /menu)
 │   │   └── bot.py          # Dispatcher setup and startup
 │   ├── domain/             # Models, enums, exceptions, BookingService, AvailabilityService
 │   └── infrastructure/     # Connection pool and repositories
