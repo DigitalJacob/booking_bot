@@ -476,20 +476,16 @@ async def process_work_days_month(
         month=callback_data.month,
     )
     selected = sorted(row.work_date.isoformat() for row in rows)
-    payload: dict = {
-        "wd_year": callback_data.year,
-        "wd_month": callback_data.month,
-        "wd_days": selected,
-        "wd_days_initial": selected,
-        "wd_confirm_mode": None,
-    }
-    if rows:
-        payload["wd_starts"] = rows[0].starts_time.isoformat()
-        payload["wd_ends"] = rows[0].ends_time.isoformat()
-    else:
-        payload["wd_starts"] = None
-        payload["wd_ends"] = None
-    await state.update_data(payload)
+    await state.update_data(
+        wd_year=callback_data.year,
+        wd_month=callback_data.month,
+        wd_days=selected,
+        wd_days_initial=selected,
+        wd_confirm_mode=None,
+        # Hours come only from the starts/ends prompts for newly added days.
+        wd_starts=None,
+        wd_ends=None,
+    )
     await _show_calendar(message=callback.message, state=state, i18n=i18n)
     await callback.answer()
 
