@@ -4,12 +4,18 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.bot.keyboards.schedule import WEEKDAY_KEYS
+from app.bot.keyboards.work_days import month_label_short
 from app.bot.utils.format import format_time
 from app.domain.models import Service, TimeWindow
 
 
 class ServiceCallback(CallbackData, prefix="svc"):
     service_id: int
+
+
+class MonthCallback(CallbackData, prefix="bmon"):
+    year: int
+    month: int
 
 
 class DayCallback(CallbackData, prefix="bday"):
@@ -70,6 +76,29 @@ def get_services_kb(
             ]
         )
     buttons.append(_nav_row(i18n, with_back=False))
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_months_kb(
+        *,
+        months: list[tuple[int, int]],
+        i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
+    buttons: list[list[InlineKeyboardButton]] = []
+    row: list[InlineKeyboardButton] = []
+    for year, month in months:
+        row.append(
+            InlineKeyboardButton(
+                text=month_label_short(year, month, i18n),
+                callback_data=MonthCallback(year=year, month=month).pack(),
+            )
+        )
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+    buttons.append(_nav_row(i18n, with_back=True))
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 

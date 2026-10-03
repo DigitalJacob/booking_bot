@@ -46,8 +46,10 @@ RU: dict[str, str] = {
     "/start_description": "Старт бота/обновление меню",
     "/menu_description": "Новое сообщение с меню",
     "book_choose_service": "Выберите услугу",
+    "book_choose_month": "Выберите месяц:",
     "book_choose_day": "Выберите день",
     "book_choose_window": "Выберите время",
+    "book_month_unavailable": "Этот месяц недоступен.",
     "book_confirm": (
         "Проверьте запись:\n\n"
         "Услуга: {title}\n"

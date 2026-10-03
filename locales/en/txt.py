@@ -46,8 +46,10 @@ EN: dict[str, str] = {
     "/start_description": "Start bot/refresh menu",
     "/menu_description": "New menu message",
     "book_choose_service": "Choose a service",
+    "book_choose_month": "Choose a month:",
     "book_choose_day": "Choose a day",
     "book_choose_window": "Choose a time",
+    "book_month_unavailable": "That month is not available.",
     "book_confirm": (
         "Please confirm your appointment:\n\n"
         "Service: {title}\n"
