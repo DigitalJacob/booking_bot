@@ -28,6 +28,12 @@ def month_label(year: int, month: int, i18n: dict[str, str]) -> str:
     return f"{name} {year}"
 
 
+def month_label_short(year: int, month: int, i18n: dict[str, str]) -> str:
+    """Compact picker label, e.g. сен 26 / Sep 26."""
+    name = i18n.get(f"work_days_month_short_{month}")
+    return f"{name} {year % 100:02d}"
+
+
 def get_work_days_months_kb(
         *,
         months: list[tuple[int, int]],
@@ -35,19 +41,23 @@ def get_work_days_months_kb(
         i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
+    row: list[InlineKeyboardButton] = []
     for year, month in months:
         mark = "✓ " if (year, month) in marked else ""
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text=mark + month_label(year, month, i18n),
-                    callback_data=WorkDaysMonthCallback(
-                        year=year,
-                        month=month,
-                    ).pack(),
-                )
-            ]
+        row.append(
+            InlineKeyboardButton(
+                text=mark + month_label_short(year, month, i18n),
+                callback_data=WorkDaysMonthCallback(
+                    year=year,
+                    month=month,
+                ).pack(),
+            )
         )
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
     buttons.append(
         [
             InlineKeyboardButton(

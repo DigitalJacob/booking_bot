@@ -35,7 +35,7 @@ work_days_router = Router(name="master_work_days")
 work_days_router.message.filter(UserRoleFilter(UserRole.MASTER))
 work_days_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
-_MONTH_CHOICES = 3
+_MONTH_CHOICES = 12
 _MAX_WARN_LINES = 8
 
 
