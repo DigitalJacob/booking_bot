@@ -345,11 +345,13 @@ data — after a change you must restart and fill the matching schedule tables.
 
 `master_settings.gap_minutes` defaults to `0` (back-to-back) and is editable under
 **Schedule → Break between appointments**. `min_lead_minutes` defaults to `0` and is
-editable under **Schedule → Minimum lead time**. `slot_step_minutes` is `NULL` until
-customized (editable under **Schedule → Slot grid step**, with a reset to “use service
-duration”) and means “step equals the chosen service duration” (when a candidate
-overlaps a busy block including gap, availability jumps to that block’s end so the
-next start can land on `ends_at + gap` even with a coarser step).
+editable under **Schedule → Minimum lead time**. `booking_horizon_days` defaults to
+`180` (how far ahead **Book** offers months and slots; not editable from the hub yet).
+`slot_step_minutes` is `NULL` until customized (editable under **Schedule → Slot grid
+step**, with a reset to “use service duration”) and means “step equals the chosen
+service duration” (when a candidate overlaps a busy block including gap, availability
+jumps to that block’s end so the next start can land on `ends_at + gap` even with a
+coarser step).
 Display/input timezone still comes from `.env` `TIMEZONE` until the bot reads this table.
 
 `working_hours` stores repeating weekly intervals as local wall-clock `TIME` values;
