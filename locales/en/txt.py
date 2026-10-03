@@ -47,7 +47,7 @@ EN: dict[str, str] = {
     "/menu_description": "New menu message",
     "book_choose_service": "Choose a service",
     "book_choose_month": "Choose a month:",
-    "book_choose_day": "Choose a day",
+    "book_choose_day": "Choose a day · {month}:",
     "book_choose_window": "Choose a time",
     "book_month_unavailable": "That month is not available.",
     "book_confirm": (

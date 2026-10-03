@@ -47,7 +47,7 @@ RU: dict[str, str] = {
     "/menu_description": "Новое сообщение с меню",
     "book_choose_service": "Выберите услугу",
     "book_choose_month": "Выберите месяц:",
-    "book_choose_day": "Выберите день",
+    "book_choose_day": "Выберите день · {month}:",
     "book_choose_window": "Выберите время",
     "book_month_unavailable": "Этот месяц недоступен.",
     "book_confirm": (

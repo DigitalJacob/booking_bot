@@ -1,3 +1,4 @@
+import calendar
 from datetime import date
 
 from aiogram.filters.callback_data import CallbackData
@@ -20,6 +21,10 @@ class MonthCallback(CallbackData, prefix="bmon"):
 
 class DayCallback(CallbackData, prefix="bday"):
     value: str
+
+
+class DayPadCallback(CallbackData, prefix="bpad"):
+    n: int = 0
 
 
 class BookingNavCallback(CallbackData, prefix="bk"):
@@ -50,11 +55,6 @@ def _nav_row(
         )
     )
     return buttons
-
-
-def _format_day_button(day: date, i18n: dict[str, str]) -> str:
-    weekday = i18n.get(WEEKDAY_KEYS[day.isoweekday()])
-    return f"{weekday} {day.strftime('%d.%m')}"
 
 
 def get_services_kb(
@@ -102,25 +102,46 @@ def get_months_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def get_days_kb(
+def get_day_calendar_kb(
         *,
-        days: list[date],
+        year: int,
+        month: int,
+        open_days: set[int],
         i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
-    buttons: list[list[InlineKeyboardButton]] = []
-    row: list[InlineKeyboardButton] = []
-    for day in days:
-        row.append(
+    """Month grid; only ``open_days`` (day-of-month) are selectable."""
+    buttons: list[list[InlineKeyboardButton]] = [
+        [
             InlineKeyboardButton(
-                text=_format_day_button(day, i18n),
-                callback_data=DayCallback(value=day.isoformat()).pack(),
+                text=i18n.get(WEEKDAY_KEYS[weekday]),
+                callback_data=DayPadCallback(n=weekday).pack(),
             )
-        )
-        if len(row) == 3:
-            buttons.append(row)
-            row = []
-    if row:
+            for weekday in range(1, 8)
+        ]
+    ]
+
+    cal = calendar.Calendar(firstweekday=0)  # Monday
+    for week in cal.monthdayscalendar(year, month):
+        row: list[InlineKeyboardButton] = []
+        for day in week:
+            if day == 0 or day not in open_days:
+                row.append(
+                    InlineKeyboardButton(
+                        text=" " if day == 0 else "·",
+                        callback_data=DayPadCallback(n=day).pack(),
+                    )
+                )
+                continue
+            row.append(
+                InlineKeyboardButton(
+                    text=str(day),
+                    callback_data=DayCallback(
+                        value=date(year, month, day).isoformat(),
+                    ).pack(),
+                )
+            )
         buttons.append(row)
+
     buttons.append(_nav_row(i18n, with_back=True))
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

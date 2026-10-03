@@ -9,15 +9,17 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.keyboards.booking import (
     BookingNavCallback,
     DayCallback,
+    DayPadCallback,
     MonthCallback,
     ServiceCallback,
     WindowCallback,
     get_confirm_kb,
-    get_days_kb,
+    get_day_calendar_kb,
     get_months_kb,
     get_services_kb,
     get_windows_kb,
 )
+from app.bot.keyboards.work_days import month_label
 from app.bot.handlers.client.profile import start_profile_flow
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import BookingSG
@@ -107,12 +109,21 @@ async def _show_months(
 async def _show_days(
         *,
         message: Message,
+        year: int,
+        month: int,
         days: list[date],
         i18n: dict[str, str],
 ) -> None:
     await message.edit_text(
-        text=i18n.get("book_choose_day"),
-        reply_markup=get_days_kb(days=days, i18n=i18n),
+        text=i18n.get("book_choose_day").format(
+            month=month_label(year, month, i18n),
+        ),
+        reply_markup=get_day_calendar_kb(
+            year=year,
+            month=month,
+            open_days={day.day for day in days},
+            i18n=i18n,
+        ),
     )
 
 
@@ -304,7 +315,18 @@ async def process_month_choice(
         book_month=callback_data.month,
     )
     await state.set_state(BookingSG.choosing_day)
-    await _show_days(message=callback.message, days=days, i18n=i18n)
+    await _show_days(
+        message=callback.message,
+        year=callback_data.year,
+        month=callback_data.month,
+        days=days,
+        i18n=i18n,
+    )
+    await callback.answer()
+
+
+@booking_router.callback_query(DayPadCallback.filter())
+async def process_day_pad(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
@@ -325,6 +347,15 @@ async def process_day_choice(
     master_user_id = fsm_data["master_user_id"]
     service_duration = fsm_data["service_duration"]
     day = date.fromisoformat(callback_data.value)
+    book_year = fsm_data.get("book_year")
+    book_month = fsm_data.get("book_month")
+    if (
+        book_year is not None
+        and book_month is not None
+        and (day.year, day.month) != (int(book_year), int(book_month))
+    ):
+        await callback.answer()
+        return
 
     booking = BookingService(repos)
     windows = _windows_on_day(
@@ -586,11 +617,17 @@ async def process_back(
             days = _days_in_month(days, int(year), int(month))
         await state.set_state(BookingSG.choosing_day)
         await state.update_data(day=None, starts_at=None)
-        if not days:
+        if not days or year is None or month is None:
             await callback.message.edit_text(text=i18n.get("book_no_windows"))
             await clear_state_keep_hub(state)
         else:
-            await _show_days(message=callback.message, days=days, i18n=i18n)
+            await _show_days(
+                message=callback.message,
+                year=int(year),
+                month=int(month),
+                days=days,
+                i18n=i18n,
+            )
         await callback.answer()
         return
 
