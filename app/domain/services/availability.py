@@ -212,7 +212,7 @@ class AvailabilityService:
             slot_step_minutes=None,
             gap_minutes=0,
             min_lead_minutes=0,
-            booking_horizon_days=30,
+            booking_horizon_days=180,
             created_at=now,
             updated_at=now,
         )
