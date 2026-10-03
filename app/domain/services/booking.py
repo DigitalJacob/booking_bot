@@ -43,6 +43,19 @@ class BookingService:
             now=now,
         )
 
+    async def list_open_months(
+            self,
+            *,
+            master_user_id: int,
+            schedule_mode: str = "weekly",
+            now: datetime | None = None,
+    ) -> list[tuple[int, int]]:
+        return await AvailabilityService(self._repos).list_open_months(
+            master_user_id=master_user_id,
+            schedule_mode=schedule_mode,
+            now=now,
+        )
+
     async def book_window(
             self,
             *,

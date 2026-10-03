@@ -151,6 +151,58 @@ class AvailabilityService:
 
         return windows
 
+    async def list_open_months(
+            self,
+            *,
+            master_user_id: int,
+            schedule_mode: str = "weekly",
+            now: datetime | None = None,
+    ) -> list[tuple[int, int]]:
+        """Months inside the booking horizon that have at least one open day.
+
+        monthly: months with a ``work_dates`` row on/after today (within horizon).
+        weekly: months that contain a horizon day matching ``working_hours``.
+        """
+        if schedule_mode not in ("weekly", "monthly"):
+            raise ValueError(
+                f"schedule_mode must be 'weekly' or 'monthly', "
+                f"got: {schedule_mode!r}"
+            )
+
+        now = _as_utc(now or datetime.now(timezone.utc))
+        settings = await self._repos.master_settings.get_by_master(
+            master_user_id=master_user_id,
+        )
+        if settings is None:
+            settings = self._default_settings(master_user_id)
+
+        zone = ZoneInfo(settings.timezone)
+        start_day = now.astimezone(zone).date()
+        end_day = start_day + timedelta(days=settings.booking_horizon_days)
+
+        months: set[tuple[int, int]] = set()
+        if schedule_mode == "monthly":
+            work_dates = await self._repos.work_dates.list_by_master(
+                master_user_id=master_user_id,
+                from_date=start_day,
+                to_date=end_day,
+            )
+            for row in work_dates:
+                months.add((row.work_date.year, row.work_date.month))
+        else:
+            working = await self._repos.working_hours.list_by_master(
+                master_user_id=master_user_id,
+            )
+            open_weekdays = {row.weekday for row in working}
+            if open_weekdays:
+                day = start_day
+                while day < end_day:
+                    if day.isoweekday() in open_weekdays:
+                        months.add((day.year, day.month))
+                    day += timedelta(days=1)
+
+        return sorted(months)
+
     @staticmethod
     def _default_settings(master_user_id: int) -> MasterSettings:
         now = datetime.now(timezone.utc)

@@ -493,3 +493,62 @@ async def test_weekly_ignores_work_dates():
     )
 
     assert len(windows) == 3
+
+
+@pytest.mark.asyncio
+async def test_list_open_months_monthly_from_work_dates():
+    """Months with work_dates inside the horizon; past-only / out-of-horizon skipped."""
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=40),
+        work_dates=[
+            _work_date(work_date=date(2026, 9, 1), row_id=1),  # before today
+            _work_date(work_date=date(2026, 9, 10), row_id=2),
+            _work_date(work_date=date(2026, 10, 5), row_id=3),
+            _work_date(work_date=date(2026, 11, 1), row_id=4),  # past horizon
+        ],
+    )
+    service = AvailabilityService(repos)
+
+    months = await service.list_open_months(
+        master_user_id=MASTER_ID,
+        schedule_mode="monthly",
+        now=NOW,
+    )
+
+    assert months == [(2026, 9), (2026, 10)]
+
+
+@pytest.mark.asyncio
+async def test_list_open_months_monthly_empty():
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=30),
+        work_dates=[],
+    )
+    service = AvailabilityService(repos)
+
+    months = await service.list_open_months(
+        master_user_id=MASTER_ID,
+        schedule_mode="monthly",
+        now=NOW,
+    )
+
+    assert months == []
+
+
+@pytest.mark.asyncio
+async def test_list_open_months_weekly_from_working_hours():
+    """weekly: months that contain a horizon day matching open weekdays."""
+    # Thursday-only hours; horizon covers Sep 10..17 → Sep only.
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=7),
+        working_hours=[_working(weekday=4)],
+    )
+    service = AvailabilityService(repos)
+
+    months = await service.list_open_months(
+        master_user_id=MASTER_ID,
+        schedule_mode="weekly",
+        now=NOW,
+    )
+
+    assert months == [(2026, 9)]
