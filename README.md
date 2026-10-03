@@ -103,7 +103,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
   edit (including description/photo from the card) and soft deactivate
 - **Schedule → Working hours** *(when `SCHEDULE_MODE=weekly`)* — view / edit
   repeating weekly intervals
-- **Schedule → Work days** *(when `SCHEDULE_MODE=monthly`)* — pick open days on a
+- **Schedule → Work days** *(when `SCHEDULE_MODE=monthly`)* — choose a month from
+  the next 12 (compact labels in two columns, e.g. `сен 26`), pick open days on a
   month calendar, set hours for newly selected days (other days keep their hours),
   close days with an optional warn if bookings exist; **Show current schedule**
   lists saved days and hours
@@ -153,25 +154,25 @@ The Telegram ☰ menu exposes **`/start`** (start / refresh the sticky hub) and
 **`/menu`** (new hub message — e.g. after the chat was cleared). Everything else
 is inline buttons on the sticky hub message.
 
-| Hub path                                   | Role     | What it does                                               |
-|--------------------------------------------|----------|------------------------------------------------------------|
-| **Book**                                   | client   | Book an appointment (asks for the profile first if empty)  |
-| **Services**                               | client   | Browse active services (description / photo)               |
-| **My bookings**                            | client   | Upcoming appointments (open / cancel)                      |
-| **Profile → Show / Edit**                  | client   | View or update name and phone                              |
-| **Bookings**                               | master   | Week → day → card (confirm / cancel)                       |
-| **Services**                               | master   | List, add, edit, description/photo, deactivate             |
-| **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals               |
-| **Schedule → Work days**                   | master   | Monthly mode: calendar open days, hours, schedule summary  |
-| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)         |
-| **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                 |
-| **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)         |
-| **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration) |
-| **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                       |
-| **Settings → Language**                    | everyone | Switch RU / EN                                             |
-| **Settings → Help**                        | everyone | Short role-specific help                                   |
-| **← Back** / **⌂ Menu**                    | everyone | Hub navigation                                             |
-| **OK**                                     | everyone | Dismiss a result / status notice                           |
+| Hub path                                   | Role     | What it does                                                  |
+|--------------------------------------------|----------|---------------------------------------------------------------|
+| **Book**                                   | client   | Book an appointment (asks for the profile first if empty)     |
+| **Services**                               | client   | Browse active services (description / photo)                  |
+| **My bookings**                            | client   | Upcoming appointments (open / cancel)                         |
+| **Profile → Show / Edit**                  | client   | View or update name and phone                                 |
+| **Bookings**                               | master   | Week → day → card (confirm / cancel)                          |
+| **Services**                               | master   | List, add, edit, description/photo, deactivate                |
+| **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                  |
+| **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary |
+| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)            |
+| **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                    |
+| **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)            |
+| **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration)    |
+| **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                          |
+| **Settings → Language**                    | everyone | Switch RU / EN                                                |
+| **Settings → Help**                        | everyone | Short role-specific help                                      |
+| **← Back** / **⌂ Menu**                    | everyone | Hub navigation                                                |
+| **OK**                                     | everyone | Dismiss a result / status notice                              |
 
 ## Roles
 
@@ -351,9 +352,10 @@ the master's timezone (settings / `.env`) interprets them when computing availab
 Used when `SCHEDULE_MODE=weekly`.
 
 `work_dates` stores concrete open calendar days with one local interval per day
-(`UNIQUE (master_user_id, work_date)`). Used when `SCHEDULE_MODE=monthly`. Saving
-hours upserts only the newly selected days; closing days deletes those rows (with a
-confirm if pending/confirmed appointments fall on them — bookings are kept).
+(`UNIQUE (master_user_id, work_date)`). Used when `SCHEDULE_MODE=monthly`. The hub
+month picker offers the next 12 months from today. Saving hours upserts only the
+newly selected days; closing days deletes those rows (with a confirm if
+pending/confirmed appointments fall on them — bookings are kept).
 
 Day-off and breaks are intentionally kept out of the weekly template — they live in
 the separate `time_off` table. In monthly mode, closing a full day is an untoggled
