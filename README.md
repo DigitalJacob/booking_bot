@@ -80,12 +80,15 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Contact profile** — first name, last name and phone collected once before the
   first booking, via a share-contact button or manual input; editable later from
   **Profile**
-- **Guided booking** — **Book**: service → day → time → confirmation
+- **Guided booking** — **Book**: service → month (only months with open days and
+  free slots) → day on a month calendar (only bookable days are tappable) → time →
+  confirmation
 - **Services catalog** — browse active services with description and photo (separate
   from booking; card opens as a new message)
 - **Only bookable times are shown** — windows outside the master's open schedule
   (weekly hours or monthly open days), blocked by time off, already taken, or in
-  the past are filtered out before the client sees them
+  the past are filtered out before the client sees them; month and day pickers
+  respect the same filters within `booking_horizon_days`
 - **My bookings** — sticky list of upcoming appointments; open a card to cancel
 - **Self-service cancellation** — cancel your own booking; the master is notified
 - **Status notifications** — a message arrives when the master confirms or declines
@@ -154,25 +157,25 @@ The Telegram ☰ menu exposes **`/start`** (start / refresh the sticky hub) and
 **`/menu`** (new hub message — e.g. after the chat was cleared). Everything else
 is inline buttons on the sticky hub message.
 
-| Hub path                                   | Role     | What it does                                                  |
-|--------------------------------------------|----------|---------------------------------------------------------------|
-| **Book**                                   | client   | Book an appointment (asks for the profile first if empty)     |
-| **Services**                               | client   | Browse active services (description / photo)                  |
-| **My bookings**                            | client   | Upcoming appointments (open / cancel)                         |
-| **Profile → Show / Edit**                  | client   | View or update name and phone                                 |
-| **Bookings**                               | master   | Week → day → card (confirm / cancel)                          |
-| **Services**                               | master   | List, add, edit, description/photo, deactivate                |
-| **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                  |
-| **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary |
-| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)            |
-| **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                    |
-| **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)            |
-| **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration)    |
-| **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                          |
-| **Settings → Language**                    | everyone | Switch RU / EN                                                |
-| **Settings → Help**                        | everyone | Short role-specific help                                      |
-| **← Back** / **⌂ Menu**                    | everyone | Hub navigation                                                |
-| **OK**                                     | everyone | Dismiss a result / status notice                              |
+| Hub path                                   | Role     | What it does                                                   |
+|--------------------------------------------|----------|----------------------------------------------------------------|
+| **Book**                                   | client   | Service → month → calendar day → time (profile first if empty) |
+| **Services**                               | client   | Browse active services (description / photo)                   |
+| **My bookings**                            | client   | Upcoming appointments (open / cancel)                          |
+| **Profile → Show / Edit**                  | client   | View or update name and phone                                  |
+| **Bookings**                               | master   | Week → day → card (confirm / cancel)                           |
+| **Services**                               | master   | List, add, edit, description/photo, deactivate                 |
+| **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                   |
+| **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary  |
+| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)             |
+| **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                     |
+| **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)             |
+| **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration)     |
+| **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                           |
+| **Settings → Language**                    | everyone | Switch RU / EN                                                 |
+| **Settings → Help**                        | everyone | Short role-specific help                                       |
+| **← Back** / **⌂ Menu**                    | everyone | Hub navigation                                                 |
+| **OK**                                     | everyone | Dismiss a result / status notice                               |
 
 ## Roles
 
@@ -335,8 +338,10 @@ Availability for **Book** is computed from the schedule for this deploy
 (`SCHEDULE_MODE`): **`weekly`** uses `working_hours` by weekday; **`monthly`** uses
 `work_dates` for concrete open days. In both modes, `time_off` and existing
 appointments are subtracted (`AvailabilityService`), using `master_settings` for
-step, gap, lead time and horizon. Switching mode does not migrate data — after a
-change you must restart and fill the matching schedule tables.
+step, gap, lead time and horizon. The client month list comes from
+`AvailabilityService.list_open_months` (open schedule months inside the horizon
+that still have free slots for the chosen service). Switching mode does not migrate
+data — after a change you must restart and fill the matching schedule tables.
 
 `master_settings.gap_minutes` defaults to `0` (back-to-back) and is editable under
 **Schedule → Break between appointments**. `min_lead_minutes` defaults to `0` and is
@@ -391,8 +396,8 @@ pytest
 ```
 
 The suite covers `BookingService` and `AvailabilityService`: window booking rules
-(including monthly open days), confirm and cancel transitions with permission checks,
-and client appointment listing filters.
+(including monthly open days and open-month listing), confirm and cancel transitions
+with permission checks, and client appointment listing filters.
 
 ## Project Structure
 
