@@ -4,13 +4,14 @@ from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
 from app.bot.keyboards.hub import get_hub_back_home_kb
 from app.bot.keyboards.profile import (
     ProfileNavCallback,
     get_phone_kb,
     get_profile_cancel_kb,
+    get_profile_consent_kb,
     remove_kb,
 )
 from app.bot.states.states import ProfileSG
@@ -112,6 +113,20 @@ async def _finish_profile_flow(
         )
 
 
+def _consent_text(
+        *,
+        i18n: dict[str, str],
+        operator_name: str,
+        operator_contacts: str,
+) -> str:
+    return i18n.get("profile_consent_text").format(
+        operator_name=operator_name or i18n.get("profile_pdn_operator_fallback"),
+        operator_contacts=(
+            operator_contacts or i18n.get("profile_pdn_contacts_fallback")
+        ),
+    )
+
+
 async def _show_profile_prompt(
         *,
         message: Message,
@@ -119,6 +134,7 @@ async def _show_profile_prompt(
         i18n: dict[str, str],
         text: str,
         with_phone_kb: bool = False,
+        reply_markup: InlineKeyboardMarkup | None = None,
 ) -> None:
     """
     Show the next FSM question on the sticky hub message when possible.
@@ -128,7 +144,12 @@ async def _show_profile_prompt(
     sticky_id = data.get(HUB_MESSAGE_ID_KEY)
     prompt_id = sticky_id or data.get(_PROFILE_PROMPT_ID_KEY)
     # Phone step already has reply-keyboard Cancel — no inline button.
-    inline_kb = None if with_phone_kb else get_profile_cancel_kb(i18n)
+    if with_phone_kb:
+        inline_kb = None
+    elif reply_markup is not None:
+        inline_kb = reply_markup
+    else:
+        inline_kb = get_profile_cancel_kb(i18n)
 
     # Drop previous phone aux before replacing the prompt.
     await _delete_chat_message(
@@ -217,29 +238,73 @@ async def _save_profile(
     )
 
 
+async def _begin_profile_fields(
+        *,
+        message: Message,
+        state: FSMContext,
+        i18n: dict[str, str],
+        resume_book: bool,
+) -> None:
+    await state.set_state(ProfileSG.first_name)
+    intro_key = (
+        "profile_intro_book" if resume_book else "profile_intro_edit"
+    )
+    await _show_profile_prompt(
+        message=message,
+        state=state,
+        i18n=i18n,
+        text=i18n.get(intro_key),
+    )
+
+
 async def start_profile_flow(
         *,
         message: Message,
         state: FSMContext,
         i18n: dict[str, str],
+        user: User,
+        pdn_consent_version: str,
+        pdn_operator_name: str = "",
+        pdn_operator_contacts: str = "",
+        pdn_policy_url: str = "",
         resume_book: bool = False,
         edit: bool = False,
 ) -> None:
     data = await state.get_data()
     had_sticky = data.get(HUB_MESSAGE_ID_KEY) is not None
     await clear_state_keep_hub(state)
-    await state.set_state(ProfileSG.first_name)
-    updates: dict[str, object] = {"resume_book": resume_book}
+    updates: dict[str, object] = {
+        "resume_book": resume_book,
+        "pdn_consent_version": pdn_consent_version,
+    }
     if edit and not had_sticky:
         # Hub leaf without stored id: treat this message as sticky.
         updates[HUB_MESSAGE_ID_KEY] = message.message_id
     await state.update_data(updates)
 
+    if user.has_pdn_consent(version=pdn_consent_version):
+        await _begin_profile_fields(
+            message=message,
+            state=state,
+            i18n=i18n,
+            resume_book=resume_book,
+        )
+        return
+
+    await state.set_state(ProfileSG.consent)
     await _show_profile_prompt(
         message=message,
         state=state,
         i18n=i18n,
-        text=i18n.get("profile_ask_first_name"),
+        text=_consent_text(
+            i18n=i18n,
+            operator_name=pdn_operator_name,
+            operator_contacts=pdn_operator_contacts,
+        ),
+        reply_markup=get_profile_consent_kb(
+            i18n=i18n,
+            policy_url=pdn_policy_url,
+        ),
     )
 
 
@@ -262,6 +327,78 @@ async def process_profile_cancel_cb(
         i18n=i18n,
         drop_reply_kb=drop_reply_kb,
     )
+
+
+@profile_router.callback_query(
+    StateFilter(ProfileSG.consent),
+    ProfileNavCallback.filter(F.action == "consent_no"),
+)
+async def process_consent_no(
+        callback: CallbackQuery,
+        state: FSMContext,
+        user: User | None,
+        i18n: dict[str, str],
+) -> None:
+    await _finish_profile_flow(
+        message=callback.message,
+        state=state,
+        user=user,
+        i18n=i18n,
+    )
+    await callback.answer(
+        text=i18n.get("profile_consent_declined"),
+        show_alert=True,
+    )
+
+
+@profile_router.callback_query(
+    StateFilter(ProfileSG.consent),
+    ProfileNavCallback.filter(F.action == "consent_yes"),
+)
+async def process_consent_yes(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User | None,
+        i18n: dict[str, str],
+) -> None:
+    if user is None:
+        await callback.answer(
+            text=i18n.get("book_need_start"),
+            show_alert=True,
+        )
+        await clear_state_keep_hub(state)
+        return
+
+    data = await state.get_data()
+    version = data.get("pdn_consent_version") or "v1"
+    await repos.users.set_pdn_consent(
+        user_id=user.user_id,
+        version=str(version),
+    )
+    resume_book = bool(data.get("resume_book"))
+    refreshed = await repos.users.get_user_by_id(user_id=user.user_id)
+    if refreshed is not None and refreshed.profile_complete:
+        await _finish_profile_flow(
+            message=callback.message,
+            state=state,
+            user=refreshed,
+            i18n=i18n,
+        )
+        if resume_book:
+            await callback.message.answer(
+                text=i18n.get("profile_saved_continue_book"),
+            )
+        await callback.answer()
+        return
+
+    await _begin_profile_fields(
+        message=callback.message,
+        state=state,
+        i18n=i18n,
+        resume_book=resume_book,
+    )
+    await callback.answer()
 
 
 @profile_router.message(
@@ -419,16 +556,28 @@ async def _hub_profile_show(
         user: User,
         i18n: dict[str, str],
         state: FSMContext,
+        pdn_consent_version: str = "v1",
+        pdn_operator_name: str = "",
+        pdn_operator_contacts: str = "",
+        pdn_policy_url: str = "",
         **_,
 ) -> None:
     if user.role != UserRole.CLIENT:
         return
     await state.update_data(hub_screen="profile_show", hub_back="profile")
-    if not user.profile_complete:
+    if (
+        not user.profile_complete
+        or not user.has_pdn_consent(version=pdn_consent_version)
+    ):
         await start_profile_flow(
             message=message,
             state=state,
             i18n=i18n,
+            user=user,
+            pdn_consent_version=pdn_consent_version,
+            pdn_operator_name=pdn_operator_name,
+            pdn_operator_contacts=pdn_operator_contacts,
+            pdn_policy_url=pdn_policy_url,
             resume_book=False,
             edit=True,
         )
@@ -445,6 +594,10 @@ async def _hub_profile_edit(
         user: User,
         i18n: dict[str, str],
         state: FSMContext,
+        pdn_consent_version: str = "v1",
+        pdn_operator_name: str = "",
+        pdn_operator_contacts: str = "",
+        pdn_policy_url: str = "",
         **_,
 ) -> None:
     if user.role != UserRole.CLIENT:
@@ -454,6 +607,11 @@ async def _hub_profile_edit(
         message=message,
         state=state,
         i18n=i18n,
+        user=user,
+        pdn_consent_version=pdn_consent_version,
+        pdn_operator_name=pdn_operator_name,
+        pdn_operator_contacts=pdn_operator_contacts,
+        pdn_policy_url=pdn_policy_url,
         resume_book=False,
         edit=True,
     )

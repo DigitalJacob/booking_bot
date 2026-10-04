@@ -62,6 +62,10 @@ async def show_hub_screen(
         master_user_id: int | None = None,
         locales: list[str] | None = None,
         schedule_mode: str = "weekly",
+        pdn_consent_version: str = "v1",
+        pdn_operator_name: str = "",
+        pdn_operator_contacts: str = "",
+        pdn_policy_url: str = "",
 ) -> None:
     """Open a hub section or a registered leaf by action name."""
     role = user.role
@@ -144,6 +148,11 @@ async def show_hub_screen(
         bot_timezone=bot_timezone,
         master_user_id=master_user_id,
         locales=locales,
+        schedule_mode=schedule_mode,
+        pdn_consent_version=pdn_consent_version,
+        pdn_operator_name=pdn_operator_name,
+        pdn_operator_contacts=pdn_operator_contacts,
+        pdn_policy_url=pdn_policy_url,
     )
 
 
@@ -231,6 +240,10 @@ async def process_hub_back(
         master_user_id: int,
         locales: list[str],
         schedule_mode: str,
+        pdn_consent_version: str,
+        pdn_operator_name: str,
+        pdn_operator_contacts: str,
+        pdn_policy_url: str,
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -253,6 +266,10 @@ async def process_hub_back(
         master_user_id=master_user_id,
         locales=locales,
         schedule_mode=schedule_mode,
+        pdn_consent_version=pdn_consent_version,
+        pdn_operator_name=pdn_operator_name,
+        pdn_operator_contacts=pdn_operator_contacts,
+        pdn_policy_url=pdn_policy_url,
     )
     await callback.answer()
 
@@ -269,6 +286,10 @@ async def process_hub_action(
         master_user_id: int,
         locales: list[str],
         schedule_mode: str,
+        pdn_consent_version: str,
+        pdn_operator_name: str,
+        pdn_operator_contacts: str,
+        pdn_policy_url: str,
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -285,5 +306,9 @@ async def process_hub_action(
         master_user_id=master_user_id,
         locales=locales,
         schedule_mode=schedule_mode,
+        pdn_consent_version=pdn_consent_version,
+        pdn_operator_name=pdn_operator_name,
+        pdn_operator_contacts=pdn_operator_contacts,
+        pdn_policy_url=pdn_policy_url,
     )
     await callback.answer()

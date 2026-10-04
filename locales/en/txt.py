@@ -220,8 +220,36 @@ EN: dict[str, str] = {
     "admin_role_client_button": "client",
     "admin_role_master_button": "master",
     "admin_role_admin_button": "admin",
-    "profile_ask_first_name": "What is your first name?",
-    "profile_ask_last_name": "What is your last name?",
+    "profile_consent_text": (
+        "Before booking, please consent to personal data processing and "
+        "leave a short contact profile.\n\n"
+        "We will ask for your first name, last name and phone number so the "
+        "specialist can reach you about the appointment.\n\n"
+        "Controller: {operator_name}\n"
+        "Contacts: {operator_contacts}\n\n"
+        "By tapping «I agree», you consent to processing this data for "
+        "booking and contact."
+    ),
+    "profile_consent_accept": "I agree",
+    "profile_consent_decline": "I disagree",
+    "profile_consent_terms_button": "Full terms",
+    "profile_consent_declined": (
+        "Without consent to data processing, booking via the bot is unavailable."
+    ),
+    "profile_pdn_operator_fallback": "to be confirmed",
+    "profile_pdn_contacts_fallback": "to be confirmed",
+    "profile_intro_book": (
+        "Before booking, please introduce yourself briefly: first name, last "
+        "name and phone — so the specialist can contact you and confirm the "
+        "visit.\n\n"
+        "Please enter your first name:"
+    ),
+    "profile_intro_edit": (
+        "Let's update your contact details.\n\n"
+        "Please enter your first name:"
+    ),
+    "profile_ask_first_name": "Enter your first name:",
+    "profile_ask_last_name": "Enter your last name:",
     "profile_ask_phone": (
         "Share a phone number so the specialist can contact you.\n"
         "Tap the button below or type the number manually (+1...)."

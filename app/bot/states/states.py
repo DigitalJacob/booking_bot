@@ -34,6 +34,7 @@ class ServicePhotoSG(StatesGroup):
 
 
 class ProfileSG(StatesGroup):
+    consent = State()
     first_name = State()
     last_name = State()
     phone = State()

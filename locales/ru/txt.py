@@ -220,8 +220,35 @@ RU: dict[str, str] = {
     "admin_role_client_button": "client",
     "admin_role_master_button": "master",
     "admin_role_admin_button": "admin",
-    "profile_ask_first_name": "Как вас зовут? (имя)",
-    "profile_ask_last_name": "Ваша фамилия?",
+    "profile_consent_text": (
+        "Перед записью нужно согласие на обработку персональных данных "
+        "и коротко представиться.\n\n"
+        "Мы запросим имя, фамилию и телефон, чтобы мастер мог связаться "
+        "с вами по записи.\n\n"
+        "Оператор: {operator_name}\n"
+        "Контакты: {operator_contacts}\n\n"
+        "Нажимая «Согласен», вы даёте согласие на обработку этих данных "
+        "для записи и связи."
+    ),
+    "profile_consent_accept": "Согласен",
+    "profile_consent_decline": "Не согласен",
+    "profile_consent_terms_button": "Полные условия",
+    "profile_consent_declined": (
+        "Без согласия на обработку данных запись через бота недоступна."
+    ),
+    "profile_pdn_operator_fallback": "уточняется",
+    "profile_pdn_contacts_fallback": "уточняется",
+    "profile_intro_book": (
+        "Перед записью нужно коротко представиться: имя, фамилия и телефон — "
+        "чтобы мастер мог с вами связаться и подтвердить визит.\n\n"
+        "Пожалуйста, введите имя:"
+    ),
+    "profile_intro_edit": (
+        "Обновим ваши контакты.\n\n"
+        "Пожалуйста, введите имя:"
+    ),
+    "profile_ask_first_name": "Введите имя:",
+    "profile_ask_last_name": "Введите фамилию:",
     "profile_ask_phone": (
         "Укажите телефон для связи.\n"
         "Можно нажать кнопку ниже или ввести номер вручную (+7...)."

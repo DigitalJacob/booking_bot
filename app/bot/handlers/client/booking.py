@@ -172,13 +172,25 @@ async def start_booking_flow(
         repos: Repositories,
         user: User,
         master_user_id: int,
+        pdn_consent_version: str = "v1",
+        pdn_operator_name: str = "",
+        pdn_operator_contacts: str = "",
+        pdn_policy_url: str = "",
         edit: bool = False,
 ) -> None:
-    if not user.profile_complete:
+    if (
+        not user.profile_complete
+        or not user.has_pdn_consent(version=pdn_consent_version)
+    ):
         await start_profile_flow(
             message=message,
             state=state,
             i18n=i18n,
+            user=user,
+            pdn_consent_version=pdn_consent_version,
+            pdn_operator_name=pdn_operator_name,
+            pdn_operator_contacts=pdn_operator_contacts,
+            pdn_policy_url=pdn_policy_url,
             resume_book=True,
             edit=edit,
         )
@@ -667,6 +679,10 @@ async def _hub_book(
         state: FSMContext,
         repos: Repositories | None = None,
         master_user_id: int | None = None,
+        pdn_consent_version: str = "v1",
+        pdn_operator_name: str = "",
+        pdn_operator_contacts: str = "",
+        pdn_policy_url: str = "",
         **_,
 ) -> None:
     if user.role != UserRole.CLIENT or repos is None or master_user_id is None:
@@ -679,6 +695,10 @@ async def _hub_book(
         repos=repos,
         user=user,
         master_user_id=master_user_id,
+        pdn_consent_version=pdn_consent_version,
+        pdn_operator_name=pdn_operator_name,
+        pdn_operator_contacts=pdn_operator_contacts,
+        pdn_policy_url=pdn_policy_url,
         edit=True,
     )
 
