@@ -1,13 +1,14 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from psycopg import AsyncConnection
 from psycopg.errors import ExclusionViolation, UniqueViolation
 from psycopg.rows import dict_row
 
-from app.domain.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus, ReminderKind
 from app.domain.exceptions import TimeConflict
 from app.domain.models.appointment import Appointment
+from app.domain.services.reminders import reminded_at_attr
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,11 @@ _APPOINTMENT_COLUMNS = """
     ends_at,
     status,
     created_at,
-    master_notify_message_id
+    master_notify_message_id,
+    client_evening_reminded_at,
+    client_hour_reminded_at,
+    master_evening_reminded_at,
+    master_hour_reminded_at
 """
 
 
@@ -205,4 +210,59 @@ class AppointmentsRepository:
             "Set master_notify_message_id=%s for appointment %d",
             message_id,
             appointment_id,
+        )
+
+    async def list_confirmed_starting_between(
+            self,
+            *,
+            from_dt: datetime,
+            to_dt: datetime,
+    ) -> list[Appointment]:
+        """Confirmed appointments with starts_at in [from_dt, to_dt)."""
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query=f"""
+                    SELECT
+                        {_APPOINTMENT_COLUMNS}
+                    FROM appointments
+                    WHERE status = %(status)s
+                        AND starts_at >= %(from_dt)s
+                        AND starts_at < %(to_dt)s
+                    ORDER BY starts_at;
+                """,
+                params={
+                    "status": AppointmentStatus.CONFIRMED,
+                    "from_dt": from_dt,
+                    "to_dt": to_dt,
+                },
+            )
+            rows = await cursor.fetchall()
+        return [Appointment.from_db_row(row) for row in rows]
+
+    async def mark_reminder_sent(
+            self,
+            *,
+            appointment_id: int,
+            kind: ReminderKind,
+            sent_at: datetime | None = None,
+    ) -> None:
+        column = reminded_at_attr(kind)
+        when = sent_at or datetime.now(timezone.utc)
+        async with self._conn.cursor() as cursor:
+            await cursor.execute(
+                query=f"""
+                    UPDATE appointments
+                    SET {column} = %(sent_at)s
+                    WHERE id = %(appointment_id)s;
+                """,
+                params={
+                    "appointment_id": appointment_id,
+                    "sent_at": when,
+                },
+            )
+        logger.info(
+            "Marked %s for appointment %d at %s",
+            column,
+            appointment_id,
+            when.isoformat(),
         )

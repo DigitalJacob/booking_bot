@@ -16,6 +16,10 @@ class Appointment:
     status: AppointmentStatus
     created_at: datetime
     master_notify_message_id: int | None = None
+    client_evening_reminded_at: datetime | None = None
+    client_hour_reminded_at: datetime | None = None
+    master_evening_reminded_at: datetime | None = None
+    master_hour_reminded_at: datetime | None = None
 
     @classmethod
     def from_db_row(cls, row: dict[str, Any]) -> "Appointment":
@@ -29,4 +33,8 @@ class Appointment:
             status=AppointmentStatus(row["status"]),
             created_at=row["created_at"],
             master_notify_message_id=row.get("master_notify_message_id"),
+            client_evening_reminded_at=row.get("client_evening_reminded_at"),
+            client_hour_reminded_at=row.get("client_hour_reminded_at"),
+            master_evening_reminded_at=row.get("master_evening_reminded_at"),
+            master_hour_reminded_at=row.get("master_hour_reminded_at"),
         )
