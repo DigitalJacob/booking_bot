@@ -30,12 +30,12 @@ RU: dict[str, str] = {
     "client_booking_confirmed": (
         "Ваша запись подтверждена.\n\n"
         "Услуга: {title}\n"
-        "Когда: {when}"
+        "Дата и время: {when}"
     ),
     "client_booking_cancelled_by_master": (
         "Мастер отменил вашу запись.\n\n"
         "Услуга: {title}\n"
-        "Когда: {when}"
+        "Дата и время: {when}"
     ),
     "/lang": "Выберите язык",
     "unsupported_message": "Этот тип сообщений бот пока не обрабатывает.",
@@ -97,7 +97,7 @@ RU: dict[str, str] = {
     "master_bookings_slot_button": "{time} · {title}",
     "master_bookings_card": (
         "Запись\n\n"
-        "Когда: {when}\n"
+        "Дата и время: {when}\n"
         "Услуга: {title}\n"
         "Статус: {status}\n"
         "Клиент: {client_name}\n"
@@ -105,7 +105,7 @@ RU: dict[str, str] = {
     ),
     "master_bookings_card_past": (
         "Запись\n\n"
-        "Когда: {when}\n"
+        "Дата и время: {when}\n"
         "Услуга: {title}\n"
         "Статус: {status}\n"
         "Клиент: {client_name}\n"
@@ -134,6 +134,53 @@ RU: dict[str, str] = {
         "Клиент: {client_name}\n"
         "Телефон: {client_phone}"
     ),
+    "client_reminder_evening": (
+        "Напоминание: завтра у вас запись.\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}"
+    ),
+    "client_reminder_hour": (
+        "Напоминание: через час у вас запись.\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}"
+    ),
+    "master_reminder_evening": (
+        "Напоминание: завтра запись.\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}\n"
+        "Клиент: {client_name}\n"
+        "Телефон: {client_phone}"
+    ),
+    "master_reminder_hour": (
+        "Напоминание: через час запись.\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}\n"
+        "Клиент: {client_name}\n"
+        "Телефон: {client_phone}"
+    ),
+    "reminder_ok_button": "OK",
+    "reminder_cancel_button": "Отменить запись",
+    "reminder_cancel_confirm": (
+        "Отменить эту запись?\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}"
+    ),
+    "reminder_cancel_yes_button": "Да, отменить",
+    "reminder_cancel_no_button": "Нет",
+    "reminder_ask_reason": (
+        "Можно коротко указать причину отмены "
+        "(или нажмите «Без причины»)."
+    ),
+    "reminder_skip_reason_button": "Без причины",
+    "reminder_reason_too_long": (
+        "Слишком длинный текст. Уложитесь в 200 символов "
+        "или нажмите «Без причины»."
+    ),
+    "reminder_reason_block": "\n\nПричина: {reason}",
+    "reminder_cancelled_done": "Запись отменена.",
+    "reminder_cancel_failed": "Не удалось отменить запись.",
+    "reminder_cancel_past": "Нельзя отменить: время уже прошло.",
+    "reminder_cancel_unavailable": "Запись уже недоступна.",
     "services_list_header": "📋 Ваши услуги:",
     "services_list_item": "• {title} — {duration} мин, {price} ({status})",
     "services_price_empty": "цена уточняется",
@@ -168,7 +215,7 @@ RU: dict[str, str] = {
     "my_bookings_list_button": "{weekday} {when} · {title}",
     "my_bookings_card": (
         "Запись\n\n"
-        "Когда: {when}\n"
+        "Дата и время: {when}\n"
         "Услуга: {title}\n"
         "Статус: {status}"
     ),

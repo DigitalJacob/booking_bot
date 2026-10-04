@@ -97,7 +97,7 @@ EN: dict[str, str] = {
     "master_bookings_slot_button": "{time} · {title}",
     "master_bookings_card": (
         "Appointment\n\n"
-        "When: {when}\n"
+        "Date and time: {when}\n"
         "Service: {title}\n"
         "Status: {status}\n"
         "Client: {client_name}\n"
@@ -105,7 +105,7 @@ EN: dict[str, str] = {
     ),
     "master_bookings_card_past": (
         "Appointment\n\n"
-        "When: {when}\n"
+        "Date and time: {when}\n"
         "Service: {title}\n"
         "Status: {status}\n"
         "Client: {client_name}\n"
@@ -134,6 +134,53 @@ EN: dict[str, str] = {
         "Client: {client_name}\n"
         "Phone: {client_phone}"
     ),
+    "client_reminder_evening": (
+        "Reminder: you have an appointment tomorrow.\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}"
+    ),
+    "client_reminder_hour": (
+        "Reminder: your appointment is in about an hour.\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}"
+    ),
+    "master_reminder_evening": (
+        "Reminder: you have an appointment tomorrow.\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}\n"
+        "Client: {client_name}\n"
+        "Phone: {client_phone}"
+    ),
+    "master_reminder_hour": (
+        "Reminder: an appointment starts in about an hour.\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}\n"
+        "Client: {client_name}\n"
+        "Phone: {client_phone}"
+    ),
+    "reminder_ok_button": "OK",
+    "reminder_cancel_button": "Cancel appointment",
+    "reminder_cancel_confirm": (
+        "Cancel this appointment?\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}"
+    ),
+    "reminder_cancel_yes_button": "Yes, cancel",
+    "reminder_cancel_no_button": "No",
+    "reminder_ask_reason": (
+        "You can briefly share a cancellation reason "
+        "(or tap “No reason”)."
+    ),
+    "reminder_skip_reason_button": "No reason",
+    "reminder_reason_too_long": (
+        "That text is too long. Please keep it within 200 characters "
+        "or tap “No reason”."
+    ),
+    "reminder_reason_block": "\n\nReason: {reason}",
+    "reminder_cancelled_done": "Appointment cancelled.",
+    "reminder_cancel_failed": "Could not cancel the appointment.",
+    "reminder_cancel_past": "Cannot cancel: the time has already passed.",
+    "reminder_cancel_unavailable": "This appointment is no longer available.",
     "services_list_header": "📋 Your services:",
     "services_list_item": "• {title} — {duration} min, {price} ({status})",
     "services_price_empty": "price to be confirmed",
@@ -168,7 +215,7 @@ EN: dict[str, str] = {
     "my_bookings_list_button": "{weekday} {when} · {title}",
     "my_bookings_card": (
         "Appointment\n\n"
-        "When: {when}\n"
+        "Date and time: {when}\n"
         "Service: {title}\n"
         "Status: {status}"
     ),
