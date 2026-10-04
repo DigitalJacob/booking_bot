@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from contextlib import suppress
 
 import psycopg_pool
 from aiogram import Bot, Dispatcher
@@ -21,6 +23,7 @@ from app.bot.middlewares.database import DataBaseMiddleware
 from app.bot.middlewares.i18n import TranslatorMiddleware
 from app.bot.middlewares.user_context import UserContextMiddleware
 from app.bot.middlewares.lang_settings import LangSettingsMiddleware
+from app.bot.reminders import reminder_worker
 from app.infrastructure.database.connection import get_pg_pool
 from config.config import Config
 
@@ -87,6 +90,19 @@ async def main(config: Config) -> None:
     dp.update.middleware(LangSettingsMiddleware())
     dp.update.middleware(TranslatorMiddleware())
 
+    reminder_task = asyncio.create_task(
+        reminder_worker(
+            bot=bot,
+            db_pool=db_pool,
+            translations=translations,
+            bot_timezone=config.bot.timezone,
+            lead_minutes=config.bot.reminder_lead_minutes,
+            evening_hour_start=config.bot.reminder_evening_hour_start,
+            evening_hour_end=config.bot.reminder_evening_hour_end,
+        ),
+        name="reminder_worker",
+    )
+
     try:
         await dp.start_polling(
             bot,
@@ -108,6 +124,9 @@ async def main(config: Config) -> None:
     except Exception:
         logger.exception("Bot polling failed")
     finally:
+        reminder_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await reminder_task
         await db_pool.close()
         logger.info("Connection to Postgres closed")
         if session:

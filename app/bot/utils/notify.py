@@ -6,8 +6,9 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import InlineKeyboardMarkup
 
 from app.bot.i18n.translator import resolve_i18n
-from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.bookings import get_appointment_actions_kb
+from app.bot.keyboards.hub import get_hub_dismiss_kb
+from app.bot.keyboards.reminders import get_reminder_kb
 from app.bot.utils.format import client_contact, format_dt
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
@@ -50,6 +51,7 @@ async def notify_appointment(
         bot_timezone: str,
         with_master_actions: bool = False,
         with_dismiss: bool = False,
+        with_reminder_actions: bool = False,
 ) -> int | None:
     """
     Send an appointment status notification.
@@ -71,6 +73,11 @@ async def notify_appointment(
             i18n=i18n,
             now=datetime.now(timezone.utc),
             slot_ends_at=appointment.ends_at,
+        )
+    elif with_reminder_actions:
+        reply_markup = get_reminder_kb(
+            i18n=i18n,
+            appointment_id=appointment.id,
         )
     elif with_dismiss:
         reply_markup = get_hub_dismiss_kb(i18n)
