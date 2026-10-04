@@ -15,7 +15,7 @@ and book in a few taps. The master manages services, schedule (weekly hours or
 monthly open days, chosen at deploy) and time off, sees the client's name and phone
 on every card, and confirms or declines either from the **Bookings** screen or
 straight from the new-booking notification. Both sides get notified on every status
-change.
+change, plus evening-before and hour-ahead reminders for confirmed appointments.
 
 Navigation is a sticky inline hub: `/start` refreshes it in place, `/menu` posts a
 fresh hub message (useful after clearing the chat). Built on a layered architecture
@@ -97,6 +97,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Self-service cancellation** — cancel your own booking; the master is notified
 - **Status notifications** — a message arrives when the master confirms or declines
   (dismiss with **OK**)
+- **Appointment reminders** — for each **confirmed** visit, an evening-before push
+  (local window from `.env`) and an hour-ahead push; **OK** dismisses, **Cancel
+  appointment** asks for confirm then an optional short reason (or skip)
 
 ### For the master
 
@@ -106,6 +109,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **One-tap confirm / decline** — from a booking card or directly from the new-booking
   push; past slots are read-only (no action buttons), and a stale button is rejected
   server-side
+- **Appointment reminders** — same evening-before and hour-ahead pushes as the client
+  (with the client's name and phone); cancel from the reminder notifies the client,
+  optionally with a reason
 - **Services** — catalogue with title, duration, price, description and photo; add,
   edit (including description/photo from the card) and soft deactivate
 - **Schedule → Working hours** *(when `SCHEDULE_MODE=weekly`)* — view / edit
@@ -154,6 +160,8 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Concurrency safety** — a database exclusion constraint, not an application check,
   guarantees two clients can never book overlapping times for the same master
 - **UTC everywhere** — all timestamps stored as `TIMESTAMPTZ`
+- **Background reminder worker** — an asyncio task started with the bot polls due
+  confirmed appointments and sends each reminder once (tracked per kind on the row)
 - **Structured logging** with a configurable level and rotating Docker log files
 
 ## Navigation
@@ -281,31 +289,39 @@ Keep `POSTGRES_HOST=localhost` and `REDIS_HOST=localhost` in `.env` for this mod
 
 All settings come from `.env`. Start from `.env.example`.
 
-| Variable                                                              | Description                                                                                     |
-|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| `BOT_TOKEN`                                                           | Telegram bot token from [@BotFather](https://t.me/BotFather)                                    |
-| `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                           |
-| `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                                       |
-| `TIMEZONE`                                                            | IANA timezone for display and local schedule input (default `Europe/Moscow`); storage stays UTC |
-| `SCHEDULE_MODE`                                                       | `weekly` or `monthly` — schedule shape for this deploy (pick once; switching is not supported)  |
-| `PDN_CONSENT_VERSION`                                                 | Version label stored with consent (default `v1`); bump to re-ask all clients                    |
-| `PDN_OPERATOR_NAME`                                                   | Operator name shown on the short consent screen (empty → locale fallback)                       |
-| `PDN_OPERATOR_CONTACTS`                                               | Operator contacts on the consent screen (empty → locale fallback)                               |
-| `PDN_POLICY_URL`                                                      | Optional `http(s)://…` link for **Full terms** (hidden when empty)                              |
-| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                  |
-| `LOG_FORMAT`                                                          | Python logging format string                                                                    |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                            |
-| `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                              |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                                |
-| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                               |
-| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                  |
-| `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                                 |
+| Variable                                                              | Description                                                                                        |
+|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| `BOT_TOKEN`                                                           | Telegram bot token from [@BotFather](https://t.me/BotFather)                                       |
+| `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                              |
+| `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                                          |
+| `TIMEZONE`                                                            | IANA timezone for display and local schedule input (default `Europe/Moscow`); storage stays UTC    |
+| `SCHEDULE_MODE`                                                       | `weekly` or `monthly` — schedule shape for this deploy (pick once; switching is not supported)     |
+| `PDN_CONSENT_VERSION`                                                 | Version label stored with consent (default `v1`); bump to re-ask all clients                       |
+| `PDN_OPERATOR_NAME`                                                   | Operator name shown on the short consent screen (empty → locale fallback)                          |
+| `PDN_OPERATOR_CONTACTS`                                               | Operator contacts on the consent screen (empty → locale fallback)                                  |
+| `PDN_POLICY_URL`                                                      | Optional `http(s)://…` link for **Full terms** (hidden when empty)                                 |
+| `REMINDER_LEAD_MINUTES`                                               | Hour-ahead reminder: send when `starts_at` is within this many minutes (default `60`)              |
+| `REMINDER_EVENING_HOUR_START` / `REMINDER_EVENING_HOUR_END`           | Evening reminder: half-open local hour window `[START, END)` on the day before (default `20`/`22`) |
+| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                     |
+| `LOG_FORMAT`                                                          | Python logging format string                                                                       |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                               |
+| `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                                 |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                                   |
+| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                                  |
+| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                     |
+| `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                                    |
 
 Personal-data notice text lives in locales; operator fields and the optional full-policy
 URL come from the `PDN_*` variables above. Decline / Cancel do not store consent, so the
 screen appears again on the next **Book** or **Profile** edit until the client agrees.
 Bump `PDN_CONSENT_VERSION` (and restart) when the policy changes and you need everyone
 to re-accept.
+
+Reminder times use bot `TIMEZONE`. Evening reminders fire only on the calendar day
+before a **confirmed** appointment while the local clock is in
+`[REMINDER_EVENING_HOUR_START, REMINDER_EVENING_HOUR_END)`. Hour reminders fire once
+`now` is inside `REMINDER_LEAD_MINUTES` before `starts_at` (and not after the start).
+Each of the four kinds (client/master × evening/hour) is sent at most once.
 
 ### Optional: proxy
 
@@ -329,15 +345,15 @@ Core booking tables (plus `schema_migrations`, `master_settings`, `working_hours
 Schema is applied by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
 on startup.
 
-| Table              | Purpose                                                                                          |
-|--------------------|--------------------------------------------------------------------------------------------------|
+| Table              | Purpose                                                                                                                 |
+|--------------------|-------------------------------------------------------------------------------------------------------------------------|
 | `users`            | Telegram id, username, language, role, ban flag, contact profile, PDN consent (`pdn_consent_at`, `pdn_consent_version`) |
-| `services`         | Master's offerings: title, duration, price, description, photo file id, active flag              |
-| `appointments`     | Client, service, status, and concrete time range (`starts_at` / `ends_at`)                       |
-| `master_settings`  | Per-master timezone, grid step, gap, lead time and booking horizon                               |
-| `working_hours`    | Weekly mode: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                          |
-| `work_dates`       | Monthly mode: concrete open dates with local `starts_time` / `ends_time` (unique per master+day) |
-| `time_off`         | Absolute blocked intervals (day off, break, vacation) per master                                 |
+| `services`         | Master's offerings: title, duration, price, description, photo file id, active flag                                     |
+| `appointments`     | Client, service, status, time range (`starts_at` / `ends_at`), reminder sent-at columns                                 |
+| `master_settings`  | Per-master timezone, grid step, gap, lead time and booking horizon                                                      |
+| `working_hours`    | Weekly mode: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                                                 |
+| `work_dates`       | Monthly mode: concrete open dates with local `starts_time` / `ends_time` (unique per master+day)                        |
+| `time_off`         | Absolute blocked intervals (day off, break, vacation) per master                                                        |
 
 `users.pdn_consent_at` / `pdn_consent_version` are written when the client taps **Agree**
 on the short notice (`migration 012`). They must match the current `PDN_CONSENT_VERSION`
@@ -352,6 +368,12 @@ photo file id) are set from the master's service card and shown in the client
 Appointments store `starts_at` / `ends_at`. Active appointments for the same master
 cannot overlap in time: a GiST `EXCLUDE` on `tstzrange(starts_at, ends_at, '[)')`
 enforces that.
+
+Reminder delivery marks
+`client_evening_reminded_at` / `client_hour_reminded_at` /
+`master_evening_reminded_at` / `master_hour_reminded_at` when the matching push is
+sent (`migration 013`). Only **confirmed** rows are eligible; a NULL column means
+that kind has not been sent yet.
 
 Availability for **Book** is computed from the schedule for this deploy
 (`SCHEDULE_MODE`): **`weekly`** uses `working_hours` by weekday; **`monthly`** uses
@@ -412,13 +434,15 @@ pytest
 ```
 
 ```
-..........................                                       [100%]
-26 passed in 0.16s
+...........................................                              [100%]
+43 passed in 0.10s
 ```
 
-The suite covers `BookingService` and `AvailabilityService`: window booking rules
-(including monthly open days and open-month listing), confirm and cancel transitions
-with permission checks, and client appointment listing filters.
+The suite covers `BookingService`, `AvailabilityService` and reminder due-rules:
+window booking (including monthly open days and open-month listing), confirm and
+cancel transitions with permission checks, client appointment listing filters, and
+evening / hour reminder eligibility (confirmed only, lead window, half-open evening
+hours, already-sent skip).
 
 ## Project Structure
 
@@ -433,9 +457,10 @@ booking_bot/
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
 │   │   ├── states/         # FSM state groups
 │   │   ├── utils/          # Notifications, hub helpers, shared formatting
+│   │   ├── reminders.py    # Background appointment-reminder worker
 │   │   ├── bot_commands.py # Telegram ☰ menu (/start, /menu)
 │   │   └── bot.py          # Dispatcher setup and startup
-│   ├── domain/             # Models, enums, exceptions, BookingService, AvailabilityService
+│   ├── domain/             # Models, enums, exceptions, booking / availability / reminders
 │   └── infrastructure/     # Connection pool and repositories
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
@@ -452,7 +477,6 @@ booking_bot/
 
 - Per-master timezone setting (currently: bot-wide `TIMEZONE` in `.env`)
 - Multi-master support, letting clients pick a master first
-- Appointment reminders ahead of the scheduled time
 - Per-language service titles set by the master
 - Fetching appointment details in a single joined query to remove N+1 reads
 
