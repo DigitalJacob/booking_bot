@@ -16,6 +16,10 @@ class BotSettings:
     master_user_id: int
     timezone: str
     schedule_mode: str
+    pdn_consent_version: str
+    pdn_operator_name: str
+    pdn_operator_contacts: str
+    pdn_policy_url: str
 
 
 @dataclass
@@ -106,6 +110,28 @@ def load_config(path: str | None = None) -> Config:
             f"got: {schedule_mode!r}"
         )
 
+    pdn_consent_version = env.str(
+        "PDN_CONSENT_VERSION",
+        default="v1",
+    ).strip()
+    if not pdn_consent_version:
+        raise ValueError("PDN_CONSENT_VERSION must not be empty")
+
+    pdn_operator_name = env.str("PDN_OPERATOR_NAME", default="").strip()
+    pdn_operator_contacts = env.str(
+        "PDN_OPERATOR_CONTACTS",
+        default="",
+    ).strip()
+    pdn_policy_url = env.str("PDN_POLICY_URL", default="").strip()
+    if pdn_policy_url and not (
+        pdn_policy_url.startswith("https://")
+        or pdn_policy_url.startswith("http://")
+    ):
+        raise ValueError(
+            "PDN_POLICY_URL must be empty or an http(s) URL, "
+            f"got: {pdn_policy_url!r}"
+        )
+
     proxy_ip = env.str("PROXY_IP", default='').strip()
     proxy = None
     if proxy_ip:
@@ -147,6 +173,10 @@ def load_config(path: str | None = None) -> Config:
             master_user_id=master_user_id,
             timezone=timezone_name,
             schedule_mode=schedule_mode,
+            pdn_consent_version=pdn_consent_version,
+            pdn_operator_name=pdn_operator_name,
+            pdn_operator_contacts=pdn_operator_contacts,
+            pdn_policy_url=pdn_policy_url,
         ),
         db=db,
         redis=redis,

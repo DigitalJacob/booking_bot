@@ -97,6 +97,10 @@ async def main(config: Config) -> None:
             master_user_id=config.bot.master_user_id,
             bot_timezone=config.bot.timezone,
             schedule_mode=config.bot.schedule_mode,
+            pdn_consent_version=config.bot.pdn_consent_version,
+            pdn_operator_name=config.bot.pdn_operator_name,
+            pdn_operator_contacts=config.bot.pdn_operator_contacts,
+            pdn_policy_url=config.bot.pdn_policy_url,
         )
     except Exception:
         logger.exception("Bot polling failed")
