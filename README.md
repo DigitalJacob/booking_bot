@@ -9,12 +9,13 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Telegram bot that runs appointment booking for a small service business — a barber,
-a nail studio, a private tutor. Clients leave a short contact profile once, pick a
-service, see only the times that actually fit it, and book in a few taps. The
-master manages services, schedule (weekly hours or monthly open days, chosen at
-deploy) and time off, sees the client's name and phone on every card, and confirms
-or declines either from the **Bookings** screen or straight from the new-booking
-notification. Both sides get notified on every status change.
+a nail studio, a private tutor. Clients agree to personal-data processing, leave a
+short contact profile once, pick a service, see only the times that actually fit it,
+and book in a few taps. The master manages services, schedule (weekly hours or
+monthly open days, chosen at deploy) and time off, sees the client's name and phone
+on every card, and confirms or declines either from the **Bookings** screen or
+straight from the new-booking notification. Both sides get notified on every status
+change.
 
 Navigation is a sticky inline hub: `/start` refreshes it in place, `/menu` posts a
 fresh hub message (useful after clearing the chat). Built on a layered architecture
@@ -77,9 +78,12 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ### For clients
 
-- **Contact profile** — first name, last name and phone collected once before the
-  first booking, via a share-contact button or manual input; editable later from
-  **Profile**
+- **Contact profile** — before the first booking (or when consent is missing /
+  outdated), the client sees a short personal-data notice (operator name and
+  contacts from `.env`), then first name, last name and phone via a share-contact
+  button or manual input; after that **Book** continues to services. Editable later
+  from **Profile** (consent is asked again only if the stored version no longer
+  matches `PDN_CONSENT_VERSION`)
 - **Guided booking** — **Book**: service → month (only months with open days and
   free slots) → day on a month calendar (only bookable days are tappable) → time →
   confirmation
@@ -140,8 +144,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Bilingual interface** — Russian and English, switchable at runtime under
   **Settings → Language**
 - **Language resolution chain** — explicit choice → Telegram client language → default
-- **Profile gate** — **Book** asks for the contact profile first; everything else stays
-  available without it
+- **Profile gate** — **Book** requires personal-data consent (current version) and a
+  complete contact profile first, then resumes the booking flow on the sticky hub;
+  everything else stays available without them
 - **Inline Cancel** — multi-step flows (booking, profile, services, schedule, time off,
   gap, min lead, slot step, admin) abort with a button, not a slash command
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
@@ -157,25 +162,25 @@ The Telegram ☰ menu exposes **`/start`** (start / refresh the sticky hub) and
 **`/menu`** (new hub message — e.g. after the chat was cleared). Everything else
 is inline buttons on the sticky hub message.
 
-| Hub path                                   | Role     | What it does                                                   |
-|--------------------------------------------|----------|----------------------------------------------------------------|
-| **Book**                                   | client   | Service → month → calendar day → time (profile first if empty) |
-| **Services**                               | client   | Browse active services (description / photo)                   |
-| **My bookings**                            | client   | Upcoming appointments (open / cancel)                          |
-| **Profile → Show / Edit**                  | client   | View or update name and phone                                  |
-| **Bookings**                               | master   | Week → day → card (confirm / cancel)                           |
-| **Services**                               | master   | List, add, edit, description/photo, deactivate                 |
-| **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                   |
-| **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary  |
-| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)             |
-| **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                     |
-| **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)             |
-| **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration)     |
-| **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                           |
-| **Settings → Language**                    | everyone | Switch RU / EN                                                 |
-| **Settings → Help**                        | everyone | Short role-specific help                                       |
-| **← Back** / **⌂ Menu**                    | everyone | Hub navigation                                                 |
-| **OK**                                     | everyone | Dismiss a result / status notice                               |
+| Hub path                                   | Role     | What it does                                                             |
+|--------------------------------------------|----------|--------------------------------------------------------------------------|
+| **Book**                                   | client   | Consent (if needed) → profile (if needed) → service → month → day → time |
+| **Services**                               | client   | Browse active services (description / photo)                             |
+| **My bookings**                            | client   | Upcoming appointments (open / cancel)                                    |
+| **Profile → Show / Edit**                  | client   | View or update name and phone (consent first if missing / outdated)      |
+| **Bookings**                               | master   | Week → day → card (confirm / cancel)                                     |
+| **Services**                               | master   | List, add, edit, description/photo, deactivate                           |
+| **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                             |
+| **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary            |
+| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)                       |
+| **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                               |
+| **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)                       |
+| **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration)               |
+| **User card / Set role / Ban / Unban**     | admin    | Moderation flows (id or `@username`)                                     |
+| **Settings → Language**                    | everyone | Switch RU / EN                                                           |
+| **Settings → Help**                        | everyone | Short role-specific help                                                 |
+| **← Back** / **⌂ Menu**                    | everyone | Hub navigation                                                           |
+| **OK**                                     | everyone | Dismiss a result / status notice                                         |
 
 ## Roles
 
@@ -183,7 +188,7 @@ Three roles, all stored in the database — nothing is hardcoded in the source.
 
 | Role      | Gets                                                                                                       |
 |-----------|------------------------------------------------------------------------------------------------------------|
-| `client`  | Contact profile, booking, and managing their own appointments. Default for new users.                      |
+| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.            |
 | `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off, and the weekly appointment list. |
 | `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                            |
 
@@ -283,6 +288,10 @@ All settings come from `.env`. Start from `.env.example`.
 | `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                                       |
 | `TIMEZONE`                                                            | IANA timezone for display and local schedule input (default `Europe/Moscow`); storage stays UTC |
 | `SCHEDULE_MODE`                                                       | `weekly` or `monthly` — schedule shape for this deploy (pick once; switching is not supported)  |
+| `PDN_CONSENT_VERSION`                                                 | Version label stored with consent (default `v1`); bump to re-ask all clients                    |
+| `PDN_OPERATOR_NAME`                                                   | Operator name shown on the short consent screen (empty → locale fallback)                       |
+| `PDN_OPERATOR_CONTACTS`                                               | Operator contacts on the consent screen (empty → locale fallback)                               |
+| `PDN_POLICY_URL`                                                      | Optional `http(s)://…` link for **Full terms** (hidden when empty)                              |
 | `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                  |
 | `LOG_FORMAT`                                                          | Python logging format string                                                                    |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                            |
@@ -291,6 +300,12 @@ All settings come from `.env`. Start from `.env.example`.
 | `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                               |
 | `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                  |
 | `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                                 |
+
+Personal-data notice text lives in locales; operator fields and the optional full-policy
+URL come from the `PDN_*` variables above. Decline / Cancel do not store consent, so the
+screen appears again on the next **Book** or **Profile** edit until the client agrees.
+Bump `PDN_CONSENT_VERSION` (and restart) when the policy changes and you need everyone
+to re-accept.
 
 ### Optional: proxy
 
@@ -316,13 +331,17 @@ on startup.
 
 | Table              | Purpose                                                                                          |
 |--------------------|--------------------------------------------------------------------------------------------------|
-| `users`            | Telegram id, username, language, role, ban flag, contact profile (first name, last name, phone)  |
+| `users`            | Telegram id, username, language, role, ban flag, contact profile, PDN consent (`pdn_consent_at`, `pdn_consent_version`) |
 | `services`         | Master's offerings: title, duration, price, description, photo file id, active flag              |
 | `appointments`     | Client, service, status, and concrete time range (`starts_at` / `ends_at`)                       |
 | `master_settings`  | Per-master timezone, grid step, gap, lead time and booking horizon                               |
 | `working_hours`    | Weekly mode: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                          |
 | `work_dates`       | Monthly mode: concrete open dates with local `starts_time` / `ends_time` (unique per master+day) |
 | `time_off`         | Absolute blocked intervals (day off, break, vacation) per master                                 |
+
+`users.pdn_consent_at` / `pdn_consent_version` are written when the client taps **Agree**
+on the short notice (`migration 012`). They must match the current `PDN_CONSENT_VERSION`
+for **Book** and profile edit to skip the consent step.
 
 `services.description` (optional, up to 1000 characters) and `photo_file_id` (Telegram
 photo file id) are set from the master's service card and shown in the client
