@@ -101,6 +101,9 @@ async def main(config: Config) -> None:
             pdn_operator_name=config.bot.pdn_operator_name,
             pdn_operator_contacts=config.bot.pdn_operator_contacts,
             pdn_policy_url=config.bot.pdn_policy_url,
+            reminder_lead_minutes=config.bot.reminder_lead_minutes,
+            reminder_evening_hour_start=config.bot.reminder_evening_hour_start,
+            reminder_evening_hour_end=config.bot.reminder_evening_hour_end,
         )
     except Exception:
         logger.exception("Bot polling failed")

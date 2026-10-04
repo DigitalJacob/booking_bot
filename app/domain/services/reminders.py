@@ -4,20 +4,8 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from app.domain.enums.appointment import AppointmentStatus
-from app.domain.enums.reminder import ReminderKind
+from app.domain.enums.reminder import ReminderKind, reminded_at_attr
 from app.domain.models.appointment import Appointment
-
-
-_REMINDED_AT_ATTR: dict[ReminderKind, str] = {
-    ReminderKind.CLIENT_EVENING: "client_evening_reminded_at",
-    ReminderKind.CLIENT_HOUR: "client_hour_reminded_at",
-    ReminderKind.MASTER_EVENING: "master_evening_reminded_at",
-    ReminderKind.MASTER_HOUR: "master_hour_reminded_at",
-}
-
-
-def reminded_at_attr(kind: ReminderKind) -> str:
-    return _REMINDED_AT_ATTR[kind]
 
 
 def reminded_at_for(

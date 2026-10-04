@@ -20,6 +20,9 @@ class BotSettings:
     pdn_operator_name: str
     pdn_operator_contacts: str
     pdn_policy_url: str
+    reminder_lead_minutes: int
+    reminder_evening_hour_start: int
+    reminder_evening_hour_end: int
 
 
 @dataclass
@@ -132,6 +135,32 @@ def load_config(path: str | None = None) -> Config:
             f"got: {pdn_policy_url!r}"
         )
 
+    reminder_lead_minutes = env.int("REMINDER_LEAD_MINUTES", default=60)
+    if reminder_lead_minutes <= 0:
+        raise ValueError(
+            "REMINDER_LEAD_MINUTES must be a positive integer, "
+            f"got: {reminder_lead_minutes!r}"
+        )
+
+    reminder_evening_hour_start = env.int(
+        "REMINDER_EVENING_HOUR_START",
+        default=20,
+    )
+    reminder_evening_hour_end = env.int(
+        "REMINDER_EVENING_HOUR_END",
+        default=22,
+    )
+    if not (
+        0 <= reminder_evening_hour_start < reminder_evening_hour_end <= 24
+    ):
+        raise ValueError(
+            "REMINDER_EVENING_HOUR_START/END must satisfy "
+            "0 <= start < end <= 24 "
+            f"(half-open local window), got: "
+            f"start={reminder_evening_hour_start!r}, "
+            f"end={reminder_evening_hour_end!r}"
+        )
+
     proxy_ip = env.str("PROXY_IP", default='').strip()
     proxy = None
     if proxy_ip:
@@ -177,6 +206,9 @@ def load_config(path: str | None = None) -> Config:
             pdn_operator_name=pdn_operator_name,
             pdn_operator_contacts=pdn_operator_contacts,
             pdn_policy_url=pdn_policy_url,
+            reminder_lead_minutes=reminder_lead_minutes,
+            reminder_evening_hour_start=reminder_evening_hour_start,
+            reminder_evening_hour_end=reminder_evening_hour_end,
         ),
         db=db,
         redis=redis,

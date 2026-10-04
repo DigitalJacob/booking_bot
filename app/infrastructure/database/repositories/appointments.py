@@ -6,9 +6,9 @@ from psycopg.errors import ExclusionViolation, UniqueViolation
 from psycopg.rows import dict_row
 
 from app.domain.enums import AppointmentStatus, ReminderKind
+from app.domain.enums.reminder import reminded_at_attr
 from app.domain.exceptions import TimeConflict
 from app.domain.models.appointment import Appointment
-from app.domain.services.reminders import reminded_at_attr
 
 
 logger = logging.getLogger(__name__)
