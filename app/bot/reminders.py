@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 _TICK_SECONDS = 45
 
-_TEXT_KEY_BY_KIND: dict[ReminderKind, str] = {
+REMINDER_TEXT_KEY_BY_KIND: dict[ReminderKind, str] = {
     ReminderKind.CLIENT_EVENING: "client_reminder_evening",
     ReminderKind.CLIENT_HOUR: "client_reminder_hour",
     ReminderKind.MASTER_EVENING: "master_reminder_evening",
@@ -91,7 +91,7 @@ async def _deliver_one(
         bot_timezone: str,
 ) -> None:
     """Send one reminder and mark it in its own transaction."""
-    text_key = _TEXT_KEY_BY_KIND[kind]
+    text_key = REMINDER_TEXT_KEY_BY_KIND[kind]
     async with db_pool.connection() as connection:
         async with connection.transaction():
             repos = Repositories.from_connection(connection)
@@ -114,6 +114,7 @@ async def _deliver_one(
                 text_key=text_key,
                 bot_timezone=bot_timezone,
                 with_reminder_actions=True,
+                reminder_kind=kind,
             )
             if message_id is None:
                 logger.warning(

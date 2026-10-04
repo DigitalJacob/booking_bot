@@ -10,11 +10,12 @@ from app.bot.keyboards.bookings import get_appointment_actions_kb
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.reminders import get_reminder_kb
 from app.bot.utils.format import client_contact, format_dt
+from app.domain.enums import ReminderKind
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
 
 
-async def _appointment_notify_parts(
+async def appointment_notice_parts(
         *,
         repos: Repositories,
         appointment: Appointment,
@@ -22,6 +23,7 @@ async def _appointment_notify_parts(
         text_key: str,
         bot_timezone: str,
         recipient_user_id: int,
+        reason: str | None = None,
 ) -> tuple[dict[str, str], str]:
     recipient = await repos.users.get_user_by_id(user_id=recipient_user_id)
     i18n = resolve_i18n(
@@ -37,7 +39,13 @@ async def _appointment_notify_parts(
         client_name=client_name,
         client_phone=client_phone,
     )
+    if reason:
+        text += i18n.get("reminder_reason_block").format(reason=reason)
     return i18n, text
+
+
+# Backward-compatible alias for existing call sites.
+_appointment_notify_parts = appointment_notice_parts
 
 
 async def notify_appointment(
@@ -52,18 +60,21 @@ async def notify_appointment(
         with_master_actions: bool = False,
         with_dismiss: bool = False,
         with_reminder_actions: bool = False,
+        reminder_kind: ReminderKind | None = None,
+        reason: str | None = None,
 ) -> int | None:
     """
     Send an appointment status notification.
     Returns Telegram message_id when the message was sent, else None.
     """
-    i18n, text = await _appointment_notify_parts(
+    i18n, text = await appointment_notice_parts(
         repos=repos,
         appointment=appointment,
         translations=translations,
         text_key=text_key,
         bot_timezone=bot_timezone,
         recipient_user_id=recipient_user_id,
+        reason=reason,
     )
 
     reply_markup: InlineKeyboardMarkup | None = None
@@ -75,9 +86,12 @@ async def notify_appointment(
             slot_ends_at=appointment.ends_at,
         )
     elif with_reminder_actions:
+        if reminder_kind is None:
+            raise ValueError("reminder_kind is required with with_reminder_actions")
         reply_markup = get_reminder_kb(
             i18n=i18n,
             appointment_id=appointment.id,
+            kind=reminder_kind,
         )
     elif with_dismiss:
         reply_markup = get_hub_dismiss_kb(i18n)
@@ -100,6 +114,7 @@ async def supersede_master_action_push(
         translations: dict,
         text_key: str,
         bot_timezone: str,
+        reason: str | None = None,
 ) -> bool:
     """
     Replace the master's confirm/cancel push with a status message + OK.
@@ -109,13 +124,14 @@ async def supersede_master_action_push(
     if message_id is None:
         return False
 
-    i18n, text = await _appointment_notify_parts(
+    i18n, text = await appointment_notice_parts(
         repos=repos,
         appointment=appointment,
         translations=translations,
         text_key=text_key,
         bot_timezone=bot_timezone,
         recipient_user_id=appointment.master_user_id,
+        reason=reason,
     )
 
     edited = False

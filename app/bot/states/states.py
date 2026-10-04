@@ -40,6 +40,10 @@ class ProfileSG(StatesGroup):
     phone = State()
 
 
+class ReminderCancelSG(StatesGroup):
+    reason = State()
+
+
 class ScheduleSG(StatesGroup):
     starts_time = State()
     ends_time = State()
