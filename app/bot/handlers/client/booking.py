@@ -6,6 +6,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from app.bot.handlers.client.booking_flow import start_booking_flow
 from app.bot.keyboards.booking import (
     BookingNavCallback,
     DayCallback,
@@ -19,9 +20,8 @@ from app.bot.keyboards.booking import (
     get_services_kb,
     get_windows_kb,
 )
-from app.bot.keyboards.work_days import month_label
-from app.bot.handlers.client.profile import start_profile_flow
 from app.bot.keyboards.hub import get_hub_dismiss_kb
+from app.bot.keyboards.work_days import month_label
 from app.bot.states.states import BookingSG
 from app.bot.utils.format import format_dt, to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
@@ -161,60 +161,6 @@ async def _show_confirm(
     await message.edit_text(
         text=text,
         reply_markup=get_confirm_kb(i18n=i18n),
-    )
-
-
-async def start_booking_flow(
-        *,
-        message: Message,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        master_user_id: int,
-        pdn_consent_version: str = "v1",
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
-        edit: bool = False,
-) -> None:
-    if (
-        not user.profile_complete
-        or not user.has_pdn_consent(version=pdn_consent_version)
-    ):
-        await start_profile_flow(
-            message=message,
-            state=state,
-            i18n=i18n,
-            user=user,
-            pdn_consent_version=pdn_consent_version,
-            pdn_operator_name=pdn_operator_name,
-            pdn_operator_contacts=pdn_operator_contacts,
-            pdn_policy_url=pdn_policy_url,
-            resume_book=True,
-            edit=edit,
-        )
-        return
-
-    await clear_state_keep_hub(state)
-
-    booking = BookingService(repos)
-    services = await booking.list_services(master_user_id=master_user_id)
-    if not services:
-        text = i18n.get("book_no_services")
-        if edit:
-            await message.edit_text(text=text)
-        else:
-            await message.answer(text=text)
-        return
-
-    await state.set_state(BookingSG.choosing_service)
-    await state.update_data(master_user_id=master_user_id)
-    await _show_services(
-        message=message,
-        services=services,
-        i18n=i18n,
-        edit=edit,
     )
 
 

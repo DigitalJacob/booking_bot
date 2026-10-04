@@ -261,9 +261,6 @@ EN: dict[str, str] = {
         "Could not read that number. "
         "Share a contact via the button or type it like +79001234567."
     ),
-    "profile_saved_continue_book": (
-        "You can book now from the menu → Book."
-    ),
     "profile_card": (
         "Your profile:\n\n"
         "First name: {first_name}\n"
