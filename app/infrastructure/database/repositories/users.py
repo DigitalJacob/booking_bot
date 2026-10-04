@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
@@ -8,6 +9,21 @@ from app.domain.models.user import User
 
 
 logger = logging.getLogger(__name__)
+
+_SELECT_COLUMNS = """
+    id,
+    user_id,
+    username,
+    language,
+    role,
+    banned,
+    first_name,
+    last_name,
+    phone,
+    pdn_consent_at,
+    pdn_consent_version,
+    created_at
+"""
 
 
 class UsersRepository:
@@ -58,18 +74,8 @@ class UsersRepository:
     ) -> User | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
-                    SELECT
-                        id,
-                        user_id,
-                        username,
-                        language,
-                        role,
-                        banned,
-                        first_name,
-                        last_name,
-                        phone,
-                        created_at
+                query=f"""
+                    SELECT {_SELECT_COLUMNS}
                     FROM users
                     WHERE user_id = %s;
                 """,
@@ -86,18 +92,8 @@ class UsersRepository:
         normalized_username = username.lstrip("@").lower()
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
-                query="""
-                    SELECT
-                        id,
-                        user_id,
-                        username,
-                        language,
-                        role,
-                        banned,
-                        first_name,
-                        last_name,
-                        phone,
-                        created_at
+                query=f"""
+                    SELECT {_SELECT_COLUMNS}
                     FROM users
                     WHERE lower(username) = %s;
                 """,
@@ -177,6 +173,30 @@ class UsersRepository:
                 params=(first_name, last_name, phone, user_id),
             )
         logger.info("Updated profile for user %d", user_id)
+
+    async def set_pdn_consent(
+            self,
+            *,
+            user_id: int,
+            version: str,
+            consented_at: datetime | None = None,
+    ) -> None:
+        when = consented_at or datetime.now(timezone.utc)
+        async with self._conn.cursor() as cursor:
+            await cursor.execute(
+                query="""
+                    UPDATE users
+                    SET pdn_consent_at = %s,
+                        pdn_consent_version = %s
+                    WHERE user_id = %s;
+                """,
+                params=(when, version, user_id),
+            )
+        logger.info(
+            "Updated PDN consent for user %d (version=%s)",
+            user_id,
+            version,
+        )
 
     async def update_username(
             self,

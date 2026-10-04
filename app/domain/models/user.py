@@ -16,6 +16,8 @@ class User:
     first_name: str | None
     last_name: str | None
     phone: str | None
+    pdn_consent_at: datetime | None
+    pdn_consent_version: str | None
     created_at: datetime
 
     @property
@@ -24,6 +26,13 @@ class User:
             self.first_name
             and self.last_name
             and self.phone
+        )
+
+    def has_pdn_consent(self, *, version: str) -> bool:
+        """True if the user accepted the given consent document version."""
+        return (
+            self.pdn_consent_at is not None
+            and self.pdn_consent_version == version
         )
 
     @property
@@ -44,5 +53,7 @@ class User:
             first_name=row["first_name"],
             last_name=row["last_name"],
             phone=row["phone"],
-            created_at=row["created_at"]
+            pdn_consent_at=row["pdn_consent_at"],
+            pdn_consent_version=row["pdn_consent_version"],
+            created_at=row["created_at"],
         )
