@@ -14,8 +14,11 @@ short contact profile once, pick a service, see only the times that actually fit
 and book in a few taps. The master manages services, schedule (weekly hours or
 monthly open days, chosen at deploy) and time off, sees the client's name and phone
 on every card, and confirms or declines either from the **Bookings** screen or
-straight from the new-booking notification. Both sides get notified on every status
-change, plus evening-before and hour-ahead reminders for confirmed appointments.
+straight from the new-booking notification. Cancelling (or declining a pending
+request) asks for confirmation and an optional short reason from reminders,
+**My bookings**, and the master's card or push. Both sides get notified on every
+status change, plus evening-before and hour-ahead reminders for confirmed
+appointments.
 
 Navigation is a sticky inline hub: `/start` refreshes it in place, `/menu` posts a
 fresh hub message (useful after clearing the chat). Built on a layered architecture
@@ -94,24 +97,27 @@ failure halfway through a booking cannot leave a half-written appointment behind
   the past are filtered out before the client sees them; month and day pickers
   respect the same filters within `booking_horizon_days`
 - **My bookings** — sticky list of upcoming appointments; open a card to cancel
-- **Self-service cancellation** — cancel your own booking; the master is notified
+  (pending or confirmed)
+- **Shared cancellation** — confirm → optional short reason (or skip); the other
+  party is notified with the reason when given (same flow as reminder cancel)
 - **Status notifications** — a message arrives when the master confirms or declines
   (dismiss with **OK**)
 - **Appointment reminders** — for each **confirmed** visit, an evening-before push
-  (local window from `.env`) and an hour-ahead push; **OK** dismisses, **Cancel
-  appointment** asks for confirm then an optional short reason (or skip)
+  (local window from `.env`) and an hour-ahead push; **OK** dismisses; **Cancel
+  appointment** uses the same confirm + optional reason flow
 
 ### For the master
 
 - **Bookings** — sticky week view → day → appointment card (navigate weeks with ← / →)
 - **Client name and phone on every card and notification** — not just a Telegram id,
   so the master can actually call the person
-- **One-tap confirm / decline** — from a booking card or directly from the new-booking
-  push; past slots are read-only (no action buttons), and a stale button is rejected
-  server-side
+- **Confirm / decline / cancel** — **Confirm** stays one tap on the card or
+  new-booking push; **Cancel** (confirmed) or decline (pending) uses confirm +
+  optional reason, then notifies the client; past slots are read-only, and a stale
+  button is rejected server-side
 - **Appointment reminders** — same evening-before and hour-ahead pushes as the client
-  (with the client's name and phone); cancel from the reminder notifies the client,
-  optionally with a reason
+  (with the client's name and phone); cancel from the reminder uses the same shared
+  flow and notifies the client, optionally with a reason
 - **Services** — catalogue with title, duration, price, description and photo; add,
   edit (including description/photo from the card) and soft deactivate
 - **Schedule → Working hours** *(when `SCHEDULE_MODE=weekly`)* — view / edit
@@ -162,6 +168,10 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **UTC everywhere** — all timestamps stored as `TIMESTAMPTZ`
 - **Background reminder worker** — an asyncio task started with the bot polls due
   confirmed appointments and sends each reminder once (tracked per kind on the row)
+- **Shared appointment cancel** — one confirm + optional-reason flow for reminder
+  pushes, client **My bookings**, and master card / new-booking push (pending =
+  decline copy; sticky screens return to the list, pushes dismiss with **OK** or
+  restore the hub)
 - **Structured logging** with a configurable level and rotating Docker log files
 
 ## Navigation
@@ -174,9 +184,9 @@ is inline buttons on the sticky hub message.
 |--------------------------------------------|----------|--------------------------------------------------------------------------|
 | **Book**                                   | client   | Consent (if needed) → profile (if needed) → service → month → day → time |
 | **Services**                               | client   | Browse active services (description / photo)                             |
-| **My bookings**                            | client   | Upcoming appointments (open / cancel)                                    |
+| **My bookings**                            | client   | Upcoming appointments (open / cancel with confirm + reason)              |
 | **Profile → Show / Edit**                  | client   | View or update name and phone (consent first if missing / outdated)      |
-| **Bookings**                               | master   | Week → day → card (confirm / cancel)                                     |
+| **Bookings**                               | master   | Week → day → card (confirm; cancel/decline with confirm + reason)        |
 | **Services**                               | master   | List, add, edit, description/photo, deactivate                           |
 | **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                             |
 | **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary            |
@@ -451,7 +461,7 @@ booking_bot/
 ├── app/
 │   ├── bot/                # Telegram layer
 │   │   ├── filters/        # Role and locale filters
-│   │   ├── handlers/       # admin / client / master / common
+│   │   ├── handlers/       # admin / client / master / common (incl. shared cancel)
 │   │   ├── i18n/           # Locale resolution
 │   │   ├── keyboards/      # Inline keyboards and typed CallbackData
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
