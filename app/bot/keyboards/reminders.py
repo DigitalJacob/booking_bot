@@ -51,7 +51,7 @@ def get_reminder_cancel_confirm_kb(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=i18n.get("reminder_cancel_yes_button"),
+                    text=i18n.get("cancel_yes_button"),
                     callback_data=ReminderCallback(
                         action="cancel_yes",
                         appointment_id=appointment_id,
@@ -61,7 +61,7 @@ def get_reminder_cancel_confirm_kb(
             ],
             [
                 InlineKeyboardButton(
-                    text=i18n.get("reminder_cancel_no_button"),
+                    text=i18n.get("cancel_no_button"),
                     callback_data=ReminderCallback(
                         action="cancel_no",
                         appointment_id=appointment_id,
@@ -83,7 +83,7 @@ def get_reminder_reason_kb(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=i18n.get("reminder_skip_reason_button"),
+                    text=i18n.get("cancel_skip_reason_button"),
                     callback_data=ReminderCallback(
                         action="skip_reason",
                         appointment_id=appointment_id,

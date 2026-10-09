@@ -160,27 +160,38 @@ EN: dict[str, str] = {
     ),
     "reminder_ok_button": "OK",
     "reminder_cancel_button": "Cancel appointment",
-    "reminder_cancel_confirm": (
+    "cancel_confirm": (
         "Cancel this appointment?\n\n"
         "Service: {title}\n"
         "Date and time: {when}"
     ),
-    "reminder_cancel_yes_button": "Yes, cancel",
-    "reminder_cancel_no_button": "No",
-    "reminder_ask_reason": (
+    "cancel_yes_button": "Yes, cancel",
+    "cancel_no_button": "No",
+    "cancel_ask_reason": (
         "You can briefly share a cancellation reason "
         "(or tap “No reason”)."
     ),
-    "reminder_skip_reason_button": "No reason",
-    "reminder_reason_too_long": (
+    "cancel_skip_reason_button": "No reason",
+    "cancel_reason_too_long": (
         "That text is too long. Please keep it within 200 characters "
         "or tap “No reason”."
     ),
-    "reminder_reason_block": "\n\nReason: {reason}",
-    "reminder_cancelled_done": "Appointment cancelled.",
-    "reminder_cancel_failed": "Could not cancel the appointment.",
-    "reminder_cancel_past": "Cannot cancel: the time has already passed.",
-    "reminder_cancel_unavailable": "This appointment is no longer available.",
+    "cancel_reason_block": "\n\nReason: {reason}",
+    "cancel_done": "Appointment cancelled.",
+    "cancel_failed": "Could not cancel the appointment.",
+    "cancel_past": "Cannot cancel: the time has already passed.",
+    "cancel_unavailable": "This appointment is no longer available.",
+    "decline_confirm": (
+        "Decline this booking request?\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}"
+    ),
+    "decline_yes_button": "Yes, decline",
+    "decline_ask_reason": (
+        "You can briefly share a decline reason "
+        "(or tap “No reason”)."
+    ),
+    "decline_done": "Booking request declined.",
     "services_list_header": "📋 Your services:",
     "services_list_item": "• {title} — {duration} min, {price} ({status})",
     "services_price_empty": "price to be confirmed",

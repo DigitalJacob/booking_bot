@@ -102,35 +102,35 @@ async def _load_usable_appointment(
     )
     if appointment is None or not _is_party(user=user, appointment=appointment):
         await callback.answer(
-            text=i18n.get("reminder_cancel_unavailable"),
+            text=i18n.get("cancel_unavailable"),
             show_alert=True,
         )
         return None
 
     if appointment.status != AppointmentStatus.CONFIRMED:
         await callback.answer(
-            text=i18n.get("reminder_cancel_unavailable"),
+            text=i18n.get("cancel_unavailable"),
             show_alert=True,
         )
         await _edit_dismissable(
             bot=callback.bot,
             chat_id=callback.message.chat.id,
             message_id=callback.message.message_id,
-            text=i18n.get("reminder_cancel_unavailable"),
+            text=i18n.get("cancel_unavailable"),
             i18n=i18n,
         )
         return None
 
     if _is_past(appointment):
         await callback.answer(
-            text=i18n.get("reminder_cancel_past"),
+            text=i18n.get("cancel_past"),
             show_alert=True,
         )
         await _edit_dismissable(
             bot=callback.bot,
             chat_id=callback.message.chat.id,
             message_id=callback.message.message_id,
-            text=i18n.get("reminder_cancel_past"),
+            text=i18n.get("cancel_past"),
             i18n=i18n,
         )
         return None
@@ -198,7 +198,7 @@ async def _finish_cancel(
             bot=bot,
             chat_id=chat_id,
             message_id=message_id,
-            text=i18n.get("reminder_cancel_failed"),
+            text=i18n.get("cancel_failed"),
             i18n=i18n,
         )
         return
@@ -244,7 +244,7 @@ async def _finish_cancel(
         bot=bot,
         chat_id=chat_id,
         message_id=message_id,
-        text=i18n.get("reminder_cancelled_done"),
+        text=i18n.get("cancel_done"),
         i18n=i18n,
     )
 
@@ -262,7 +262,7 @@ async def process_reminder_cancel(
     kind = _parse_kind(callback_data.kind)
     if kind is None:
         await callback.answer(
-            text=i18n.get("reminder_cancel_failed"),
+            text=i18n.get("cancel_failed"),
             show_alert=True,
         )
         return
@@ -281,7 +281,7 @@ async def process_reminder_cancel(
         repos=repos,
         appointment=appointment,
         translations=translations,
-        text_key="reminder_cancel_confirm",
+        text_key="cancel_confirm",
         bot_timezone=bot_timezone,
         recipient_user_id=user.user_id,
     )
@@ -311,7 +311,7 @@ async def process_reminder_cancel_no(
     kind = _parse_kind(callback_data.kind)
     if kind is None or user is None:
         await callback.answer(
-            text=i18n.get("reminder_cancel_failed"),
+            text=i18n.get("cancel_failed"),
             show_alert=True,
         )
         return
@@ -352,7 +352,7 @@ async def process_reminder_cancel_yes(
     kind = _parse_kind(callback_data.kind)
     if kind is None:
         await callback.answer(
-            text=i18n.get("reminder_cancel_failed"),
+            text=i18n.get("cancel_failed"),
             show_alert=True,
         )
         return
@@ -377,7 +377,7 @@ async def process_reminder_cancel_yes(
     )
     with suppress(TelegramBadRequest):
         await callback.message.edit_text(
-            text=i18n.get("reminder_ask_reason"),
+            text=i18n.get("cancel_ask_reason"),
             reply_markup=get_reminder_reason_kb(
                 i18n=i18n,
                 appointment_id=appointment.id,
@@ -461,8 +461,8 @@ async def process_reminder_reason_text(
                 chat_id=message.chat.id,
                 message_id=prompt_id,
                 text=(
-                    f"{i18n.get('reminder_reason_too_long')}\n\n"
-                    f"{i18n.get('reminder_ask_reason')}"
+                    f"{i18n.get('cancel_reason_too_long')}\n\n"
+                    f"{i18n.get('cancel_ask_reason')}"
                 ),
                 reply_markup=get_reminder_reason_kb(
                     i18n=i18n,
@@ -486,7 +486,7 @@ async def process_reminder_reason_text(
             bot=bot,
             chat_id=message.chat.id,
             message_id=prompt_id,
-            text=i18n.get("reminder_cancel_unavailable"),
+            text=i18n.get("cancel_unavailable"),
             i18n=i18n,
         )
         return

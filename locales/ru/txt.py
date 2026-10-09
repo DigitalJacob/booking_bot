@@ -160,27 +160,38 @@ RU: dict[str, str] = {
     ),
     "reminder_ok_button": "OK",
     "reminder_cancel_button": "Отменить запись",
-    "reminder_cancel_confirm": (
+    "cancel_confirm": (
         "Отменить эту запись?\n\n"
         "Услуга: {title}\n"
         "Дата и время: {when}"
     ),
-    "reminder_cancel_yes_button": "Да, отменить",
-    "reminder_cancel_no_button": "Нет",
-    "reminder_ask_reason": (
+    "cancel_yes_button": "Да, отменить",
+    "cancel_no_button": "Нет",
+    "cancel_ask_reason": (
         "Можно коротко указать причину отмены "
         "(или нажмите «Без причины»)."
     ),
-    "reminder_skip_reason_button": "Без причины",
-    "reminder_reason_too_long": (
+    "cancel_skip_reason_button": "Без причины",
+    "cancel_reason_too_long": (
         "Слишком длинный текст. Уложитесь в 200 символов "
         "или нажмите «Без причины»."
     ),
-    "reminder_reason_block": "\n\nПричина: {reason}",
-    "reminder_cancelled_done": "Запись отменена.",
-    "reminder_cancel_failed": "Не удалось отменить запись.",
-    "reminder_cancel_past": "Нельзя отменить: время уже прошло.",
-    "reminder_cancel_unavailable": "Запись уже недоступна.",
+    "cancel_reason_block": "\n\nПричина: {reason}",
+    "cancel_done": "Запись отменена.",
+    "cancel_failed": "Не удалось отменить запись.",
+    "cancel_past": "Нельзя отменить: время уже прошло.",
+    "cancel_unavailable": "Запись уже недоступна.",
+    "decline_confirm": (
+        "Отклонить эту заявку?\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}"
+    ),
+    "decline_yes_button": "Да, отклонить",
+    "decline_ask_reason": (
+        "Можно коротко указать причину отказа "
+        "(или нажмите «Без причины»)."
+    ),
+    "decline_done": "Заявка отклонена.",
     "services_list_header": "📋 Ваши услуги:",
     "services_list_item": "• {title} — {duration} мин, {price} ({status})",
     "services_price_empty": "цена уточняется",

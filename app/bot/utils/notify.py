@@ -40,7 +40,7 @@ async def appointment_notice_parts(
         client_phone=client_phone,
     )
     if reason:
-        text += i18n.get("reminder_reason_block").format(reason=reason)
+        text += i18n.get("cancel_reason_block").format(reason=reason)
     return i18n, text
 
 
