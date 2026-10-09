@@ -40,7 +40,7 @@ class ProfileSG(StatesGroup):
     phone = State()
 
 
-class ReminderCancelSG(StatesGroup):
+class AppointmentCancelSG(StatesGroup):
     reason = State()
 
 

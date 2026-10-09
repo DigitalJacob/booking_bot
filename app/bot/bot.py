@@ -12,6 +12,7 @@ from redis.asyncio import Redis
 
 from app.bot.handlers.admin import admin_router
 from app.bot.handlers.client import client_router
+from app.bot.handlers.common.appointment_cancel import appointment_cancel_router
 from app.bot.handlers.common.hub import hub_router
 from app.bot.handlers.common.reminders import reminder_router
 from app.bot.handlers.common.unsupported import unsupported_router
@@ -79,6 +80,7 @@ async def main(config: Config) -> None:
         start_router,
         hub_router,
         reminder_router,
+        appointment_cancel_router,
         admin_router,
         client_router,
         master_router,
