@@ -1,16 +1,22 @@
+import calendar
 from datetime import date, datetime
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.domain.enums import AppointmentStatus
 from app.domain.models.appointment import Appointment
 
 
 class MasterAppointmentCallback(CallbackData, prefix="mapt"):
-    action: str  # open | open_day | back | back_week | close | confirm | cancel | week_*
+    action: str  # open | open_day | back | back_week | back_month | close | confirm | cancel | week_* | month_*
     appointment_id: int = 0
     day: str = ""  # YYYY-MM-DD for open_day
+
+
+class MasterBookingsPadCallback(CallbackData, prefix="maptp"):
+    n: int = 0
 
 
 def is_slot_past(
@@ -124,11 +130,100 @@ def get_master_bookings_week_kb(
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def _month_nav_row(
+        *,
+        i18n: dict[str, str],
+        is_current_month: bool,
+) -> list[InlineKeyboardButton]:
+    nav: list[InlineKeyboardButton] = [
+        InlineKeyboardButton(
+            text=i18n.get("master_bookings_month_prev"),
+            callback_data=MasterAppointmentCallback(action="month_prev").pack(),
+        )
+    ]
+    if not is_current_month:
+        nav.append(
+            InlineKeyboardButton(
+                text=i18n.get("master_bookings_month_current"),
+                callback_data=MasterAppointmentCallback(
+                    action="month_current",
+                ).pack(),
+            )
+        )
+    nav.append(
+        InlineKeyboardButton(
+            text=i18n.get("master_bookings_month_next"),
+            callback_data=MasterAppointmentCallback(action="month_next").pack(),
+        )
+    )
+    return nav
+
+
+def get_master_bookings_month_kb(
+        *,
+        year: int,
+        month: int,
+        busy_days: set[int],
+        i18n: dict[str, str],
+        is_current_month: bool,
+) -> InlineKeyboardMarkup:
+    """Month grid; busy days marked; all days in the month are selectable."""
+    rows: list[list[InlineKeyboardButton]] = [
+        [
+            InlineKeyboardButton(
+                text=i18n.get(WEEKDAY_KEYS[weekday]),
+                callback_data=MasterBookingsPadCallback(n=weekday).pack(),
+            )
+            for weekday in range(1, 8)
+        ]
+    ]
+
+    cal = calendar.Calendar(firstweekday=0)  # Monday
+    for week in cal.monthdayscalendar(year, month):
+        row: list[InlineKeyboardButton] = []
+        for day in week:
+            if day == 0:
+                row.append(
+                    InlineKeyboardButton(
+                        text=" ",
+                        callback_data=MasterBookingsPadCallback(n=0).pack(),
+                    )
+                )
+                continue
+            key = (
+                "master_bookings_calendar_day_busy"
+                if day in busy_days
+                else "master_bookings_calendar_day"
+            )
+            row.append(
+                InlineKeyboardButton(
+                    text=i18n.get(key).format(day=day),
+                    callback_data=MasterAppointmentCallback(
+                        action="open_day",
+                        day=date(year, month, day).isoformat(),
+                    ).pack(),
+                )
+            )
+        rows.append(row)
+
+    rows.append(_month_nav_row(i18n=i18n, is_current_month=is_current_month))
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("master_bookings_close_button"),
+                callback_data=MasterAppointmentCallback(action="close").pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 def get_master_bookings_day_kb(
         *,
         appointments: list[Appointment],
         labels: dict[int, str],
         i18n: dict[str, str],
+        back_to: str = "week",
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for appointment in appointments:
@@ -143,12 +238,18 @@ def get_master_bookings_day_kb(
                 )
             ]
         )
+    if back_to == "month":
+        back_text = i18n.get("master_bookings_back_month_button")
+        back_action = "back_month"
+    else:
+        back_text = i18n.get("master_bookings_back_week_button")
+        back_action = "back_week"
     rows.append(
         [
             InlineKeyboardButton(
-                text=i18n.get("master_bookings_back_week_button"),
+                text=back_text,
                 callback_data=MasterAppointmentCallback(
-                    action="back_week",
+                    action=back_action,
                 ).pack(),
             )
         ]
