@@ -114,10 +114,22 @@ RU: dict[str, str] = {
     ),
     "master_bookings_back_button": "← Назад",
     "master_bookings_back_week_button": "← К неделе",
+    "master_bookings_back_month_button": "← К месяцу",
     "master_bookings_close_button": "⌂ Меню",
     "master_bookings_week_prev": "←",
     "master_bookings_week_next": "→",
     "master_bookings_week_current": "Эта неделя",
+    "master_bookings_month_header": "Записи · {month}\n{total}",
+    "master_bookings_month_empty": (
+        "В {month} активных записей нет.\n"
+        "Выберите день на календаре или другой месяц."
+    ),
+    "master_bookings_choose_month": "Выберите месяц:",
+    "master_bookings_month_prev": "←",
+    "master_bookings_month_next": "→",
+    "master_bookings_month_current": "Этот месяц",
+    "master_bookings_calendar_day": "{day}",
+    "master_bookings_calendar_day_busy": "•{day}",
     "status_pending": "ожидает подтверждения",
     "status_confirmed": "подтверждена",
     "status_cancelled": "отменена",

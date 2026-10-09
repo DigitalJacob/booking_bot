@@ -114,10 +114,22 @@ EN: dict[str, str] = {
     ),
     "master_bookings_back_button": "← Back",
     "master_bookings_back_week_button": "← Week",
+    "master_bookings_back_month_button": "← Month",
     "master_bookings_close_button": "⌂ Menu",
     "master_bookings_week_prev": "←",
     "master_bookings_week_next": "→",
     "master_bookings_week_current": "This week",
+    "master_bookings_month_header": "Bookings · {month}\n{total}",
+    "master_bookings_month_empty": (
+        "No active bookings in {month}.\n"
+        "Pick a day on the calendar or another month."
+    ),
+    "master_bookings_choose_month": "Choose a month:",
+    "master_bookings_month_prev": "←",
+    "master_bookings_month_next": "→",
+    "master_bookings_month_current": "This month",
+    "master_bookings_calendar_day": "{day}",
+    "master_bookings_calendar_day_busy": "•{day}",
     "status_pending": "awaiting confirmation",
     "status_confirmed": "confirmed",
     "status_cancelled": "cancelled",
