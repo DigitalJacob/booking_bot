@@ -16,6 +16,7 @@ from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.reminders import get_reminder_kb
 from app.bot.reminders import REMINDER_TEXT_KEY_BY_KIND
 from app.bot.states.states import AppointmentCancelSG
+from app.bot.utils.format import to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.notify import (
     appointment_notice_parts,
@@ -37,8 +38,12 @@ appointment_cancel_router = Router(name="appointment_cancel")
 
 SOURCE_REMINDER = "reminder"
 SOURCE_MY_BOOKINGS = "my_bookings"
+SOURCE_MASTER_PUSH = "master_push"
+SOURCE_MASTER_BOOKINGS = "master_bookings"
 
-_PUSH_SOURCES = frozenset({SOURCE_REMINDER})
+_PUSH_SOURCES = frozenset({SOURCE_REMINDER, SOURCE_MASTER_PUSH})
+_MASTER_SOURCES = frozenset({SOURCE_MASTER_PUSH, SOURCE_MASTER_BOOKINGS})
+_BOOKINGS_NAV_KEYS = ("bookings_week_start", "bookings_day")
 
 _REASON_MAX_LEN = 200
 _APPT_KEY = "cancel_appointment_id"
@@ -72,6 +77,30 @@ def _done_key(mode: str) -> str:
 
 def _is_push_source(source: str) -> bool:
     return source in _PUSH_SOURCES
+
+
+async def _clear_cancel_state(state: FSMContext) -> None:
+    """Clear cancel FSM but keep sticky hub nav and master Bookings day/week."""
+    data = await state.get_data()
+    bookings_keep = {
+        key: data[key]
+        for key in _BOOKINGS_NAV_KEYS
+        if key in data and data[key] is not None
+    }
+    await clear_state_keep_hub(state)
+    if bookings_keep:
+        await state.update_data(bookings_keep)
+
+
+def _is_appointment_past(appointment: Appointment, *, source: str) -> bool:
+    """Master actions stay open until slot end; others until start."""
+    now = datetime.now(timezone.utc)
+    if source in _MASTER_SOURCES:
+        ends = appointment.ends_at
+        if ends.tzinfo is None:
+            ends = ends.replace(tzinfo=timezone.utc)
+        return ends <= now
+    return _is_past(appointment)
 
 
 async def _edit_dismissable(
@@ -171,6 +200,84 @@ async def _edit_my_booking_card(
         )
 
 
+async def _edit_master_booking_card(
+        *,
+        bot: Bot,
+        chat_id: int,
+        message_id: int,
+        appointment: Appointment,
+        repos: Repositories,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    from app.bot.handlers.master.bookings import build_master_booking_card
+
+    text, kb = await build_master_booking_card(
+        appointment=appointment,
+        repos=repos,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    with suppress(TelegramBadRequest):
+        await bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=kb,
+        )
+
+
+async def _edit_master_bookings_day(
+        *,
+        bot: Bot,
+        chat_id: int,
+        message_id: int,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        day,
+) -> None:
+    from app.bot.handlers.master.bookings import build_master_bookings_day
+
+    await state.update_data(bookings_day=day.isoformat())
+    text, kb = await build_master_bookings_day(
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        day=day,
+    )
+    with suppress(TelegramBadRequest):
+        await bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=kb,
+        )
+
+
+async def _restore_master_push(
+        *,
+        callback: CallbackQuery,
+        appointment: Appointment,
+        repos: Repositories,
+        translations: dict,
+        bot_timezone: str,
+) -> None:
+    from app.bot.handlers.master.bookings import build_master_new_booking_push
+
+    _, text, kb = await build_master_new_booking_push(
+        appointment=appointment,
+        repos=repos,
+        translations=translations,
+        bot_timezone=bot_timezone,
+    )
+    with suppress(TelegramBadRequest):
+        await callback.message.edit_text(text=text, reply_markup=kb)
+
+
 def _statuses_from_state(raw: object) -> frozenset[AppointmentStatus]:
     if not isinstance(raw, list):
         return frozenset({AppointmentStatus.CONFIRMED})
@@ -183,6 +290,66 @@ def _statuses_from_state(raw: object) -> frozenset[AppointmentStatus]:
     return frozenset(out) or frozenset({AppointmentStatus.CONFIRMED})
 
 
+async def _disarm_stale(
+        *,
+        callback: CallbackQuery,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        translations: dict,
+        bot_timezone: str,
+        source: str,
+        appointment: Appointment,
+        text_key: str,
+        state: FSMContext | None = None,
+) -> None:
+    if source == SOURCE_MASTER_PUSH:
+        from app.bot.handlers.master.bookings import disarm_stale_master_push
+
+        await disarm_stale_master_push(
+            callback=callback,
+            bot=callback.bot,
+            repos=repos,
+            appointment_id=appointment.id,
+            translations=translations,
+            bot_timezone=bot_timezone,
+        )
+        return
+    if _is_push_source(source):
+        await _edit_dismissable(
+            bot=callback.bot,
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.message_id,
+            text=i18n.get(text_key),
+            i18n=i18n,
+        )
+        return
+    if source == SOURCE_MY_BOOKINGS:
+        await _edit_my_bookings_list(
+            bot=callback.bot,
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.message_id,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+        )
+        return
+    if source == SOURCE_MASTER_BOOKINGS and state is not None:
+        day = to_local(appointment.starts_at, bot_timezone).date()
+        await _edit_master_bookings_day(
+            bot=callback.bot,
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.message_id,
+            state=state,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            day=day,
+        )
+
+
 async def _load_usable_appointment(
         *,
         callback: CallbackQuery,
@@ -193,6 +360,8 @@ async def _load_usable_appointment(
         allowed_statuses: frozenset[AppointmentStatus],
         source: str,
         bot_timezone: str,
+        translations: dict,
+        state: FSMContext | None = None,
 ) -> Appointment | None:
     if user is None:
         await callback.answer(
@@ -216,49 +385,37 @@ async def _load_usable_appointment(
             text=i18n.get("cancel_unavailable"),
             show_alert=True,
         )
-        if _is_push_source(source):
-            await _edit_dismissable(
-                bot=callback.bot,
-                chat_id=callback.message.chat.id,
-                message_id=callback.message.message_id,
-                text=i18n.get("cancel_unavailable"),
-                i18n=i18n,
-            )
-        elif source == SOURCE_MY_BOOKINGS:
-            await _edit_my_bookings_list(
-                bot=callback.bot,
-                chat_id=callback.message.chat.id,
-                message_id=callback.message.message_id,
-                repos=repos,
-                user=user,
-                i18n=i18n,
-                bot_timezone=bot_timezone,
-            )
+        await _disarm_stale(
+            callback=callback,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            translations=translations,
+            bot_timezone=bot_timezone,
+            source=source,
+            appointment=appointment,
+            text_key="cancel_unavailable",
+            state=state,
+        )
         return None
 
-    if _is_past(appointment):
+    if _is_appointment_past(appointment, source=source):
         await callback.answer(
             text=i18n.get("cancel_past"),
             show_alert=True,
         )
-        if _is_push_source(source):
-            await _edit_dismissable(
-                bot=callback.bot,
-                chat_id=callback.message.chat.id,
-                message_id=callback.message.message_id,
-                text=i18n.get("cancel_past"),
-                i18n=i18n,
-            )
-        elif source == SOURCE_MY_BOOKINGS:
-            await _edit_my_bookings_list(
-                bot=callback.bot,
-                chat_id=callback.message.chat.id,
-                message_id=callback.message.message_id,
-                repos=repos,
-                user=user,
-                i18n=i18n,
-                bot_timezone=bot_timezone,
-            )
+        await _disarm_stale(
+            callback=callback,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            translations=translations,
+            bot_timezone=bot_timezone,
+            source=source,
+            appointment=appointment,
+            text_key="cancel_past",
+            state=state,
+        )
         return None
 
     return appointment
@@ -299,12 +456,15 @@ async def _resume_after_cancel(
         bot: Bot,
         chat_id: int,
         message_id: int,
+        state: FSMContext,
         source: str,
         mode: str,
         i18n: dict[str, str],
         repos: Repositories,
         user: User,
         bot_timezone: str,
+        appointment: Appointment,
+        callback: CallbackQuery | None = None,
 ) -> None:
     if source == SOURCE_MY_BOOKINGS:
         await _edit_my_bookings_list(
@@ -316,6 +476,28 @@ async def _resume_after_cancel(
             i18n=i18n,
             bot_timezone=bot_timezone,
         )
+        return
+    if source in _MASTER_SOURCES:
+        from app.bot.handlers.master.bookings import resume_master_after_cancel
+
+        if mode == "cancel":
+            ack = i18n.get("master_cancelled").format(id=appointment.id)
+        else:
+            ack = i18n.get("decline_done")
+        await resume_master_after_cancel(
+            bot=bot,
+            chat_id=chat_id,
+            message_id=message_id,
+            state=state,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            appointment=appointment,
+            source=source,
+        )
+        if callback is not None:
+            await callback.answer(text=ack)
         return
     await _edit_dismissable(
         bot=bot,
@@ -341,6 +523,7 @@ async def _finish_cancel(
         reason: str | None,
         source: str,
         mode: str,
+        callback: CallbackQuery | None = None,
 ) -> None:
     booking = BookingService(repos)
     try:
@@ -353,7 +536,7 @@ async def _finish_cancel(
         ForbiddenBookingAction,
         InvalidAppointmentStatus,
     ):
-        await clear_state_keep_hub(state)
+        await _clear_cancel_state(state)
         if source == SOURCE_MY_BOOKINGS:
             await _edit_my_bookings_list(
                 bot=bot,
@@ -364,6 +547,34 @@ async def _finish_cancel(
                 i18n=i18n,
                 bot_timezone=bot_timezone,
             )
+        elif source == SOURCE_MASTER_BOOKINGS:
+            failed = await repos.appointments.get_appointment(
+                appointment_id=appointment_id,
+            )
+            if failed is not None:
+                day = to_local(failed.starts_at, bot_timezone).date()
+                await _edit_master_bookings_day(
+                    bot=bot,
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    state=state,
+                    repos=repos,
+                    user=user,
+                    i18n=i18n,
+                    bot_timezone=bot_timezone,
+                    day=day,
+                )
+        elif source == SOURCE_MASTER_PUSH and callback is not None:
+            from app.bot.handlers.master.bookings import disarm_stale_master_push
+
+            await disarm_stale_master_push(
+                callback=callback,
+                bot=bot,
+                repos=repos,
+                appointment_id=appointment_id,
+                translations=translations,
+                bot_timezone=bot_timezone,
+            )
         else:
             await _edit_dismissable(
                 bot=bot,
@@ -371,6 +582,11 @@ async def _finish_cancel(
                 message_id=message_id,
                 text=i18n.get("cancel_failed"),
                 i18n=i18n,
+            )
+        if callback is not None:
+            await callback.answer(
+                text=i18n.get("cancel_failed"),
+                show_alert=True,
             )
         return
 
@@ -410,17 +626,20 @@ async def _finish_cancel(
             reason=reason,
         )
 
-    await clear_state_keep_hub(state)
+    await _clear_cancel_state(state)
     await _resume_after_cancel(
         bot=bot,
         chat_id=chat_id,
         message_id=message_id,
+        state=state,
         source=source,
         mode=mode,
         i18n=i18n,
         repos=repos,
         user=user,
         bot_timezone=bot_timezone,
+        appointment=appointment,
+        callback=callback,
     )
 
 
@@ -437,6 +656,7 @@ async def start_appointment_cancel(
         mode: str = "cancel",
         reminder_kind: ReminderKind | None = None,
         allowed_statuses: frozenset[AppointmentStatus] | None = None,
+        state: FSMContext | None = None,
 ) -> None:
     """Show confirm screen for cancelling / declining an appointment."""
     statuses = allowed_statuses or _default_allowed_statuses(source)
@@ -449,6 +669,8 @@ async def start_appointment_cancel(
         allowed_statuses=statuses,
         source=source,
         bot_timezone=bot_timezone,
+        translations=translations,
+        state=state,
     )
     if appointment is None or user is None:
         return
@@ -499,12 +721,14 @@ async def process_cancel_no(
         allowed_statuses=statuses,
         source=callback_data.source,
         bot_timezone=bot_timezone,
+        translations=translations,
+        state=state,
     )
     if appointment is None or user is None:
-        await clear_state_keep_hub(state)
+        await _clear_cancel_state(state)
         return
 
-    await clear_state_keep_hub(state)
+    await _clear_cancel_state(state)
 
     if callback_data.source == SOURCE_REMINDER:
         kind = _parse_kind(callback_data.reminder_kind)
@@ -533,6 +757,24 @@ async def process_cancel_no(
             i18n=i18n,
             bot_timezone=bot_timezone,
         )
+    elif callback_data.source == SOURCE_MASTER_BOOKINGS:
+        await _edit_master_booking_card(
+            bot=callback.bot,
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.message_id,
+            appointment=appointment,
+            repos=repos,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+        )
+    elif callback_data.source == SOURCE_MASTER_PUSH:
+        await _restore_master_push(
+            callback=callback,
+            appointment=appointment,
+            repos=repos,
+            translations=translations,
+            bot_timezone=bot_timezone,
+        )
     await callback.answer()
 
 
@@ -545,6 +787,7 @@ async def process_cancel_yes(
         repos: Repositories,
         user: User | None,
         i18n: dict[str, str],
+        translations: dict,
         bot_timezone: str,
         state: FSMContext,
 ) -> None:
@@ -558,6 +801,8 @@ async def process_cancel_yes(
         allowed_statuses=statuses,
         source=callback_data.source,
         bot_timezone=bot_timezone,
+        translations=translations,
+        state=state,
     )
     if appointment is None:
         return
@@ -611,9 +856,11 @@ async def process_cancel_skip_reason(
         allowed_statuses=statuses,
         source=callback_data.source,
         bot_timezone=bot_timezone,
+        translations=translations,
+        state=state,
     )
     if appointment is None or user is None:
-        await clear_state_keep_hub(state)
+        await _clear_cancel_state(state)
         return
 
     await _finish_cancel(
@@ -630,8 +877,10 @@ async def process_cancel_skip_reason(
         reason=None,
         source=callback_data.source,
         mode=callback_data.mode,
+        callback=callback,
     )
-    await callback.answer()
+    if callback_data.source not in _MASTER_SOURCES:
+        await callback.answer()
 
 
 @appointment_cancel_router.message(StateFilter(AppointmentCancelSG.reason), F.text)
@@ -646,7 +895,7 @@ async def process_cancel_reason_text(
         bot_timezone: str,
 ) -> None:
     if user is None:
-        await clear_state_keep_hub(state)
+        await _clear_cancel_state(state)
         return
 
     raw = (message.text or "").strip()
@@ -661,7 +910,7 @@ async def process_cancel_reason_text(
     reminder_kind = str(data.get(_KIND_KEY) or "")
     statuses = _statuses_from_state(data.get(_STATUSES_KEY))
     if not isinstance(appointment_id, int) or not isinstance(prompt_id, int):
-        await clear_state_keep_hub(state)
+        await _clear_cancel_state(state)
         return
 
     if len(raw) > _REASON_MAX_LEN:
@@ -690,9 +939,9 @@ async def process_cancel_reason_text(
         appointment is None
         or not _is_party(user=user, appointment=appointment)
         or appointment.status not in statuses
-        or _is_past(appointment)
+        or _is_appointment_past(appointment, source=source)
     ):
-        await clear_state_keep_hub(state)
+        await _clear_cancel_state(state)
         if source == SOURCE_MY_BOOKINGS:
             await _edit_my_bookings_list(
                 bot=bot,
@@ -703,7 +952,20 @@ async def process_cancel_reason_text(
                 i18n=i18n,
                 bot_timezone=bot_timezone,
             )
-        else:
+        elif source == SOURCE_MASTER_BOOKINGS and appointment is not None:
+            day = to_local(appointment.starts_at, bot_timezone).date()
+            await _edit_master_bookings_day(
+                bot=bot,
+                chat_id=message.chat.id,
+                message_id=prompt_id,
+                state=state,
+                repos=repos,
+                user=user,
+                i18n=i18n,
+                bot_timezone=bot_timezone,
+                day=day,
+            )
+        elif _is_push_source(source):
             await _edit_dismissable(
                 bot=bot,
                 chat_id=message.chat.id,
