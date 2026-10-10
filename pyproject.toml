@@ -1,4 +1,37 @@
+[project]
+name = "booking-bot"
+requires-python = ">=3.13"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["app", "config", "migrations", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort (import order)
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade (modern Python idioms)
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+    "N",   # pep8-naming
+]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["app/domain"]
+# Domain still imports concrete Repositories; do not type-check that tree yet.
+follow_imports = "silent"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+pretty = true
+show_error_codes = true

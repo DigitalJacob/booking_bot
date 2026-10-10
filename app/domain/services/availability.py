@@ -66,14 +66,14 @@ class AvailabilityService:
                 from_date=start_day,
                 to_date=end_day,
             )
-            for row in work_dates:
-                by_date.setdefault(row.work_date, []).append(row)
+            for work_date in work_dates:
+                by_date.setdefault(work_date.work_date, []).append(work_date)
         else:
             working = await self._repos.working_hours.list_by_master(
                 master_user_id=master_user_id,
             )
-            for row in working:
-                by_weekday.setdefault(row.weekday, []).append(row)
+            for hours in working:
+                by_weekday.setdefault(hours.weekday, []).append(hours)
 
         time_offs = await self._repos.time_off.list_by_master(
             master_user_id=master_user_id,

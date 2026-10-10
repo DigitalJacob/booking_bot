@@ -1,6 +1,7 @@
 """Pure rules for when a confirmed appointment is due for a reminder push."""
 
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from zoneinfo import ZoneInfo
 
 from app.domain.enums.appointment import AppointmentStatus
@@ -12,7 +13,10 @@ def reminded_at_for(
         appointment: Appointment,
         kind: ReminderKind,
 ) -> datetime | None:
-    return getattr(appointment, reminded_at_attr(kind))
+    return cast(
+        datetime | None,
+        getattr(appointment, reminded_at_attr(kind)),
+    )
 
 
 def _as_utc(dt: datetime) -> datetime:
