@@ -14,7 +14,8 @@ EN: dict[str, str] = {
         "• Bookings — week or month calendar → day → card "
         "(confirm / cancel)\n"
         "• Services — catalogue and add\n"
-        "• Schedule — working hours or work days, and time off\n"
+        "• Schedule — working hours or work days; "
+        "time off (weekly) or breaks inside an open day (monthly)\n"
         "• Settings — language and this help\n\n"
         "Send /start to refresh the menu; /menu sends a new menu message."
     ),

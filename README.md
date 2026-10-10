@@ -12,7 +12,7 @@ A Telegram bot that runs appointment booking for a small service business — a 
 a nail studio, a private tutor. Clients agree to personal-data processing, leave a
 short contact profile once, pick a service, see only the times that actually fit it,
 and book in a few taps. The master manages services, schedule (weekly hours or
-monthly open days, chosen at deploy) and time off, sees the client's name and phone
+monthly open days, chosen at deploy), time off or intraday breaks, sees the client's name and phone
 on every card, and confirms or declines either from the **Bookings** screen or
 straight from the new-booking notification. Cancelling (or declining a pending
 request) asks for confirmation and an optional short reason from reminders,
@@ -84,7 +84,7 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Contact profile** — before the first booking (or when consent is missing /
   outdated), the client sees a short personal-data notice (operator name and
   contacts from `.env`), then first name, last name and phone via a share-contact
-  button or manual input; after that **Book** continues to services. Editable later
+  button or manual input; after that **Book** opens the service list. Editable later
   from **Profile** (consent is asked again only if the stored version no longer
   matches `PDN_CONSENT_VERSION`)
 - **Guided booking** — **Book**: service → month (only months with open days and
@@ -127,13 +127,16 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Schedule → Work days** *(when `SCHEDULE_MODE=monthly`)* — choose a month from
   the next 12 (compact labels in two columns, e.g. `сен 26`), pick open days on a
   month calendar, set hours for newly selected days (other days keep their hours),
-  close days with an optional warn if bookings exist; **Show current schedule**
+  close days with an optional warning if bookings exist; **Show current schedule**
   lists saved days and hours
-- **Schedule → Time off** — view / edit upcoming absences: full days / date ranges
-  or hours in one day; past-only blocks are rejected because the list shows
-  upcoming intervals only
-  (in monthly mode, a full closed day is usually an untoggled work day; use
-  time off for a partial-day block inside an open day)
+- **Schedule → Time off** *(when `SCHEDULE_MODE=weekly`)* — sticky list of upcoming
+  blocks (add / delete without an extra Edit step): full days / date ranges or
+  hours in one day; warning if the block overlaps pending/confirmed appointments
+  (save anyway keeps the bookings)
+- **Schedule → Breaks** *(when `SCHEDULE_MODE=monthly`)* — same `time_off` list,
+  hours-only: pick an open work day on a month calendar (`•` = open), then enter
+  start/end; warning on overlapping appointments as above. A full day off is closing
+  the day under **Work days** (untoggle), not a Breaks entry
 - **Schedule → Break between appointments** — set `gap_minutes` (pause after each
   visit before the next bookable start; `0` = back-to-back)
 - **Schedule → Minimum lead time** — set `min_lead_minutes` (clients cannot book a
@@ -161,7 +164,7 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Profile gate** — **Book** requires personal-data consent (current version) and a
   complete contact profile first, then resumes the booking flow on the sticky hub;
   everything else stays available without them
-- **Inline Cancel** — multi-step flows (booking, profile, services, schedule, time off,
+- **Inline Cancel** — multistep flows (booking, profile, services, schedule, time off,
   gap, min lead, slot step, admin) abort with a button, not a slash command
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
   admin lookups by username keep working
@@ -191,8 +194,9 @@ is inline buttons on the sticky hub message.
 | **Bookings**                               | master   | Week or month calendar → day → card (matches `SCHEDULE_MODE`)            |
 | **Services**                               | master   | List, add, edit, description/photo, deactivate                           |
 | **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                             |
-| **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary            |
-| **Schedule → Time off**                    | master   | View / edit upcoming absences (full days or hours)                       |
+| **Schedule → Work days**                   | master   | Monthly: open days calendar; full day off = untoggle                     |
+| **Schedule → Time off**                    | master   | Weekly: full day / range or hours (+ warning if bookings overlap)        |
+| **Schedule → Breaks**                      | master   | Monthly: hours on an open work day via calendar (+ warning)              |
 | **Schedule → Break between appointments**  | master   | Set pause after each visit (`gap_minutes`)                               |
 | **Schedule → Minimum lead time**           | master   | Set how soon clients may book (`min_lead_minutes`)                       |
 | **Schedule → Slot grid step**              | master   | Set start-time grid (`slot_step_minutes`; NULL = duration)               |
@@ -206,11 +210,11 @@ is inline buttons on the sticky hub message.
 
 Three roles, all stored in the database — nothing is hardcoded in the source.
 
-| Role      | Gets                                                                                                                           |
-|-----------|--------------------------------------------------------------------------------------------------------------------------------|
-| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.                                |
-| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off, and Bookings (week list or month calendar to match). |
-| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                                                |
+| Role      | Gets                                                                                                                                     |
+|-----------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.                                          |
+| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off or breaks, and Bookings (week list or month calendar to match). |
+| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                                                          |
 
 ### First run: bootstrapping the master
 
@@ -326,7 +330,7 @@ All settings come from `.env`. Start from `.env.example`.
 Personal-data notice text lives in locales; operator fields and the optional full-policy
 URL come from the `PDN_*` variables above. Decline / Cancel do not store consent, so the
 screen appears again on the next **Book** or **Profile** edit until the client agrees.
-Bump `PDN_CONSENT_VERSION` (and restart) when the policy changes and you need everyone
+Bump `PDN_CONSENT_VERSION` (and restart) when the policy changes, and you need everyone
 to re-accept.
 
 Reminder times use bot `TIMEZONE`. Evening reminders fire only on the calendar day
@@ -414,15 +418,18 @@ Used when `SCHEDULE_MODE=weekly`.
 `work_dates` stores concrete open calendar days with one local interval per day
 (`UNIQUE (master_user_id, work_date)`). Used when `SCHEDULE_MODE=monthly`. The hub
 month picker offers the next 12 months from today. Saving hours upserts only the
-newly selected days; closing days deletes those rows (with a confirm if
+newly selected days; closing days deletes those rows (with a confirmation if
 pending/confirmed appointments fall on them — bookings are kept).
 
-Day-off and breaks are intentionally kept out of the weekly template — they live in
-the separate `time_off` table. In monthly mode, closing a full day is an untoggled
-work day; use `time_off` for a partial-day block inside an open day.
+Day off and intraday breaks are kept out of the weekly template — they live in
+the separate `time_off` table. In **weekly** mode, hub **Time off** adds
+full-day ranges or same-day hours. In **monthly** mode a full closed day is an
+untoggled `work_dates` row; hub **Breaks** adds only same-day hour
+blocks on open work days (picked on a month calendar). Saving a block that
+overlaps pending/confirmed appointments shows a warning; bookings are kept either way.
 
 `time_off` holds concrete `TIMESTAMPTZ` blocks that remove availability — full days
-(midnight → next midnight) or same-day clock windows from the hub.
+(midnight → next midnight, weekly hub) or same-day clock windows.
 All timestamps are `TIMESTAMPTZ` and stored in UTC.
 
 ### Schema migrations
