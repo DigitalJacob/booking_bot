@@ -11,10 +11,10 @@ EN: dict[str, str] = {
     ),
     "/help_master": (
         "You are a specialist. Use the main menu buttons:\n\n"
-        "• Bookings — week → day → card "
+        "• Bookings — week or month calendar → day → card "
         "(confirm / cancel)\n"
         "• Services — catalogue and add\n"
-        "• Schedule — working hours and time off\n"
+        "• Schedule — working hours or work days, and time off\n"
         "• Settings — language and this help\n\n"
         "Send /start to refresh the menu; /menu sends a new menu message."
     ),

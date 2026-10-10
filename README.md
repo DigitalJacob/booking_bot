@@ -108,7 +108,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 
 ### For the master
 
-- **Bookings** — sticky week view → day → appointment card (navigate weeks with ← / →)
+- **Bookings** — sticky list shaped by `SCHEDULE_MODE`: **weekly** is week → day →
+  card (← / → weeks); **monthly** is month calendar (days with appointments marked
+  `•`) → day → card (← / → months); same card actions in both modes
 - **Client name and phone on every card and notification** — not just a Telegram id,
   so the master can actually call the person
 - **Confirm / decline / cancel** — **Confirm** stays one tap on the card or
@@ -186,7 +188,7 @@ is inline buttons on the sticky hub message.
 | **Services**                               | client   | Browse active services (description / photo)                             |
 | **My bookings**                            | client   | Upcoming appointments (open / cancel with confirm + reason)              |
 | **Profile → Show / Edit**                  | client   | View or update name and phone (consent first if missing / outdated)      |
-| **Bookings**                               | master   | Week → day → card (confirm; cancel/decline with confirm + reason)        |
+| **Bookings**                               | master   | Week or month calendar → day → card (matches `SCHEDULE_MODE`)            |
 | **Services**                               | master   | List, add, edit, description/photo, deactivate                           |
 | **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                             |
 | **Schedule → Work days**                   | master   | Monthly mode: 12 months ahead → calendar days, hours, summary            |
@@ -204,11 +206,11 @@ is inline buttons on the sticky hub message.
 
 Three roles, all stored in the database — nothing is hardcoded in the source.
 
-| Role      | Gets                                                                                                       |
-|-----------|------------------------------------------------------------------------------------------------------------|
-| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.            |
-| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off, and the weekly appointment list. |
-| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                            |
+| Role      | Gets                                                                                                                           |
+|-----------|--------------------------------------------------------------------------------------------------------------------------------|
+| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.                                |
+| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off, and Bookings (week list or month calendar to match). |
+| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                                                |
 
 ### First run: bootstrapping the master
 
@@ -299,27 +301,27 @@ Keep `POSTGRES_HOST=localhost` and `REDIS_HOST=localhost` in `.env` for this mod
 
 All settings come from `.env`. Start from `.env.example`.
 
-| Variable                                                              | Description                                                                                        |
-|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| `BOT_TOKEN`                                                           | Telegram bot token from [@BotFather](https://t.me/BotFather)                                       |
-| `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                              |
-| `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                                          |
-| `TIMEZONE`                                                            | IANA timezone for display and local schedule input (default `Europe/Moscow`); storage stays UTC    |
-| `SCHEDULE_MODE`                                                       | `weekly` or `monthly` — schedule shape for this deploy (pick once; switching is not supported)     |
-| `PDN_CONSENT_VERSION`                                                 | Version label stored with consent (default `v1`); bump to re-ask all clients                       |
-| `PDN_OPERATOR_NAME`                                                   | Operator name shown on the short consent screen (empty → locale fallback)                          |
-| `PDN_OPERATOR_CONTACTS`                                               | Operator contacts on the consent screen (empty → locale fallback)                                  |
-| `PDN_POLICY_URL`                                                      | Optional `http(s)://…` link for **Full terms** (hidden when empty)                                 |
-| `REMINDER_LEAD_MINUTES`                                               | Hour-ahead reminder: send when `starts_at` is within this many minutes (default `60`)              |
-| `REMINDER_EVENING_HOUR_START` / `REMINDER_EVENING_HOUR_END`           | Evening reminder: half-open local hour window `[START, END)` on the day before (default `20`/`22`) |
-| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                     |
-| `LOG_FORMAT`                                                          | Python logging format string                                                                       |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                               |
-| `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                                 |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                                   |
-| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                                  |
-| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                     |
-| `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                                    |
+| Variable                                                              | Description                                                                                                                   |
+|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `BOT_TOKEN`                                                           | Telegram bot token from [@BotFather](https://t.me/BotFather)                                                                  |
+| `ADMIN_IDS`                                                           | Comma-separated Telegram ids granted the admin role on first `/start`                                                         |
+| `MASTER_USER_ID`                                                      | Telegram id of the master whose services clients can book                                                                     |
+| `TIMEZONE`                                                            | IANA timezone for display and local schedule input (default `Europe/Moscow`); storage stays UTC                               |
+| `SCHEDULE_MODE`                                                       | `weekly` or `monthly` — schedule shape and master Bookings navigation for this deploy (pick once; switching is not supported) |
+| `PDN_CONSENT_VERSION`                                                 | Version label stored with consent (default `v1`); bump to re-ask all clients                                                  |
+| `PDN_OPERATOR_NAME`                                                   | Operator name shown on the short consent screen (empty → locale fallback)                                                     |
+| `PDN_OPERATOR_CONTACTS`                                               | Operator contacts on the consent screen (empty → locale fallback)                                                             |
+| `PDN_POLICY_URL`                                                      | Optional `http(s)://…` link for **Full terms** (hidden when empty)                                                            |
+| `REMINDER_LEAD_MINUTES`                                               | Hour-ahead reminder: send when `starts_at` is within this many minutes (default `60`)                                         |
+| `REMINDER_EVENING_HOUR_START` / `REMINDER_EVENING_HOUR_END`           | Evening reminder: half-open local hour window `[START, END)` on the day before (default `20`/`22`)                            |
+| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                                                |
+| `LOG_FORMAT`                                                          | Python logging format string                                                                                                  |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                                                          |
+| `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                                                            |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                                                              |
+| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                                                             |
+| `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                                                |
+| `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                                                               |
 
 Personal-data notice text lives in locales; operator fields and the optional full-policy
 URL come from the `PDN_*` variables above. Decline / Cancel do not store consent, so the
