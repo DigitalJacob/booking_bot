@@ -5,15 +5,8 @@ import sys
 from pathlib import Path
 
 from app.infrastructure.database.connection import get_pg_connection
-from config.config import Config, load_config
+from config.config import load_config
 from psycopg import AsyncConnection, Error
-
-config: Config = load_config()
-
-logging.basicConfig(
-    level=logging.getLevelName(level=config.log.level),
-    format=config.log.format,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +78,7 @@ async def _mark_applied(conn: AsyncConnection, version: str) -> None:
 async def _apply_sql_file(conn: AsyncConnection, path: Path) -> None:
     sql = path.read_text(encoding="utf-8")
     async with conn.cursor() as cursor:
-        await cursor.execute(sql) # type: ignore[arg-type]
+        await cursor.execute(sql)  # type: ignore[arg-type]
 
 
 async def run_migrations(conn: AsyncConnection) -> None:
@@ -126,6 +119,12 @@ async def run_migrations(conn: AsyncConnection) -> None:
 
 
 async def main() -> None:
+    config = load_config()
+    logging.basicConfig(
+        level=logging.getLevelName(level=config.log.level),
+        format=config.log.format,
+    )
+
     connection: AsyncConnection | None = None
     try:
         connection = await get_pg_connection(
