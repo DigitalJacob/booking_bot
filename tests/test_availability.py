@@ -1,5 +1,4 @@
 from datetime import UTC, date, datetime, time
-from typing import cast
 
 import pytest
 from app.domain.enums import AppointmentStatus
@@ -10,19 +9,10 @@ from app.domain.models import (
     WorkDate,
     WorkingHours,
 )
+from app.domain.ports import RepositoriesPort
 from app.domain.services.availability import AvailabilityService
-from app.infrastructure.database.repositories import (
-    AppointmentsRepository,
-    MasterSettingsRepository,
-    Repositories,
-    ServicesRepository,
-    TimeOffRepository,
-    UsersRepository,
-    WorkDatesRepository,
-    WorkingHoursRepository,
-)
 
-from tests.factories import FakeWorkDatesRepository
+from tests.factories import make_repos
 
 MASTER_ID = 100
 # Thursday 2026-09-10 — isoweekday() == 4
@@ -118,80 +108,6 @@ def _time_off(
     )
 
 
-class FakeMasterSettingsRepository:
-    def __init__(self, settings: MasterSettings | None) -> None:
-        self._settings = settings
-
-    async def get_by_master(self, *, master_user_id: int) -> MasterSettings | None:
-        if self._settings and self._settings.master_user_id == master_user_id:
-            return self._settings
-        return None
-
-
-class FakeWorkingHoursRepository:
-    def __init__(self, rows: list[WorkingHours]) -> None:
-        self._rows = rows
-
-    async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            weekday: int | None = None,
-    ) -> list[WorkingHours]:
-        result = [
-            row for row in self._rows
-            if row.master_user_id == master_user_id
-            and (weekday is None or row.weekday == weekday)
-        ]
-        return sorted(result, key=lambda row: (row.weekday, row.starts_time))
-
-
-class FakeTimeOffRepository:
-    def __init__(self, rows: list[TimeOff]) -> None:
-        self._rows = rows
-
-    async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
-    ) -> list[TimeOff]:
-        result = []
-        for row in self._rows:
-            if row.master_user_id != master_user_id:
-                continue
-            if from_dt is not None and row.ends_at <= from_dt:
-                continue
-            if to_dt is not None and row.starts_at >= to_dt:
-                continue
-            result.append(row)
-        return sorted(result, key=lambda row: row.starts_at)
-
-
-class FakeAppointmentsRepository:
-    def __init__(self, rows: list[Appointment]) -> None:
-        self._rows = rows
-
-    async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
-    ) -> list[Appointment]:
-        result = []
-        for row in self._rows:
-            if row.master_user_id != master_user_id:
-                continue
-            if from_dt is not None and row.starts_at < from_dt:
-                continue
-            if to_dt is not None and row.starts_at >= to_dt:
-                continue
-            result.append(row)
-        return sorted(result, key=lambda row: row.starts_at)
-
-
 def make_availability_repos(
         *,
         settings: MasterSettings | None = None,
@@ -199,30 +115,13 @@ def make_availability_repos(
         work_dates: list[WorkDate] | None = None,
         time_offs: list[TimeOff] | None = None,
         appointments: list[Appointment] | None = None,
-) -> Repositories:
-    return Repositories(
-        users=cast(UsersRepository, None),
-        services=cast(ServicesRepository, None),
-        appointments=cast(
-            AppointmentsRepository,
-            FakeAppointmentsRepository(appointments or []),
-        ),
-        master_settings=cast(
-            MasterSettingsRepository,
-            FakeMasterSettingsRepository(settings),
-        ),
-        working_hours=cast(
-            WorkingHoursRepository,
-            FakeWorkingHoursRepository(working_hours or []),
-        ),
-        work_dates=cast(
-            WorkDatesRepository,
-            FakeWorkDatesRepository(work_dates or []),
-        ),
-        time_off=cast(
-            TimeOffRepository,
-            FakeTimeOffRepository(time_offs or []),
-        ),
+) -> RepositoriesPort:
+    return make_repos(
+        settings=settings,
+        working_hours=working_hours,
+        work_dates=work_dates,
+        time_offs=time_offs,
+        appointments=appointments,
     )
 
 

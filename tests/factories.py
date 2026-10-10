@@ -1,7 +1,6 @@
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
-from typing import cast
 
 from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import TimeConflict
@@ -13,16 +12,7 @@ from app.domain.models import (
     WorkDate,
     WorkingHours,
 )
-from app.infrastructure.database.repositories import (
-    AppointmentsRepository,
-    MasterSettingsRepository,
-    Repositories,
-    ServicesRepository,
-    TimeOffRepository,
-    UsersRepository,
-    WorkDatesRepository,
-    WorkingHoursRepository,
-)
+from app.domain.ports import RepositoriesPort
 
 MASTER_ID = 100
 CLIENT_ID = 200
@@ -393,6 +383,18 @@ class FakeAppointmentsRepository:
         return updated
 
 
+@dataclass
+class FakeRepositories:
+    """In-memory stand-in that satisfies RepositoriesPort structurally."""
+
+    services: FakeServicesRepository
+    appointments: FakeAppointmentsRepository
+    master_settings: FakeMasterSettingsRepository
+    working_hours: FakeWorkingHoursRepository
+    work_dates: FakeWorkDatesRepository
+    time_off: FakeTimeOffRepository
+
+
 def make_repos(
         *,
         services: list[Service] | None = None,
@@ -401,31 +403,12 @@ def make_repos(
         working_hours: list[WorkingHours] | None = None,
         work_dates: list[WorkDate] | None = None,
         time_offs: list[TimeOff] | None = None,
-) -> Repositories:
-    return Repositories(
-        users=cast(UsersRepository, None),
-        services=cast(
-            ServicesRepository,
-            FakeServicesRepository(services or []),
-        ),
-        appointments=cast(
-            AppointmentsRepository,
-            FakeAppointmentsRepository(appointments or []),
-        ),
-        master_settings=cast(
-            MasterSettingsRepository,
-            FakeMasterSettingsRepository(settings),
-        ),
-        working_hours=cast(
-            WorkingHoursRepository,
-            FakeWorkingHoursRepository(working_hours or []),
-        ),
-        work_dates=cast(
-            WorkDatesRepository,
-            FakeWorkDatesRepository(work_dates or []),
-        ),
-        time_off=cast(
-            TimeOffRepository,
-            FakeTimeOffRepository(time_offs or []),
-        ),
+) -> RepositoriesPort:
+    return FakeRepositories(
+        services=FakeServicesRepository(services or []),
+        appointments=FakeAppointmentsRepository(appointments or []),
+        master_settings=FakeMasterSettingsRepository(settings),
+        working_hours=FakeWorkingHoursRepository(working_hours or []),
+        work_dates=FakeWorkDatesRepository(work_dates or []),
+        time_off=FakeTimeOffRepository(time_offs or []),
     )
