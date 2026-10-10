@@ -6,6 +6,9 @@ requires-python = ">=3.13"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "integration: tests that need a real PostgreSQL database",
+]
 
 [tool.ruff]
 line-length = 100
