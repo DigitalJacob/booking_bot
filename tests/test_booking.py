@@ -1,13 +1,13 @@
 from datetime import timedelta
 
 import pytest
-
 from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
     ForbiddenBookingAction,
     InvalidAppointmentStatus,
 )
 from app.domain.services.booking import BookingService
+
 from tests.factories import (
     CLIENT_ID,
     MASTER_ID,

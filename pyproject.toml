@@ -24,6 +24,8 @@ select = [
     "C4",  # flake8-comprehensions
     "N",   # pep8-naming
 ]
+# Domain exceptions use NotFound/Conflict style, not *Error suffix.
+ignore = ["N818"]
 
 [tool.mypy]
 python_version = "3.13"

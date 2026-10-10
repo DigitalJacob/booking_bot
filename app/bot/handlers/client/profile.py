@@ -23,7 +23,6 @@ from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
-
 profile_router = Router(name="client_profile")
 
 _PHONE_RE = re.compile(r"^\+?\d{10,15}$")

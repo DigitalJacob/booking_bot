@@ -1,5 +1,5 @@
 from contextlib import suppress
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -52,7 +52,6 @@ from app.domain.exceptions import (
 from app.domain.models import Appointment, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
-
 
 bookings_router = Router(name="master_bookings")
 bookings_router.message.filter(UserRoleFilter(UserRole.MASTER))
@@ -541,7 +540,7 @@ async def build_master_booking_card(
     title = service.title if service else "?"
     client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
     client_name, client_phone = client_contact(client)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     past = is_slot_past(slot_ends_at=appointment.ends_at, now=now)
     text_key = (
         "master_bookings_card_past" if past else "master_bookings_card"
@@ -578,7 +577,7 @@ async def build_master_new_booking_push(
     kb = get_appointment_actions_kb(
         appointment=appointment,
         i18n=i18n,
-        now=datetime.now(timezone.utc),
+        now=datetime.now(UTC),
         slot_ends_at=appointment.ends_at,
     )
     return i18n, text, kb
@@ -624,7 +623,7 @@ async def _reject_if_slot_past(
 
     if is_slot_past(
         slot_ends_at=appointment.ends_at,
-        now=datetime.now(timezone.utc),
+        now=datetime.now(UTC),
     ):
         await callback.answer(
             text=i18n.get("master_action_past"),
@@ -649,16 +648,19 @@ async def disarm_stale_master_push(
     appointment = await repos.appointments.get_appointment(
         appointment_id=appointment_id,
     )
-    if appointment is not None and appointment.status == AppointmentStatus.CANCELLED:
-        if await supersede_master_action_push(
-            bot=bot,
-            repos=repos,
-            appointment=appointment,
-            translations=translations,
-            text_key="master_booking_cancelled_by_client",
-            bot_timezone=bot_timezone,
-        ):
-            return
+    if (
+            appointment is not None
+            and appointment.status == AppointmentStatus.CANCELLED
+            and await supersede_master_action_push(
+                bot=bot,
+                repos=repos,
+                appointment=appointment,
+                translations=translations,
+                text_key="master_booking_cancelled_by_client",
+                bot_timezone=bot_timezone,
+            )
+    ):
+        return
 
     with suppress(TelegramBadRequest):
         await callback.message.edit_reply_markup(reply_markup=None)

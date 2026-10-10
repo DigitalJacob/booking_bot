@@ -11,8 +11,8 @@ from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.slot_step import (
     SlotStepNavCallback,
-    get_slot_step_view_kb,
     get_slot_step_enter_kb,
+    get_slot_step_view_kb,
 )
 from app.bot.states.states import SlotStepSG
 from app.bot.utils.hub_nav import (
@@ -24,7 +24,6 @@ from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import MasterSettings, User
 from app.infrastructure.database.repositories import Repositories
-
 
 slot_step_router = Router(name="master_slot_step")
 slot_step_router.message.filter(UserRoleFilter(UserRole.MASTER))

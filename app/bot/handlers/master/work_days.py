@@ -30,7 +30,6 @@ from app.domain.enums import AppointmentStatus, UserRole
 from app.domain.models import Appointment, User
 from app.infrastructure.database.repositories import Repositories
 
-
 work_days_router = Router(name="master_work_days")
 work_days_router.message.filter(UserRoleFilter(UserRole.MASTER))
 work_days_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))

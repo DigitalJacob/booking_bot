@@ -1,15 +1,14 @@
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from typing import cast
 
 import pytest
-
 from app.domain.enums import AppointmentStatus
 from app.domain.models import (
     Appointment,
     MasterSettings,
     TimeOff,
-    WorkingHours,
     WorkDate,
+    WorkingHours,
 )
 from app.domain.services.availability import AvailabilityService
 from app.infrastructure.database.repositories import (
@@ -19,15 +18,15 @@ from app.infrastructure.database.repositories import (
     ServicesRepository,
     TimeOffRepository,
     UsersRepository,
-    WorkingHoursRepository,
     WorkDatesRepository,
+    WorkingHoursRepository,
 )
-from tests.factories import FakeWorkDatesRepository
 
+from tests.factories import FakeWorkDatesRepository
 
 MASTER_ID = 100
 # Thursday 2026-09-10 — isoweekday() == 4
-NOW = datetime(2026, 9, 10, 5, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 10, 5, 0, tzinfo=UTC)
 CREATED = NOW
 
 
@@ -248,17 +247,17 @@ async def test_basic_grid_on_working_hours():
 
     # 09:00 MSK = 06:00 UTC, etc.
     assert _starts(windows) == [
-        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
     ]
 
 
 @pytest.mark.asyncio
 async def test_appointment_blocks_window():
     """Existing 10:00-11:00 MSK booking removes that candidate."""
-    busy_start = datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)  # 10:00 MSK
-    busy_end = datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc)    # 11:00 MSK
+    busy_start = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)  # 10:00 MSK
+    busy_end = datetime(2026, 9, 10, 8, 0, tzinfo=UTC)    # 11:00 MSK
     repos = make_availability_repos(
         settings=_settings(booking_horizon_days=1),
         working_hours=[_working()],
@@ -273,15 +272,15 @@ async def test_appointment_blocks_window():
     )
 
     assert _starts(windows) == [
-        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
     ]
 
 
 @pytest.mark.asyncio
 async def test_time_off_blocks_window():
-    block_start = datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)
-    block_end = datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc)
+    block_start = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
+    block_end = datetime(2026, 9, 10, 8, 0, tzinfo=UTC)
     repos = make_availability_repos(
         settings=_settings(booking_horizon_days=1),
         working_hours=[_working()],
@@ -296,16 +295,16 @@ async def test_time_off_blocks_window():
     )
 
     assert _starts(windows) == [
-        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
     ]
 
 
 @pytest.mark.asyncio
 async def test_gap_after_appointment():
     """gap=15: booking ending 10:00 MSK → next start not before 10:15."""
-    busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc)  # 09:00
-    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)    # 10:00
+    busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00
+    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)    # 10:00
     repos = make_availability_repos(
         settings=_settings(
             slot_step_minutes=15,
@@ -324,16 +323,16 @@ async def test_gap_after_appointment():
     )
 
     starts = _starts(windows)
-    assert datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc) not in starts
-    assert datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc) not in starts
-    assert datetime(2026, 9, 10, 7, 15, tzinfo=timezone.utc) in starts
+    assert datetime(2026, 9, 10, 6, 0, tzinfo=UTC) not in starts
+    assert datetime(2026, 9, 10, 7, 0, tzinfo=UTC) not in starts
+    assert datetime(2026, 9, 10, 7, 15, tzinfo=UTC) in starts
 
 
 @pytest.mark.asyncio
 async def test_gap_advances_cursor_when_step_is_coarser():
     """Default step (= duration 60) + gap 15 → next start at 10:15, not 11:00."""
-    busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc)  # 09:00
-    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)    # 10:00
+    busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00
+    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)    # 10:00
     repos = make_availability_repos(
         settings=_settings(
             slot_step_minutes=None,
@@ -352,16 +351,16 @@ async def test_gap_advances_cursor_when_step_is_coarser():
     )
 
     starts = _starts(windows)
-    assert datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc) not in starts
-    assert datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc) not in starts
-    assert datetime(2026, 9, 10, 7, 15, tzinfo=timezone.utc) in starts
-    assert datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc) not in starts
+    assert datetime(2026, 9, 10, 6, 0, tzinfo=UTC) not in starts
+    assert datetime(2026, 9, 10, 7, 0, tzinfo=UTC) not in starts
+    assert datetime(2026, 9, 10, 7, 15, tzinfo=UTC) in starts
+    assert datetime(2026, 9, 10, 8, 0, tzinfo=UTC) not in starts
 
 
 @pytest.mark.asyncio
 async def test_min_lead_filters_early_slots():
     """now=10:30 MSK, min_lead=0 → 09:00 and 10:00 already gone."""
-    now = datetime(2026, 9, 10, 7, 30, tzinfo=timezone.utc)  # 10:30 MSK
+    now = datetime(2026, 9, 10, 7, 30, tzinfo=UTC)  # 10:30 MSK
     repos = make_availability_repos(
         settings=_settings(booking_horizon_days=1),
         working_hours=[_working()],
@@ -375,14 +374,14 @@ async def test_min_lead_filters_early_slots():
     )
 
     assert _starts(windows) == [
-        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),  # 11:00 MSK
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),  # 11:00 MSK
     ]
 
 
 @pytest.mark.asyncio
 async def test_cancelled_appointment_does_not_block():
-    busy_start = datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)
-    busy_end = datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc)
+    busy_start = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
+    busy_end = datetime(2026, 9, 10, 8, 0, tzinfo=UTC)
     repos = make_availability_repos(
         settings=_settings(booking_horizon_days=1),
         working_hours=[_working()],
@@ -422,9 +421,9 @@ async def test_monthly_open_day_builds_grid():
     )
 
     assert _starts(windows) == [
-        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
     ]
 
 
@@ -455,8 +454,8 @@ async def test_monthly_time_off_blocks_window():
         work_dates=[_work_date(work_date=date(2026, 9, 10))],
         time_offs=[
             _time_off(
-                starts_at=datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc),
-                ends_at=datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+                starts_at=datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
+                ends_at=datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
             ),
         ],
     )
@@ -470,8 +469,8 @@ async def test_monthly_time_off_blocks_window():
     )
 
     assert _starts(windows) == [
-        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
     ]
 
 

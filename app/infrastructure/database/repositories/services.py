@@ -6,7 +6,6 @@ from psycopg.rows import dict_row
 
 from app.domain.models.service import Service
 
-
 logger = logging.getLogger(__name__)
 
 _SELECT_COLUMNS = """

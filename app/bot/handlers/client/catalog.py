@@ -19,7 +19,6 @@ from app.domain.enums import UserRole
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
 
-
 catalog_router = Router(name="client_catalog")
 
 _CAPTION_MAX = 1024

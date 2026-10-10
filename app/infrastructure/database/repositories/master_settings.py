@@ -1,11 +1,10 @@
 import logging
-from typing import cast, LiteralString
+from typing import LiteralString, cast
 
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 
 from app.domain.models.master_settings import MasterSettings
-
 
 logger = logging.getLogger(__name__)
 

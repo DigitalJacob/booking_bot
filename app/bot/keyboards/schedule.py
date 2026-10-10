@@ -3,7 +3,6 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.domain.models import WorkingHours
 
-
 WEEKDAY_KEYS = {
     1: "schedule_weekday_1",
     2: "schedule_weekday_2",

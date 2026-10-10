@@ -21,7 +21,6 @@ from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
-
 hub_router = Router(name="hub")
 
 

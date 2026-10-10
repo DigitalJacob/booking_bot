@@ -8,7 +8,6 @@ from app.bot.keyboards.hub import get_hub_root_kb
 from app.domain.enums import UserRole
 from app.domain.models import User
 
-
 HUB_MESSAGE_ID_KEY = "hub_message_id"
 _HUB_NAV_KEYS = (
     HUB_MESSAGE_ID_KEY,
@@ -151,14 +150,12 @@ async def show_hub(
 
     # Drop keyboard on the previous sticky so old menus are inert.
     if sticky_id is not None:
-        try:
+        with suppress(TelegramBadRequest):
             await bot.edit_message_reply_markup(
                 chat_id=chat_id,
                 message_id=sticky_id,
                 reply_markup=None,
             )
-        except TelegramBadRequest:
-            pass
 
     sent = await message.answer(text=text, reply_markup=kb)
     await state.update_data({HUB_MESSAGE_ID_KEY: sent.message_id})

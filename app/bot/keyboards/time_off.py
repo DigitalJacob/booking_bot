@@ -1,5 +1,5 @@
 import calendar
-from datetime import date, timedelta, time
+from datetime import date, time, timedelta
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup

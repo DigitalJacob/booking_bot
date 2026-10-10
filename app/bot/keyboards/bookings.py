@@ -10,7 +10,9 @@ from app.domain.models.appointment import Appointment
 
 
 class MasterAppointmentCallback(CallbackData, prefix="mapt"):
-    action: str  # open | open_day | back | back_week | back_month | close | confirm | cancel | week_* | month_*
+    # open | open_day | back | back_week | back_month | close | confirm | cancel
+    # week_* | month_*
+    action: str
     appointment_id: int = 0
     day: str = ""  # YYYY-MM-DD for open_day
 

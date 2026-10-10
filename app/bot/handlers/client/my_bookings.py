@@ -20,7 +20,6 @@ from app.domain.models import Appointment, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 
-
 my_bookings_router = Router(name="client_my_bookings")
 
 _BUTTON_LABEL_MAX = 64

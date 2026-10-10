@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, time, timezone
+from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot
@@ -15,7 +15,6 @@ from app.domain.enums import AppointmentStatus, ReminderKind
 from app.domain.models import Appointment
 from app.domain.services.reminders import filter_due_reminders, reminded_at_for
 from app.infrastructure.database.repositories import Repositories
-
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +48,8 @@ def _tomorrow_local_bounds(
     start_local = datetime.combine(tomorrow, time.min, tzinfo=tz)
     end_local = start_local + timedelta(days=1)
     return (
-        start_local.astimezone(timezone.utc),
-        end_local.astimezone(timezone.utc),
+        start_local.astimezone(UTC),
+        end_local.astimezone(UTC),
     )
 
 
@@ -71,13 +70,12 @@ async def _load_confirmed_between(
         from_dt: datetime,
         to_dt: datetime,
 ) -> list[Appointment]:
-    async with db_pool.connection() as connection:
-        async with connection.transaction():
-            repos = Repositories.from_connection(connection)
-            return await repos.appointments.list_confirmed_starting_between(
-                from_dt=from_dt,
-                to_dt=to_dt,
-            )
+    async with db_pool.connection() as connection, connection.transaction():
+        repos = Repositories.from_connection(connection)
+        return await repos.appointments.list_confirmed_starting_between(
+            from_dt=from_dt,
+            to_dt=to_dt,
+        )
 
 
 async def _deliver_one(
@@ -92,42 +90,41 @@ async def _deliver_one(
 ) -> None:
     """Send one reminder and mark it in its own transaction."""
     text_key = REMINDER_TEXT_KEY_BY_KIND[kind]
-    async with db_pool.connection() as connection:
-        async with connection.transaction():
-            repos = Repositories.from_connection(connection)
-            fresh = await repos.appointments.get_appointment(
-                appointment_id=appointment.id,
-            )
-            if fresh is None:
-                return
-            if fresh.status != AppointmentStatus.CONFIRMED:
-                return
-            if reminded_at_for(fresh, kind) is not None:
-                return
+    async with db_pool.connection() as connection, connection.transaction():
+        repos = Repositories.from_connection(connection)
+        fresh = await repos.appointments.get_appointment(
+            appointment_id=appointment.id,
+        )
+        if fresh is None:
+            return
+        if fresh.status != AppointmentStatus.CONFIRMED:
+            return
+        if reminded_at_for(fresh, kind) is not None:
+            return
 
-            message_id = await notify_appointment(
-                bot=bot,
-                repos=repos,
-                appointment=fresh,
-                recipient_user_id=_recipient_user_id(fresh, kind),
-                translations=translations,
-                text_key=text_key,
-                bot_timezone=bot_timezone,
-                with_reminder_actions=True,
-                reminder_kind=kind,
+        message_id = await notify_appointment(
+            bot=bot,
+            repos=repos,
+            appointment=fresh,
+            recipient_user_id=_recipient_user_id(fresh, kind),
+            translations=translations,
+            text_key=text_key,
+            bot_timezone=bot_timezone,
+            with_reminder_actions=True,
+            reminder_kind=kind,
+        )
+        if message_id is None:
+            logger.warning(
+                "Reminder %s not delivered for appointment %d",
+                kind,
+                fresh.id,
             )
-            if message_id is None:
-                logger.warning(
-                    "Reminder %s not delivered for appointment %d",
-                    kind,
-                    fresh.id,
-                )
-                return
-            await repos.appointments.mark_reminder_sent(
-                appointment_id=fresh.id,
-                kind=kind,
-                sent_at=now,
-            )
+            return
+        await repos.appointments.mark_reminder_sent(
+            appointment_id=fresh.id,
+            kind=kind,
+            sent_at=now,
+        )
 
 
 async def _process_kinds(
@@ -175,7 +172,7 @@ async def run_reminder_tick(
         evening_hour_start: int,
         evening_hour_end: int,
 ) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if _in_evening_clock_window(
         now=now,

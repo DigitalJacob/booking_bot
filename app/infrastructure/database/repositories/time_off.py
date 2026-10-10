@@ -6,7 +6,6 @@ from psycopg.rows import dict_row
 
 from app.domain.models.time_off import TimeOff
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -3,14 +3,14 @@ from dataclasses import dataclass
 from psycopg import AsyncConnection
 
 from app.infrastructure.database.repositories.appointments import AppointmentsRepository
-from app.infrastructure.database.repositories.services import ServicesRepository
-from app.infrastructure.database.repositories.users import UsersRepository
 from app.infrastructure.database.repositories.master_settings import (
     MasterSettingsRepository,
 )
-from app.infrastructure.database.repositories.working_hours import WorkingHoursRepository
-from app.infrastructure.database.repositories.work_dates import WorkDatesRepository
+from app.infrastructure.database.repositories.services import ServicesRepository
 from app.infrastructure.database.repositories.time_off import TimeOffRepository
+from app.infrastructure.database.repositories.users import UsersRepository
+from app.infrastructure.database.repositories.work_dates import WorkDatesRepository
+from app.infrastructure.database.repositories.working_hours import WorkingHoursRepository
 
 
 @dataclass

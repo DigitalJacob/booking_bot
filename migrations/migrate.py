@@ -4,11 +4,9 @@ import os
 import sys
 from pathlib import Path
 
-from psycopg import AsyncConnection, Error
-
 from app.infrastructure.database.connection import get_pg_connection
 from config.config import Config, load_config
-
+from psycopg import AsyncConnection, Error
 
 config: Config = load_config()
 

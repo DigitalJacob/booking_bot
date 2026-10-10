@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from psycopg import AsyncConnection
 from psycopg.errors import ExclusionViolation, UniqueViolation
@@ -9,7 +9,6 @@ from app.domain.enums import AppointmentStatus, ReminderKind
 from app.domain.enums.reminder import reminded_at_attr
 from app.domain.exceptions import TimeConflict
 from app.domain.models.appointment import Appointment
-
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +246,7 @@ class AppointmentsRepository:
             sent_at: datetime | None = None,
     ) -> None:
         column = reminded_at_attr(kind)
-        when = sent_at or datetime.now(timezone.utc)
+        when = sent_at or datetime.now(UTC)
         async with self._conn.cursor() as cursor:
             await cursor.execute(
                 query=f"""

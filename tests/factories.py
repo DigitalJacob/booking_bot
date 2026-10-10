@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import date, datetime, timedelta, time, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import cast
 
@@ -7,29 +7,28 @@ from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import TimeConflict
 from app.domain.models import (
     Appointment,
-    Service,
     MasterSettings,
-    WorkingHours,
-    WorkDate,
+    Service,
     TimeOff,
+    WorkDate,
+    WorkingHours,
 )
 from app.infrastructure.database.repositories import (
     AppointmentsRepository,
+    MasterSettingsRepository,
     Repositories,
     ServicesRepository,
-    UsersRepository,
-    MasterSettingsRepository,
-    WorkingHoursRepository,
-    WorkDatesRepository,
     TimeOffRepository,
+    UsersRepository,
+    WorkDatesRepository,
+    WorkingHoursRepository,
 )
-
 
 MASTER_ID = 100
 CLIENT_ID = 200
 OTHER_ID = 300
 
-NOW = datetime(2026, 9, 10, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
 
 
 def make_service(
@@ -156,10 +155,7 @@ class FakeWorkDatesRepository:
             month: int,
     ) -> list[WorkDate]:
         first = date(year, month, 1)
-        if month == 12:
-            to_date = date(year + 1, 1, 1)
-        else:
-            to_date = date(year, month + 1, 1)
+        to_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
         return await self.list_by_master(
             master_user_id=master_user_id,
             from_date=first,
@@ -239,10 +235,7 @@ class FakeWorkDatesRepository:
             if ends_time <= starts_time:
                 raise ValueError("ends_time must be after starts_time")
         first = date(year, month, 1)
-        if month == 12:
-            to_date = date(year + 1, 1, 1)
-        else:
-            to_date = date(year, month + 1, 1)
+        to_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
         for day in work_dates:
             if day.year != year or day.month != month:
                 raise ValueError(

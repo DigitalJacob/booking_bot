@@ -9,17 +9,17 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.schedule import (
+    WEEKDAY_KEYS,
+    ScheduleConfirmCallback,
+    ScheduleDeleteCallback,
     ScheduleNavCallback,
     ScheduleWeekdayCallback,
-    ScheduleDeleteCallback,
-    ScheduleConfirmCallback,
-    get_weekdays_kb,
     format_interval_line,
-    get_schedule_view_kb,
-    get_schedule_edit_kb,
-    get_schedule_confirm_delete_kb,
     get_schedule_cancel_kb,
-    WEEKDAY_KEYS,
+    get_schedule_confirm_delete_kb,
+    get_schedule_edit_kb,
+    get_schedule_view_kb,
+    get_weekdays_kb,
 )
 from app.bot.states.states import ScheduleSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
@@ -27,7 +27,6 @@ from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
-
 
 schedule_router = Router(name="master_schedule")
 schedule_router.message.filter(UserRoleFilter(UserRole.MASTER))

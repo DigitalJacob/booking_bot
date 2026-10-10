@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from aiogram import F, Router, Bot
+from aiogram import Bot, F, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -31,13 +31,12 @@ from app.domain.enums import UserRole
 from app.domain.exceptions import (
     ServiceInactive,
     ServiceNotFound,
-    WindowNotAvailable,
     TimeConflict,
+    WindowNotAvailable,
 )
 from app.domain.models import Service, TimeWindow, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
-
 
 booking_router = Router(name="client_booking")
 

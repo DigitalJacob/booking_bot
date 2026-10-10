@@ -6,7 +6,6 @@ from psycopg.rows import dict_row
 
 from app.domain.models.work_date import WorkDate
 
-
 logger = logging.getLogger(__name__)
 
 _SELECT_COLUMNS = """
@@ -64,10 +63,7 @@ class WorkDatesRepository:
             month: int,
     ) -> list[WorkDate]:
         first = date(year, month, 1)
-        if month == 12:
-            to_date = date(year + 1, 1, 1)
-        else:
-            to_date = date(year, month + 1, 1)
+        to_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
         return await self.list_by_master(
             master_user_id=master_user_id,
             from_date=first,
@@ -183,10 +179,7 @@ class WorkDatesRepository:
                 raise ValueError("ends_time must be after starts_time")
 
         first = date(year, month, 1)
-        if month == 12:
-            to_date = date(year + 1, 1, 1)
-        else:
-            to_date = date(year, month + 1, 1)
+        to_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
 
         for day in work_dates:
             if day.year != year or day.month != month:

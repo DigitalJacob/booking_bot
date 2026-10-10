@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from environs import Env
 
-
 logger = logging.getLogger(__name__)
 
 

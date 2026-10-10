@@ -6,7 +6,6 @@ from psycopg.rows import dict_row
 
 from app.domain.models.working_hours import WorkingHours
 
-
 logger = logging.getLogger(__name__)
 
 

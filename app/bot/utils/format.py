@@ -1,9 +1,8 @@
-from datetime import date, datetime, time, timezone, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from app.domain.enums import AppointmentStatus
 from app.domain.models import User
-
 
 _STATUS_KEYS = {
     AppointmentStatus.PENDING: "status_pending",
@@ -29,7 +28,7 @@ def get_zone(tz_name: str) -> ZoneInfo:
 
 def to_local(dt: datetime, tz_name: str) -> datetime:
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.astimezone(get_zone(tz_name))
 
 

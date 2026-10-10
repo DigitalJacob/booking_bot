@@ -1,16 +1,15 @@
-from datetime import datetime, time, timezone
+from datetime import UTC, datetime, time
 
 import pytest
-
 from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
     ServiceInactive,
     ServiceNotFound,
     WindowNotAvailable,
-    TimeConflict,
 )
 from app.domain.models import MasterSettings, WorkingHours
 from app.domain.services.booking import BookingService
+
 from tests.factories import (
     CLIENT_ID,
     MASTER_ID,
@@ -20,23 +19,22 @@ from tests.factories import (
     make_service,
 )
 
-
 # 08:00 MSK — before 09:00–12:00 grid
-NOW = datetime(2026, 9, 10, 5, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 10, 5, 0, tzinfo=UTC)
 CREATED = NOW
 
 
 def _settings(**kwargs) -> MasterSettings:
-    base = dict(
-        master_user_id=MASTER_ID,
-        timezone="Europe/Moscow",
-        slot_step_minutes=None,
-        gap_minutes=0,
-        min_lead_minutes=0,
-        booking_horizon_days=1,
-        created_at=CREATED,
-        updated_at=CREATED,
-    )
+    base = {
+        "master_user_id": MASTER_ID,
+        "timezone": "Europe/Moscow",
+        "slot_step_minutes": None,
+        "gap_minutes": 0,
+        "min_lead_minutes": 0,
+        "booking_horizon_days": 1,
+        "created_at": CREATED,
+        "updated_at": CREATED,
+    }
     base.update(kwargs)
     return MasterSettings(**base)
 
@@ -65,7 +63,7 @@ def _repos_with_schedule(**kwargs):
 @pytest.mark.asyncio
 async def test_book_window_creates_pending_appointment():
     booking = BookingService(_repos_with_schedule())
-    starts = datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc)  # 09:00 MSK
+    starts = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00 MSK
 
     appointment = await booking.book_window(
         client_user_id=CLIENT_ID,
@@ -76,7 +74,7 @@ async def test_book_window_creates_pending_appointment():
 
     assert appointment.status == AppointmentStatus.PENDING
     assert appointment.starts_at == starts
-    assert appointment.ends_at == datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)
+    assert appointment.ends_at == datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
@@ -87,7 +85,7 @@ async def test_book_window_rejects_unknown_service():
         await booking.book_window(
             client_user_id=CLIENT_ID,
             service_id=999,
-            starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
+            starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
             now=NOW,
         )
 
@@ -102,7 +100,7 @@ async def test_book_window_rejects_inactive_service():
         await booking.book_window(
             client_user_id=CLIENT_ID,
             service_id=1,
-            starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
+            starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
             now=NOW,
         )
 
@@ -115,15 +113,15 @@ async def test_book_window_rejects_time_not_in_grid():
         await booking.book_window(
             client_user_id=CLIENT_ID,
             service_id=1,
-            starts_at=datetime(2026, 9, 10, 6, 30, tzinfo=timezone.utc),  # 09:30
+            starts_at=datetime(2026, 9, 10, 6, 30, tzinfo=UTC),  # 09:30
             now=NOW,
         )
 
 
 @pytest.mark.asyncio
 async def test_book_window_rejects_when_already_taken():
-    taken_start = datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc)
-    taken_end = datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc)
+    taken_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)
+    taken_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
     booking = BookingService(
         _repos_with_schedule(
             appointments=[
@@ -155,7 +153,7 @@ async def test_list_available_windows_returns_grid():
     )
 
     assert [w.starts_at for w in windows] == [
-        datetime(2026, 9, 10, 6, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 7, 0, tzinfo=timezone.utc),
-        datetime(2026, 9, 10, 8, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
     ]

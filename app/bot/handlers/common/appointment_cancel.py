@@ -1,5 +1,5 @@
 from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -32,7 +32,6 @@ from app.domain.exceptions import (
 from app.domain.models import Appointment, User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
-
 
 appointment_cancel_router = Router(name="appointment_cancel")
 
@@ -94,11 +93,11 @@ async def _clear_cancel_state(state: FSMContext) -> None:
 
 def _is_appointment_past(appointment: Appointment, *, source: str) -> bool:
     """Master actions stay open until slot end; others until start."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if source in _MASTER_SOURCES:
         ends = appointment.ends_at
         if ends.tzinfo is None:
-            ends = ends.replace(tzinfo=timezone.utc)
+            ends = ends.replace(tzinfo=UTC)
         return ends <= now
     return _is_past(appointment)
 
@@ -128,10 +127,10 @@ def _is_party(*, user: User, appointment: Appointment) -> bool:
 
 
 def _is_past(appointment: Appointment) -> bool:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     starts = appointment.starts_at
     if starts.tzinfo is None:
-        starts = starts.replace(tzinfo=timezone.utc)
+        starts = starts.replace(tzinfo=UTC)
     return now >= starts
 
 

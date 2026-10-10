@@ -6,7 +6,6 @@ from aiogram.types import Message
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
-
 HubLeaf = Callable[..., Awaitable[None]]
 
 _LEAVES: dict[str, HubLeaf] = {}

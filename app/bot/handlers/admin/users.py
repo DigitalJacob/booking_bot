@@ -6,8 +6,9 @@ from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, BotCommandScopeChat, InlineKeyboardMarkup
+from aiogram.types import BotCommandScopeChat, CallbackQuery, InlineKeyboardMarkup, Message
 
+from app.bot.bot_commands import get_main_menu_commands
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.keyboards.admin import (
@@ -17,7 +18,6 @@ from app.bot.keyboards.admin import (
     get_admin_role_kb,
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
-from app.bot.bot_commands import get_main_menu_commands
 from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
@@ -25,7 +25,6 @@ from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
-
 
 logger = logging.getLogger(__name__)
 

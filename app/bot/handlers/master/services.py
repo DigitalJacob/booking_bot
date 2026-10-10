@@ -13,11 +13,11 @@ from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.services import (
     MasterServiceCallback,
     MasterServiceNavCallback,
-    get_services_list_kb,
     get_service_card_kb,
-    get_service_fsm_cancel_kb,
     get_service_description_kb,
+    get_service_fsm_cancel_kb,
     get_service_photo_kb,
+    get_services_list_kb,
 )
 from app.bot.states.states import (
     AddServiceSG,
@@ -34,7 +34,6 @@ from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
-
 
 services_router = Router(name="master_services")
 services_router.message.filter(UserRoleFilter(UserRole.MASTER))

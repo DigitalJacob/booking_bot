@@ -7,14 +7,13 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, Message
 
-from app.bot.i18n.translator import resolve_i18n, resolve_language
 from app.bot.bot_commands import get_main_menu_commands
+from app.bot.i18n.translator import resolve_i18n, resolve_language
 from app.bot.states.states import LangSG
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
 from app.domain.enums import UserRole
 from app.domain.models.user import User
 from app.infrastructure.database.repositories import Repositories
-
 
 start_router = Router(name="start")
 

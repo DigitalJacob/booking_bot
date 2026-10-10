@@ -8,12 +8,12 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
+from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.min_lead import (
     MinLeadNavCallback,
-    get_min_lead_view_kb,
     get_min_lead_cancel_kb,
+    get_min_lead_view_kb,
 )
-from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import MinLeadSG
 from app.bot.utils.hub_nav import (
     HUB_MESSAGE_ID_KEY,
@@ -24,7 +24,6 @@ from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import MasterSettings, User
 from app.infrastructure.database.repositories import Repositories
-
 
 min_lead_router = Router(name="master_min_lead")
 min_lead_router.message.filter(UserRoleFilter(UserRole.MASTER))

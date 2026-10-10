@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
@@ -11,9 +11,8 @@ from app.domain.exceptions import (
     WindowNotAvailable,
 )
 from app.domain.models import Appointment, Service, TimeWindow
-from app.infrastructure.database.repositories import Repositories
 from app.domain.services.availability import AvailabilityService
-
+from app.infrastructure.database.repositories import Repositories
 
 logger = logging.getLogger(__name__)
 
@@ -66,11 +65,11 @@ class BookingService:
             now: datetime | None = None
     ) -> Appointment:
         if now is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
         if starts_at.tzinfo is None:
-            starts_at = starts_at.replace(tzinfo=timezone.utc)
+            starts_at = starts_at.replace(tzinfo=UTC)
         else:
-            starts_at = starts_at.astimezone(timezone.utc)
+            starts_at = starts_at.astimezone(UTC)
 
         service = await self._repos.services.get_service(service_id=service_id)
         if service is None:
@@ -87,7 +86,7 @@ class BookingService:
         match = next(
             (
                 window for window in windows
-                if window.starts_at.astimezone(timezone.utc) == starts_at
+                if window.starts_at.astimezone(UTC) == starts_at
             ),
             None,
         )
@@ -119,7 +118,7 @@ class BookingService:
             now: datetime | None = None,
     ) -> list[Appointment]:
         if now is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
         appointments = await self._repos.appointments.list_by_client(
             client_user_id=client_user_id,

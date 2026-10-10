@@ -8,6 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
+from config.config import Config
 from redis.asyncio import Redis
 
 from app.bot.handlers.admin import admin_router
@@ -15,20 +16,18 @@ from app.bot.handlers.client import client_router
 from app.bot.handlers.common.appointment_cancel import appointment_cancel_router
 from app.bot.handlers.common.hub import hub_router
 from app.bot.handlers.common.reminders import reminder_router
-from app.bot.handlers.common.unsupported import unsupported_router
 from app.bot.handlers.common.settings import settings_router
 from app.bot.handlers.common.start import start_router
+from app.bot.handlers.common.unsupported import unsupported_router
 from app.bot.handlers.master import master_router
 from app.bot.i18n.translator import get_translations
 from app.bot.middlewares.banned import BannedMiddleware
 from app.bot.middlewares.database import DataBaseMiddleware
 from app.bot.middlewares.i18n import TranslatorMiddleware
-from app.bot.middlewares.user_context import UserContextMiddleware
 from app.bot.middlewares.lang_settings import LangSettingsMiddleware
+from app.bot.middlewares.user_context import UserContextMiddleware
 from app.bot.reminders import reminder_worker
 from app.infrastructure.database.connection import get_pg_pool
-from config.config import Config
-
 
 logger = logging.getLogger(__name__)
 

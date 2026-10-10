@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from app.domain.enums import AppointmentStatus
@@ -8,8 +8,8 @@ from app.infrastructure.database.repositories import Repositories
 
 def _as_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 def _overlaps(
@@ -41,7 +41,7 @@ class AvailabilityService:
                 f"got: {schedule_mode!r}"
             )
 
-        now = _as_utc(now or datetime.now(timezone.utc))
+        now = _as_utc(now or datetime.now(UTC))
         settings = await self._repos.master_settings.get_by_master(
             master_user_id=master_user_id,
         )
@@ -169,7 +169,7 @@ class AvailabilityService:
                 f"got: {schedule_mode!r}"
             )
 
-        now = _as_utc(now or datetime.now(timezone.utc))
+        now = _as_utc(now or datetime.now(UTC))
         settings = await self._repos.master_settings.get_by_master(
             master_user_id=master_user_id,
         )
@@ -205,7 +205,7 @@ class AvailabilityService:
 
     @staticmethod
     def _default_settings(master_user_id: int) -> MasterSettings:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return MasterSettings(
             master_user_id=master_user_id,
             timezone="Europe/Moscow",

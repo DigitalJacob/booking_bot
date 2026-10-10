@@ -10,7 +10,6 @@ from app.domain.enums import AppointmentStatus, ReminderKind
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
-
 reminder_router = Router(name="reminders")
 
 

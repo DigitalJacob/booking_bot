@@ -10,8 +10,8 @@ from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.gap import (
     GapNavCallback,
-    get_gap_view_kb,
     get_gap_cancel_kb,
+    get_gap_view_kb,
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import GapSG
@@ -24,7 +24,6 @@ from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import MasterSettings, User
 from app.infrastructure.database.repositories import Repositories
-
 
 gap_router = Router(name="master_gap")
 gap_router.message.filter(UserRoleFilter(UserRole.MASTER))

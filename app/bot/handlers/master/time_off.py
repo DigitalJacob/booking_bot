@@ -1,26 +1,26 @@
 from contextlib import suppress
-from datetime import datetime, date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.time_off import (
+    TimeOffConfirmCallback,
     TimeOffDayCallback,
+    TimeOffDeleteCallback,
     TimeOffNavCallback,
     TimeOffPadCallback,
-    TimeOffDeleteCallback,
-    TimeOffConfirmCallback,
     format_time_off_line,
+    get_time_off_cancel_kb,
+    get_time_off_confirm_delete_kb,
     get_time_off_day_calendar_kb,
     get_time_off_edit_kb,
-    get_time_off_confirm_delete_kb,
-    get_time_off_cancel_kb,
     get_time_off_kind_kb,
     get_time_off_warn_kb,
 )
@@ -42,7 +42,6 @@ from app.bot.utils.hub_registry import register
 from app.domain.enums import AppointmentStatus, UserRole
 from app.domain.models import Appointment, User
 from app.infrastructure.database.repositories import Repositories
-
 
 time_off_router = Router(name="master_time_off")
 time_off_router.message.filter(UserRoleFilter(UserRole.MASTER))

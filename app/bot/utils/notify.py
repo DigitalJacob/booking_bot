@@ -1,5 +1,5 @@
 from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
@@ -82,7 +82,7 @@ async def notify_appointment(
         reply_markup = get_appointment_actions_kb(
             appointment=appointment,
             i18n=i18n,
-            now=datetime.now(timezone.utc),
+            now=datetime.now(UTC),
             slot_ends_at=appointment.ends_at,
         )
     elif with_reminder_actions:

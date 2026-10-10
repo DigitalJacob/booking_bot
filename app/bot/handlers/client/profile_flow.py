@@ -1,5 +1,7 @@
 """Profile / PDN consent entry points (no dependency on booking handlers)."""
 
+from contextlib import suppress
+
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, Message
@@ -13,7 +15,6 @@ from app.bot.keyboards.profile import (
 from app.bot.states.states import ProfileSG
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
 from app.domain.models import User
-
 
 _PROFILE_PROMPT_ID_KEY = "profile_prompt_message_id"
 _PROFILE_AUX_ID_KEY = "profile_aux_message_id"
@@ -30,13 +31,11 @@ async def _delete_chat_message(
 ) -> None:
     if message_id is None:
         return
-    try:
+    with suppress(TelegramBadRequest):
         await message.bot.delete_message(
             chat_id=message.chat.id,
             message_id=message_id,
         )
-    except TelegramBadRequest:
-        pass
 
 
 async def delete_user_input(message: Message) -> None:
@@ -47,10 +46,8 @@ async def delete_user_input(message: Message) -> None:
 async def _drop_reply_keyboard(message: Message) -> None:
     """Remove reply keyboard without leaving a visible notice in chat."""
     stub = await message.answer(text=".", reply_markup=remove_kb())
-    try:
+    with suppress(TelegramBadRequest):
         await stub.delete()
-    except TelegramBadRequest:
-        pass
 
 
 async def cleanup_profile_messages(

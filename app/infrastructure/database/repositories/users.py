@@ -1,12 +1,11 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 
 from app.domain.enums import UserRole
 from app.domain.models.user import User
-
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +167,7 @@ class UsersRepository:
                     SET first_name = %s,
                         last_name = %s,
                         phone = %s
-                    WHERE user_id = %s;   
+                    WHERE user_id = %s;
                 """,
                 params=(first_name, last_name, phone, user_id),
             )
@@ -181,7 +180,7 @@ class UsersRepository:
             version: str,
             consented_at: datetime | None = None,
     ) -> None:
-        when = consented_at or datetime.now(timezone.utc)
+        when = consented_at or datetime.now(UTC)
         async with self._conn.cursor() as cursor:
             await cursor.execute(
                 query="""
