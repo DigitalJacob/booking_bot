@@ -124,7 +124,6 @@ RU: dict[str, str] = {
         "В {month} активных записей нет.\n"
         "Выберите день на календаре или другой месяц."
     ),
-    "master_bookings_choose_month": "Выберите месяц:",
     "master_bookings_month_prev": "←",
     "master_bookings_month_next": "→",
     "master_bookings_month_current": "Этот месяц",

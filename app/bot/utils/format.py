@@ -80,6 +80,32 @@ def local_week_bounds(
     return start_local, end_local, week_start
 
 
+def local_month_bounds(
+        tz_name: str,
+        *,
+        year: int | None = None,
+        month: int | None = None,
+) -> tuple[datetime, datetime, int, int]:
+    """
+    1st 00:00 .. next month 1st 00:00 in bot TZ.
+    If year/month omitted, use the current local month.
+    """
+    zone = get_zone(tz_name)
+    if year is None or month is None:
+        today = datetime.now(zone).date()
+        year, month = today.year, today.month
+    start_local = datetime.combine(date(year, month, 1), time.min, tzinfo=zone)
+    if month == 12:
+        end_local = datetime.combine(date(year + 1, 1, 1), time.min, tzinfo=zone)
+    else:
+        end_local = datetime.combine(
+            date(year, month + 1, 1),
+            time.min,
+            tzinfo=zone,
+        )
+    return start_local, end_local, year, month
+
+
 def _plural_form_index(n: int) -> int:
     """0=one, 1=few, 2=many (Slavic rules; EN can use few==many)."""
     n = abs(n) % 100

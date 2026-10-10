@@ -124,7 +124,6 @@ EN: dict[str, str] = {
         "No active bookings in {month}.\n"
         "Pick a day on the calendar or another month."
     ),
-    "master_bookings_choose_month": "Choose a month:",
     "master_bookings_month_prev": "←",
     "master_bookings_month_next": "→",
     "master_bookings_month_current": "This month",

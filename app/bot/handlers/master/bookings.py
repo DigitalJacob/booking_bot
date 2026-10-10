@@ -15,23 +15,27 @@ from app.bot.handlers.common.appointment_cancel import (
 from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.bookings import (
     MasterAppointmentCallback,
+    MasterBookingsPadCallback,
     get_appointment_actions_kb,
     get_master_booking_card_kb,
     get_master_bookings_day_kb,
+    get_master_bookings_month_kb,
     get_master_bookings_week_kb,
     is_slot_past,
 )
+from app.bot.keyboards.hub import get_hub_root_kb
 from app.bot.keyboards.schedule import WEEKDAY_KEYS
+from app.bot.keyboards.work_days import month_label
 from app.bot.utils.format import (
     client_contact,
     combine_local,
     format_dt,
     i18n_plural,
+    local_month_bounds,
     local_week_bounds,
     status_label,
     to_local,
 )
-from app.bot.keyboards.hub import get_hub_root_kb
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, show_hub
 from app.bot.utils.hub_registry import register
 from app.bot.utils.notify import (
@@ -56,6 +60,7 @@ bookings_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _BUTTON_LABEL_MAX = 64
 _WEEK_START_KEY = "bookings_week_start"
+_MONTH_KEY = "bookings_month"  # YYYY-MM
 _DAY_KEY = "bookings_day"
 
 
@@ -66,6 +71,37 @@ def _parse_iso_date(raw: str | None) -> date | None:
         return date.fromisoformat(raw)
     except ValueError:
         return None
+
+
+def _parse_year_month(raw: str | None) -> tuple[int, int] | None:
+    if not raw:
+        return None
+    try:
+        year_s, month_s = raw.split("-", 1)
+        year, month = int(year_s), int(month_s)
+    except ValueError:
+        return None
+    if not 1 <= month <= 12:
+        return None
+    return year, month
+
+
+def _format_year_month(year: int, month: int) -> str:
+    return f"{year:04d}-{month:02d}"
+
+
+def _shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
+    idx = year * 12 + (month - 1) + delta
+    return idx // 12, idx % 12 + 1
+
+
+def _bookings_back_to(schedule_mode: str) -> str:
+    return "month" if schedule_mode == "monthly" else "week"
+
+
+async def _back_to_from_state(state: FSMContext) -> str:
+    data = await state.get_data()
+    return "month" if data.get(_MONTH_KEY) else "week"
 
 
 def _week_range_label(week_start: date) -> str:
@@ -124,6 +160,30 @@ async def _load_week_active(
     return week_start, active, week_start == current_week_start
 
 
+async def _load_month_active(
+        *,
+        repos: Repositories,
+        user: User,
+        bot_timezone: str,
+        year: int | None,
+        month: int | None,
+) -> tuple[int, int, list[Appointment], bool]:
+    from_dt, to_dt, year, month = local_month_bounds(
+        bot_timezone,
+        year=year,
+        month=month,
+    )
+    appointments = await repos.appointments.list_by_master(
+        master_user_id=user.user_id,
+        from_dt=from_dt,
+        to_dt=to_dt,
+    )
+    active = _active_only(appointments)
+    _, _, current_year, current_month = local_month_bounds(bot_timezone)
+    is_current = (year, month) == (current_year, current_month)
+    return year, month, active, is_current
+
+
 async def show_master_bookings_week(
         *,
         message: Message,
@@ -145,6 +205,7 @@ async def show_master_bookings_week(
     await state.update_data(
         {
             _WEEK_START_KEY: week_start.isoformat(),
+            _MONTH_KEY: None,
             _DAY_KEY: None,
         }
     )
@@ -206,6 +267,116 @@ async def show_master_bookings_week(
         await message.answer(text=text, reply_markup=kb)
 
 
+async def show_master_bookings_month(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        edit: bool,
+) -> None:
+    data = await state.get_data()
+    parsed = _parse_year_month(data.get(_MONTH_KEY))
+    year = parsed[0] if parsed else None
+    month = parsed[1] if parsed else None
+    year, month, active, is_current_month = await _load_month_active(
+        repos=repos,
+        user=user,
+        bot_timezone=bot_timezone,
+        year=year,
+        month=month,
+    )
+    await state.update_data(
+        {
+            _MONTH_KEY: _format_year_month(year, month),
+            _WEEK_START_KEY: None,
+            _DAY_KEY: None,
+        }
+    )
+    month_text = month_label(year, month, i18n)
+    by_day = _counts_by_local_day(
+        appointments=active,
+        bot_timezone=bot_timezone,
+    )
+    busy_days = {day.day for day in by_day}
+
+    if not by_day:
+        text = i18n.get("master_bookings_month_empty").format(month=month_text)
+    else:
+        lines: list[str] = []
+        for day in sorted(by_day):
+            count = by_day[day]
+            day_text = _day_label(day=day, i18n=i18n)
+            lines.append(
+                i18n_plural(
+                    count,
+                    i18n,
+                    key_prefix="master_bookings_day_line",
+                    day=day_text,
+                )
+            )
+        total = i18n_plural(
+            len(active),
+            i18n,
+            key_prefix="master_bookings_total",
+        )
+        text = (
+            i18n.get("master_bookings_month_header").format(
+                month=month_text,
+                total=total,
+            )
+            + "\n\n"
+            + "\n".join(lines)
+        )
+
+    kb = get_master_bookings_month_kb(
+        year=year,
+        month=month,
+        busy_days=busy_days,
+        i18n=i18n,
+        is_current_month=is_current_month,
+    )
+    if edit:
+        await message.edit_text(text=text, reply_markup=kb)
+    else:
+        await message.answer(text=text, reply_markup=kb)
+
+
+async def show_master_bookings_overview(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        schedule_mode: str,
+        edit: bool,
+) -> None:
+    if schedule_mode == "monthly":
+        await show_master_bookings_month(
+            message=message,
+            state=state,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            edit=edit,
+        )
+        return
+    await show_master_bookings_week(
+        message=message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=edit,
+    )
+
+
 async def build_master_bookings_day(
         *,
         repos: Repositories,
@@ -213,6 +384,7 @@ async def build_master_bookings_day(
         i18n: dict[str, str],
         bot_timezone: str,
         day: date,
+        back_to: str = "week",
 ) -> tuple[str, InlineKeyboardMarkup]:
     day_start = combine_local(day, time.min, bot_timezone)
     day_end = day_start + timedelta(days=1)
@@ -231,6 +403,7 @@ async def build_master_bookings_day(
                 appointments=[],
                 labels={},
                 i18n=i18n,
+                back_to=back_to,
             ),
         )
 
@@ -265,6 +438,7 @@ async def build_master_bookings_day(
         appointments=active,
         labels=labels,
         i18n=i18n,
+        back_to=back_to,
     )
     return text, kb
 
@@ -279,14 +453,21 @@ async def show_master_bookings_day(
         bot_timezone: str,
         day: date,
         edit: bool,
+        schedule_mode: str = "weekly",
 ) -> None:
-    await state.update_data({_DAY_KEY: day.isoformat()})
+    updates: dict[str, str | None] = {_DAY_KEY: day.isoformat()}
+    if schedule_mode == "monthly":
+        updates[_MONTH_KEY] = _format_year_month(day.year, day.month)
+    else:
+        updates[_MONTH_KEY] = None
+    await state.update_data(updates)
     text, kb = await build_master_bookings_day(
         repos=repos,
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
         day=day,
+        back_to=_bookings_back_to(schedule_mode),
     )
     if edit:
         await message.edit_text(text=text, reply_markup=kb)
@@ -314,6 +495,36 @@ async def _set_week_start(
     await state.update_data(
         {
             _WEEK_START_KEY: week_start.isoformat(),
+            _MONTH_KEY: None,
+            _DAY_KEY: None,
+        }
+    )
+
+
+async def _set_month(
+        *,
+        state: FSMContext,
+        bot_timezone: str,
+        delta_months: int = 0,
+        to_current: bool = False,
+) -> None:
+    if to_current:
+        _, _, year, month = local_month_bounds(bot_timezone)
+    else:
+        data = await state.get_data()
+        parsed = _parse_year_month(data.get(_MONTH_KEY))
+        year = parsed[0] if parsed else None
+        month = parsed[1] if parsed else None
+        _, _, year, month = local_month_bounds(
+            bot_timezone,
+            year=year,
+            month=month,
+        )
+        year, month = _shift_month(year, month, delta_months)
+    await state.update_data(
+        {
+            _MONTH_KEY: _format_year_month(year, month),
+            _WEEK_START_KEY: None,
             _DAY_KEY: None,
         }
     )
@@ -483,6 +694,7 @@ async def resume_master_after_cancel(
 
     if source == SOURCE_MASTER_BOOKINGS:
         day = to_local(appointment.starts_at, bot_timezone).date()
+        back_to = await _back_to_from_state(state)
         await state.update_data(
             {
                 "hub_screen": "bookings",
@@ -497,6 +709,7 @@ async def resume_master_after_cancel(
             i18n=i18n,
             bot_timezone=bot_timezone,
             day=day,
+            back_to=back_to,
         )
         with suppress(TelegramBadRequest):
             await bot.edit_message_text(
@@ -540,6 +753,7 @@ async def _finish_master_decision(
         appointment_id: int,
         bot_timezone: str,
         ack_text: str,
+        schedule_mode: str = "weekly",
 ) -> None:
     """
     Sticky card: refresh the day list in place.
@@ -568,15 +782,17 @@ async def _finish_master_decision(
                 bot_timezone=bot_timezone,
                 day=day,
                 edit=True,
+                schedule_mode=schedule_mode,
             )
         else:
-            await show_master_bookings_week(
+            await show_master_bookings_overview(
                 message=callback.message,
                 state=state,
                 repos=repos,
                 user=user,
                 i18n=i18n,
                 bot_timezone=bot_timezone,
+                schedule_mode=schedule_mode,
                 edit=True,
             )
         await callback.answer(text=ack_text)
@@ -605,6 +821,7 @@ async def process_open_day(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     day = _parse_iso_date(callback_data.day)
     if day is None:
@@ -622,6 +839,7 @@ async def process_open_day(
         bot_timezone=bot_timezone,
         day=day,
         edit=True,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 
@@ -668,17 +886,19 @@ async def process_back(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     data = await state.get_data()
     day = _parse_iso_date(data.get(_DAY_KEY))
     if day is None:
-        await show_master_bookings_week(
+        await show_master_bookings_overview(
             message=callback.message,
             state=state,
             repos=repos,
             user=user,
             i18n=i18n,
             bot_timezone=bot_timezone,
+            schedule_mode=schedule_mode,
             edit=True,
         )
     else:
@@ -691,6 +911,7 @@ async def process_back(
             bot_timezone=bot_timezone,
             day=day,
             edit=True,
+            schedule_mode=schedule_mode,
         )
     await callback.answer()
 
@@ -707,6 +928,29 @@ async def process_back_week(
         bot_timezone: str,
 ) -> None:
     await show_master_bookings_week(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
+    await callback.answer()
+
+
+@bookings_router.callback_query(
+    MasterAppointmentCallback.filter(F.action == "back_month"),
+)
+async def process_back_month(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await show_master_bookings_month(
         message=callback.message,
         state=state,
         repos=repos,
@@ -802,18 +1046,109 @@ async def process_week_current(
     await callback.answer()
 
 
+@bookings_router.callback_query(
+    MasterAppointmentCallback.filter(F.action == "month_prev"),
+)
+async def process_month_prev(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _set_month(
+        state=state,
+        bot_timezone=bot_timezone,
+        delta_months=-1,
+    )
+    await show_master_bookings_month(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
+    await callback.answer()
+
+
+@bookings_router.callback_query(
+    MasterAppointmentCallback.filter(F.action == "month_next"),
+)
+async def process_month_next(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _set_month(
+        state=state,
+        bot_timezone=bot_timezone,
+        delta_months=1,
+    )
+    await show_master_bookings_month(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
+    await callback.answer()
+
+
+@bookings_router.callback_query(
+    MasterAppointmentCallback.filter(F.action == "month_current"),
+)
+async def process_month_current(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _set_month(
+        state=state,
+        bot_timezone=bot_timezone,
+        to_current=True,
+    )
+    await show_master_bookings_month(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        edit=True,
+    )
+    await callback.answer()
+
+
+@bookings_router.callback_query(MasterBookingsPadCallback.filter())
+async def process_month_pad(callback: CallbackQuery) -> None:
+    await callback.answer()
+
+
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "close"))
 async def process_close(
         callback: CallbackQuery,
         state: FSMContext,
         user: User,
         i18n: dict[str, str],
+        schedule_mode: str,
 ) -> None:
     await return_from_list(
         message=callback.message,
         user=user,
         i18n=i18n,
         state=state,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 
@@ -829,6 +1164,7 @@ async def process_confirm(
         i18n: dict[str, str],
         bot_timezone: str,
         state: FSMContext,
+        schedule_mode: str,
 ) -> None:
     if await _reject_if_slot_past(
         callback=callback,
@@ -880,6 +1216,7 @@ async def process_confirm(
         appointment_id=appointment.id,
         bot_timezone=bot_timezone,
         ack_text=i18n.get("master_confirmed").format(id=appointment.id),
+        schedule_mode=schedule_mode,
     )
 
 
@@ -955,10 +1292,34 @@ async def _hub_bookings(
         state: FSMContext,
         repos: Repositories | None = None,
         bot_timezone: str | None = None,
+        schedule_mode: str = "weekly",
         **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
         return
+    if schedule_mode == "monthly":
+        _, _, year, month = local_month_bounds(bot_timezone)
+        await state.update_data(
+            hub_screen="bookings",
+            hub_back="root",
+            list_return="root",
+            **{
+                _MONTH_KEY: _format_year_month(year, month),
+                _WEEK_START_KEY: None,
+                _DAY_KEY: None,
+            },
+        )
+        await show_master_bookings_month(
+            message=message,
+            state=state,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            edit=True,
+        )
+        return
+
     _, _, week_start = local_week_bounds(bot_timezone)
     await state.update_data(
         hub_screen="bookings",
@@ -966,6 +1327,7 @@ async def _hub_bookings(
         list_return="root",
         **{
             _WEEK_START_KEY: week_start.isoformat(),
+            _MONTH_KEY: None,
             _DAY_KEY: None,
         },
     )

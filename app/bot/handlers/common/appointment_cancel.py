@@ -43,7 +43,7 @@ SOURCE_MASTER_BOOKINGS = "master_bookings"
 
 _PUSH_SOURCES = frozenset({SOURCE_REMINDER, SOURCE_MASTER_PUSH})
 _MASTER_SOURCES = frozenset({SOURCE_MASTER_PUSH, SOURCE_MASTER_BOOKINGS})
-_BOOKINGS_NAV_KEYS = ("bookings_week_start", "bookings_day")
+_BOOKINGS_NAV_KEYS = ("bookings_week_start", "bookings_month", "bookings_day")
 
 _REASON_MAX_LEN = 200
 _APPT_KEY = "cancel_appointment_id"
@@ -80,7 +80,7 @@ def _is_push_source(source: str) -> bool:
 
 
 async def _clear_cancel_state(state: FSMContext) -> None:
-    """Clear cancel FSM but keep sticky hub nav and master Bookings day/week."""
+    """Clear cancel FSM but keep sticky hub nav and master Bookings nav keys."""
     data = await state.get_data()
     bookings_keep = {
         key: data[key]
@@ -241,6 +241,8 @@ async def _edit_master_bookings_day(
 ) -> None:
     from app.bot.handlers.master.bookings import build_master_bookings_day
 
+    data = await state.get_data()
+    back_to = "month" if data.get("bookings_month") else "week"
     await state.update_data(bookings_day=day.isoformat())
     text, kb = await build_master_bookings_day(
         repos=repos,
@@ -248,6 +250,7 @@ async def _edit_master_bookings_day(
         i18n=i18n,
         bot_timezone=bot_timezone,
         day=day,
+        back_to=back_to,
     )
     with suppress(TelegramBadRequest):
         await bot.edit_message_text(
