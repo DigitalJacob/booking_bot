@@ -1,6 +1,5 @@
 from contextlib import suppress
 from datetime import datetime, date, time, timedelta
-from typing import Literal
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -16,7 +15,6 @@ from app.bot.keyboards.time_off import (
     TimeOffDeleteCallback,
     TimeOffConfirmCallback,
     format_time_off_line,
-    get_time_off_view_kb,
     get_time_off_edit_kb,
     get_time_off_confirm_delete_kb,
     get_time_off_cancel_kb,
@@ -38,8 +36,6 @@ from app.infrastructure.database.repositories import Repositories
 time_off_router = Router(name="master_time_off")
 time_off_router.message.filter(UserRoleFilter(UserRole.MASTER))
 time_off_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
-
-TimeOffMode = Literal["view", "edit"]
 
 
 def _is_breaks_mode(schedule_mode: str) -> bool:
@@ -136,7 +132,6 @@ async def _finish_time_off_add(
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        mode="edit",
         edit=False,
         state=state,
         prefer_sticky=True,
@@ -178,7 +173,6 @@ async def show_time_off_list(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
-        mode: TimeOffMode,
         edit: bool,
         state: FSMContext | None = None,
         prefer_sticky: bool = False,
@@ -202,14 +196,11 @@ async def show_time_off_list(
     else:
         text = i18n.get(empty_key)
 
-    if mode == "view":
-        kb = get_time_off_view_kb(i18n)
-    else:
-        kb = get_time_off_edit_kb(
-            rows=rows,
-            i18n=i18n,
-            bot_timezone=bot_timezone,
-        )
+    kb = get_time_off_edit_kb(
+        rows=rows,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
 
     if prefer_sticky and state is not None:
         data = await state.get_data()
@@ -252,57 +243,12 @@ async def process_time_off_close(
         i18n: dict[str, str],
         schedule_mode: str,
 ) -> None:
-    """Back from view → hub schedule section."""
+    """Back → hub schedule section."""
     await return_from_list(
         message=callback.message,
         user=user,
         i18n=i18n,
         state=state,
-        schedule_mode=schedule_mode,
-    )
-    await callback.answer()
-
-
-@time_off_router.callback_query(TimeOffNavCallback.filter(F.action == "edit"))
-async def process_time_off_edit(
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
-) -> None:
-    await show_time_off_list(
-        message=callback.message,
-        repos=repos,
-        user=user,
-        i18n=i18n,
-        bot_timezone=bot_timezone,
-        mode="edit",
-        edit=True,
-        schedule_mode=schedule_mode,
-    )
-    await callback.answer()
-
-
-@time_off_router.callback_query(TimeOffNavCallback.filter(F.action == "view"))
-async def process_time_off_view(
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
-) -> None:
-    """Back from edit → read-only view."""
-    await show_time_off_list(
-        message=callback.message,
-        repos=repos,
-        user=user,
-        i18n=i18n,
-        bot_timezone=bot_timezone,
-        mode="view",
-        edit=True,
         schedule_mode=schedule_mode,
     )
     await callback.answer()
@@ -378,7 +324,6 @@ async def process_time_off_delete_yes(
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        mode="edit",
         edit=True,
         schedule_mode=schedule_mode,
     )
@@ -401,7 +346,6 @@ async def process_time_off_delete_no(
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        mode="edit",
         edit=True,
         schedule_mode=schedule_mode,
     )
@@ -499,7 +443,6 @@ async def process_time_off_cancel_cb(
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        mode="edit",
         edit=True,
         state=state,
         prefer_sticky=True,
@@ -702,7 +645,6 @@ async def _hub_time_off(
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        mode="view",
         edit=True,
         state=state,
         schedule_mode=schedule_mode,

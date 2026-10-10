@@ -379,10 +379,9 @@ RU: dict[str, str] = {
     "time_off_list_item": "• {when}{note}",
     "time_off_empty": (
         "Ближайших выходных нет.\n\n"
-        "Нажмите «Редактировать», чтобы заблокировать дни."
+        "Нажмите «Добавить», чтобы заблокировать дни."
     ),
     "time_off_add_button": "➕ Добавить",
-    "time_off_edit_button": "✏️ Редактировать",
     "time_off_back_button": "← Назад",
     "time_off_cancel_button": "Отмена",
     "time_off_choose_kind": "Какой выходной добавить?",

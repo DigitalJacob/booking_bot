@@ -380,10 +380,9 @@ EN: dict[str, str] = {
     "time_off_list_item": "• {when}{note}",
     "time_off_empty": (
         "No upcoming time off.\n\n"
-        "Tap “Edit” to block days."
+        "Tap “Add” to block days."
     ),
     "time_off_add_button": "➕ Add",
-    "time_off_edit_button": "✏️ Edit",
     "time_off_back_button": "← Back",
     "time_off_cancel_button": "Cancel",
     "time_off_choose_kind": "What kind of time off?",
