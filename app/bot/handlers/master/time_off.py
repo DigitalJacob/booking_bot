@@ -11,17 +11,21 @@ from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.time_off import (
+    TimeOffDayCallback,
     TimeOffNavCallback,
+    TimeOffPadCallback,
     TimeOffDeleteCallback,
     TimeOffConfirmCallback,
     format_time_off_line,
+    get_time_off_day_calendar_kb,
     get_time_off_edit_kb,
     get_time_off_confirm_delete_kb,
     get_time_off_cancel_kb,
     get_time_off_kind_kb,
 )
+from app.bot.keyboards.work_days import month_label
 from app.bot.states.states import TimeOffSG
-from app.bot.utils.format import get_zone, combine_local
+from app.bot.utils.format import get_zone, combine_local, local_month_bounds
 from app.bot.utils.hub_nav import (
     HUB_MESSAGE_ID_KEY,
     clear_state_keep_hub,
@@ -37,9 +41,33 @@ time_off_router = Router(name="master_time_off")
 time_off_router.message.filter(UserRoleFilter(UserRole.MASTER))
 time_off_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
+_MONTH_KEY = "toff_month"  # YYYY-MM
+
 
 def _is_breaks_mode(schedule_mode: str) -> bool:
     return schedule_mode == "monthly"
+
+
+def _parse_year_month(raw: str | None) -> tuple[int, int] | None:
+    if not raw:
+        return None
+    try:
+        year_s, month_s = raw.split("-", 1)
+        year, month = int(year_s), int(month_s)
+    except ValueError:
+        return None
+    if not 1 <= month <= 12:
+        return None
+    return year, month
+
+
+def _format_year_month(year: int, month: int) -> str:
+    return f"{year:04d}-{month:02d}"
+
+
+def _shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
+    idx = year * 12 + (month - 1) + delta
+    return idx // 12, idx % 12 + 1
 
 
 def _list_from_dt(bot_timezone: str) -> datetime:
@@ -155,7 +183,7 @@ async def _start_hours_add(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    """Begin hours-in-one-day flow (typed date for now; calendar in a later step)."""
+    """Weekly: typed DD.MM.YYYY for hours-in-one-day."""
     await state.set_state(TimeOffSG.hours_day)
     example = _today_local(bot_timezone).strftime("%d.%m.%Y")
     await _show_time_off_prompt(
@@ -164,6 +192,90 @@ async def _start_hours_add(
         text=i18n.get("time_off_enter_hours_day").format(example=example),
         i18n=i18n,
     )
+
+
+async def _show_break_day_calendar(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    data = await state.get_data()
+    parsed = _parse_year_month(data.get(_MONTH_KEY))
+    year = parsed[0] if parsed else None
+    month = parsed[1] if parsed else None
+    _, _, year, month = local_month_bounds(
+        bot_timezone,
+        year=year,
+        month=month,
+    )
+    _, _, current_year, current_month = local_month_bounds(bot_timezone)
+    if (year, month) < (current_year, current_month):
+        year, month = current_year, current_month
+
+    await state.update_data({_MONTH_KEY: _format_year_month(year, month)})
+    await state.set_state(TimeOffSG.choosing_day)
+
+    today = _today_local(bot_timezone)
+    work_rows = await repos.work_dates.list_month(
+        master_user_id=user.user_id,
+        year=year,
+        month=month,
+    )
+    open_days = {
+        row.work_date.day
+        for row in work_rows
+        if row.work_date >= today
+    }
+    month_text = month_label(year, month, i18n)
+    if open_days:
+        text = i18n.get("time_off_choose_open_day").format(month=month_text)
+    else:
+        text = i18n.get("time_off_month_no_open_days").format(month=month_text)
+
+    kb = get_time_off_day_calendar_kb(
+        year=year,
+        month=month,
+        open_days=open_days,
+        i18n=i18n,
+        is_current_month=(year, month) == (current_year, current_month),
+    )
+    await _show_time_off_prompt(
+        message=message,
+        state=state,
+        text=text,
+        i18n=i18n,
+        reply_markup=kb,
+    )
+
+
+async def _set_break_month(
+        *,
+        state: FSMContext,
+        bot_timezone: str,
+        delta_months: int = 0,
+        to_current: bool = False,
+) -> None:
+    _, _, current_year, current_month = local_month_bounds(bot_timezone)
+    if to_current:
+        year, month = current_year, current_month
+    else:
+        data = await state.get_data()
+        parsed = _parse_year_month(data.get(_MONTH_KEY))
+        year = parsed[0] if parsed else None
+        month = parsed[1] if parsed else None
+        _, _, year, month = local_month_bounds(
+            bot_timezone,
+            year=year,
+            month=month,
+        )
+        year, month = _shift_month(year, month, delta_months)
+        if (year, month) < (current_year, current_month):
+            year, month = current_year, current_month
+    await state.update_data({_MONTH_KEY: _format_year_month(year, month)})
 
 
 async def show_time_off_list(
@@ -356,16 +468,20 @@ async def process_time_off_delete_no(
 async def process_time_off_add(
         callback: CallbackQuery,
         state: FSMContext,
+        repos: Repositories,
+        user: User,
         i18n: dict[str, str],
         bot_timezone: str,
         schedule_mode: str,
 ) -> None:
     await clear_state_keep_hub(state)
     if _is_breaks_mode(schedule_mode):
-        # Monthly: hours-only; full day off is untoggling a work day.
-        await _start_hours_add(
+        # Monthly: pick an open work day on the calendar, then hours.
+        await _show_break_day_calendar(
             message=callback.message,
             state=state,
+            repos=repos,
+            user=user,
             i18n=i18n,
             bot_timezone=bot_timezone,
         )
@@ -420,6 +536,149 @@ async def process_time_off_kind_hours(
         i18n=i18n,
         bot_timezone=bot_timezone,
     )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "month_prev"),
+    StateFilter(TimeOffSG.choosing_day),
+)
+async def process_break_month_prev(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _set_break_month(
+        state=state,
+        bot_timezone=bot_timezone,
+        delta_months=-1,
+    )
+    await _show_break_day_calendar(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "month_next"),
+    StateFilter(TimeOffSG.choosing_day),
+)
+async def process_break_month_next(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _set_break_month(
+        state=state,
+        bot_timezone=bot_timezone,
+        delta_months=1,
+    )
+    await _show_break_day_calendar(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "month_current"),
+    StateFilter(TimeOffSG.choosing_day),
+)
+async def process_break_month_current(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    await _set_break_month(
+        state=state,
+        bot_timezone=bot_timezone,
+        to_current=True,
+    )
+    await _show_break_day_calendar(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffDayCallback.filter(),
+    StateFilter(TimeOffSG.choosing_day),
+)
+async def process_break_day(
+        callback: CallbackQuery,
+        callback_data: TimeOffDayCallback,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    try:
+        day = date.fromisoformat(callback_data.value)
+    except ValueError:
+        await callback.answer(
+            text=i18n.get("time_off_day_not_work_day"),
+            show_alert=True,
+        )
+        return
+
+    today = _today_local(bot_timezone)
+    if day < today:
+        await callback.answer(
+            text=i18n.get("time_off_invalid_past"),
+            show_alert=True,
+        )
+        return
+
+    work_rows = await repos.work_dates.list_month(
+        master_user_id=user.user_id,
+        year=day.year,
+        month=day.month,
+    )
+    open_dates = {row.work_date for row in work_rows}
+    if day not in open_dates:
+        await callback.answer(
+            text=i18n.get("time_off_day_not_work_day"),
+            show_alert=True,
+        )
+        return
+
+    await state.update_data(hours_day=day.isoformat())
+    await state.set_state(TimeOffSG.starts_time)
+    await _show_time_off_prompt(
+        message=callback.message,
+        state=state,
+        text=i18n.get("time_off_enter_hours_starts"),
+        i18n=i18n,
+    )
+    await callback.answer()
+
+
+@time_off_router.callback_query(TimeOffPadCallback.filter())
+async def process_break_day_pad(callback: CallbackQuery) -> None:
     await callback.answer()
 
 

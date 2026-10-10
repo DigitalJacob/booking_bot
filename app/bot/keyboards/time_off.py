@@ -1,14 +1,24 @@
-from datetime import timedelta, time
+import calendar
+from datetime import date, timedelta, time
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.bot.utils.format import to_local
 from app.domain.models import TimeOff
 
 
 class TimeOffNavCallback(CallbackData, prefix="toff"):
-    action: str  # close | add | cancel | days | hours
+    action: str  # close | add | cancel | days | hours | month_*
+
+
+class TimeOffDayCallback(CallbackData, prefix="toffday"):
+    value: str  # YYYY-MM-DD
+
+
+class TimeOffPadCallback(CallbackData, prefix="toffpad"):
+    n: int = 0
 
 
 class TimeOffDeleteCallback(CallbackData, prefix="toffdel"):
@@ -18,6 +28,98 @@ class TimeOffDeleteCallback(CallbackData, prefix="toffdel"):
 class TimeOffConfirmCallback(CallbackData, prefix="toffcfm"):
     time_off_id: int
     action: str
+
+
+def _month_nav_row(
+        *,
+        i18n: dict[str, str],
+        is_current_month: bool,
+) -> list[InlineKeyboardButton]:
+    nav: list[InlineKeyboardButton] = [
+        InlineKeyboardButton(
+            text=i18n.get("time_off_month_prev"),
+            callback_data=TimeOffNavCallback(action="month_prev").pack(),
+        )
+    ]
+    if not is_current_month:
+        nav.append(
+            InlineKeyboardButton(
+                text=i18n.get("time_off_month_current"),
+                callback_data=TimeOffNavCallback(
+                    action="month_current",
+                ).pack(),
+            )
+        )
+    nav.append(
+        InlineKeyboardButton(
+            text=i18n.get("time_off_month_next"),
+            callback_data=TimeOffNavCallback(action="month_next").pack(),
+        )
+    )
+    return nav
+
+
+def get_time_off_day_calendar_kb(
+        *,
+        year: int,
+        month: int,
+        open_days: set[int],
+        i18n: dict[str, str],
+        is_current_month: bool,
+) -> InlineKeyboardMarkup:
+    """Month grid; only ``open_days`` (work days) are selectable."""
+    rows: list[list[InlineKeyboardButton]] = [
+        [
+            InlineKeyboardButton(
+                text=i18n.get(WEEKDAY_KEYS[weekday]),
+                callback_data=TimeOffPadCallback(n=weekday).pack(),
+            )
+            for weekday in range(1, 8)
+        ]
+    ]
+
+    cal = calendar.Calendar(firstweekday=0)  # Monday
+    for week in cal.monthdayscalendar(year, month):
+        row: list[InlineKeyboardButton] = []
+        for day in week:
+            if day == 0:
+                row.append(
+                    InlineKeyboardButton(
+                        text=" ",
+                        callback_data=TimeOffPadCallback(n=0).pack(),
+                    )
+                )
+                continue
+            if day in open_days:
+                row.append(
+                    InlineKeyboardButton(
+                        text=i18n.get("time_off_calendar_day_open").format(
+                            day=day,
+                        ),
+                        callback_data=TimeOffDayCallback(
+                            value=date(year, month, day).isoformat(),
+                        ).pack(),
+                    )
+                )
+                continue
+            row.append(
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_calendar_day").format(day=day),
+                    callback_data=TimeOffPadCallback(n=day).pack(),
+                )
+            )
+        rows.append(row)
+
+    rows.append(_month_nav_row(i18n=i18n, is_current_month=is_current_month))
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=i18n.get("time_off_cancel_button"),
+                callback_data=TimeOffNavCallback(action="cancel").pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def format_time_off_line(

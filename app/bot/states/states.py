@@ -54,7 +54,8 @@ class TimeOffSG(StatesGroup):
     choosing_kind = State()
     starts_date = State()
     ends_date = State()
-    hours_day = State()
+    choosing_day = State()  # monthly: pick open work day on calendar
+    hours_day = State()  # weekly: typed DD.MM.YYYY
     starts_time = State()
     ends_time = State()
 
