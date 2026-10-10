@@ -42,6 +42,10 @@ time_off_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 TimeOffMode = Literal["view", "edit"]
 
 
+def _is_breaks_mode(schedule_mode: str) -> bool:
+    return schedule_mode == "monthly"
+
+
 def _list_from_dt(bot_timezone: str) -> datetime:
     zone = get_zone(bot_timezone)
     now_local = datetime.now(zone)
@@ -123,6 +127,7 @@ async def _finish_time_off_add(
         i18n: dict[str, str],
         bot_timezone: str,
         when: str,
+        schedule_mode: str = "weekly",
 ) -> None:
     await clear_state_keep_hub(state)
     await show_time_off_list(
@@ -135,10 +140,34 @@ async def _finish_time_off_add(
         edit=False,
         state=state,
         prefer_sticky=True,
+        schedule_mode=schedule_mode,
+    )
+    ok_key = (
+        "time_off_breaks_add_ok"
+        if _is_breaks_mode(schedule_mode)
+        else "time_off_add_ok"
     )
     await message.answer(
-        text=i18n.get("time_off_add_ok").format(when=when),
+        text=i18n.get(ok_key).format(when=when),
         reply_markup=get_hub_dismiss_kb(i18n),
+    )
+
+
+async def _start_hours_add(
+        *,
+        message: Message,
+        state: FSMContext,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    """Begin hours-in-one-day flow (typed date for now; calendar in a later step)."""
+    await state.set_state(TimeOffSG.hours_day)
+    example = _today_local(bot_timezone).strftime("%d.%m.%Y")
+    await _show_time_off_prompt(
+        message=message,
+        state=state,
+        text=i18n.get("time_off_enter_hours_day").format(example=example),
+        i18n=i18n,
     )
 
 
@@ -153,18 +182,25 @@ async def show_time_off_list(
         edit: bool,
         state: FSMContext | None = None,
         prefer_sticky: bool = False,
+        schedule_mode: str = "weekly",
 ) -> None:
     rows = await repos.time_off.list_by_master(
         master_user_id=user.user_id,
         from_dt=_list_from_dt(bot_timezone),
     )
+    if _is_breaks_mode(schedule_mode):
+        header_key = "time_off_breaks_header"
+        empty_key = "time_off_breaks_empty"
+    else:
+        header_key = "time_off_header"
+        empty_key = "time_off_empty"
     if rows:
         body = "\n".join(
             format_time_off_line(row, i18n, bot_timezone) for row in rows
         )
-        text = i18n.get("time_off_header") + "\n\n" + body
+        text = i18n.get(header_key) + "\n\n" + body
     else:
-        text = i18n.get("time_off_empty")
+        text = i18n.get(empty_key)
 
     if mode == "view":
         kb = get_time_off_view_kb(i18n)
@@ -234,6 +270,7 @@ async def process_time_off_edit(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     await show_time_off_list(
         message=callback.message,
@@ -243,6 +280,7 @@ async def process_time_off_edit(
         bot_timezone=bot_timezone,
         mode="edit",
         edit=True,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 
@@ -254,6 +292,7 @@ async def process_time_off_view(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     """Back from edit → read-only view."""
     await show_time_off_list(
@@ -264,6 +303,7 @@ async def process_time_off_view(
         bot_timezone=bot_timezone,
         mode="view",
         edit=True,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 
@@ -276,6 +316,7 @@ async def process_time_off_delete(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     row = await repos.time_off.get(
         time_off_id=callback_data.time_off_id,
@@ -288,8 +329,13 @@ async def process_time_off_delete(
         return
 
     item = format_time_off_line(row, i18n, bot_timezone).lstrip("• ").strip()
+    confirm_key = (
+        "time_off_breaks_confirm_delete"
+        if _is_breaks_mode(schedule_mode)
+        else "time_off_confirm_delete"
+    )
     await callback.message.edit_text(
-        text=i18n.get("time_off_confirm_delete").format(item=item),
+        text=i18n.get(confirm_key).format(item=item),
         reply_markup=get_time_off_confirm_delete_kb(
             time_off_id=row.id,
             i18n=i18n,
@@ -308,6 +354,7 @@ async def process_time_off_delete_yes(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     deleted = await repos.time_off.delete(
         time_off_id=callback_data.time_off_id,
@@ -319,7 +366,12 @@ async def process_time_off_delete_yes(
             show_alert=True,
         )
         return
-    await callback.answer(text=i18n.get("time_off_deleted"))
+    deleted_key = (
+        "time_off_breaks_deleted"
+        if _is_breaks_mode(schedule_mode)
+        else "time_off_deleted"
+    )
+    await callback.answer(text=i18n.get(deleted_key))
     await show_time_off_list(
         message=callback.message,
         repos=repos,
@@ -328,6 +380,7 @@ async def process_time_off_delete_yes(
         bot_timezone=bot_timezone,
         mode="edit",
         edit=True,
+        schedule_mode=schedule_mode,
     )
 
 
@@ -340,6 +393,7 @@ async def process_time_off_delete_no(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     await show_time_off_list(
         message=callback.message,
@@ -349,6 +403,7 @@ async def process_time_off_delete_no(
         bot_timezone=bot_timezone,
         mode="edit",
         edit=True,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 
@@ -358,8 +413,21 @@ async def process_time_off_add(
         callback: CallbackQuery,
         state: FSMContext,
         i18n: dict[str, str],
+        bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     await clear_state_keep_hub(state)
+    if _is_breaks_mode(schedule_mode):
+        # Monthly: hours-only; full day off is untoggling a work day.
+        await _start_hours_add(
+            message=callback.message,
+            state=state,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+        )
+        await callback.answer()
+        return
+
     await state.set_state(TimeOffSG.choosing_kind)
     await _show_time_off_prompt(
         message=callback.message,
@@ -402,13 +470,11 @@ async def process_time_off_kind_hours(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    await state.set_state(TimeOffSG.hours_day)
-    example = _today_local(bot_timezone).strftime("%d.%m.%Y")
-    await _show_time_off_prompt(
+    await _start_hours_add(
         message=callback.message,
         state=state,
-        text=i18n.get("time_off_enter_hours_day").format(example=example),
         i18n=i18n,
+        bot_timezone=bot_timezone,
     )
     await callback.answer()
 
@@ -424,6 +490,7 @@ async def process_time_off_cancel_cb(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     await clear_state_keep_hub(state)
     await show_time_off_list(
@@ -436,6 +503,7 @@ async def process_time_off_cancel_cb(
         edit=True,
         state=state,
         prefer_sticky=True,
+        schedule_mode=schedule_mode,
     )
     await callback.answer()
 
@@ -472,6 +540,7 @@ async def process_time_off_ends(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     ends = _parse_date(message.text or "")
     await _delete_user_input(message)
@@ -507,6 +576,7 @@ async def process_time_off_ends(
         i18n=i18n,
         bot_timezone=bot_timezone,
         when=_format_day_range(starts, ends),
+        schedule_mode=schedule_mode,
     )
 
 
@@ -567,6 +637,7 @@ async def process_time_off_hours_ends(
         user: User,
         i18n: dict[str, str],
         bot_timezone: str,
+        schedule_mode: str,
 ) -> None:
     ends = _parse_time(message.text or "")
     await _delete_user_input(message)
@@ -603,6 +674,7 @@ async def process_time_off_hours_ends(
         i18n=i18n,
         bot_timezone=bot_timezone,
         when=_format_hours_when(day, starts, ends),
+        schedule_mode=schedule_mode,
     )
 
 
@@ -614,6 +686,7 @@ async def _hub_time_off(
         state: FSMContext,
         repos: Repositories | None = None,
         bot_timezone: str | None = None,
+        schedule_mode: str = "weekly",
         **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
@@ -631,6 +704,8 @@ async def _hub_time_off(
         bot_timezone=bot_timezone,
         mode="view",
         edit=True,
+        state=state,
+        schedule_mode=schedule_mode,
     )
 
 

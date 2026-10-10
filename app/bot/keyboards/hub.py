@@ -118,13 +118,15 @@ def get_hub_schedule_kb(
 ) -> InlineKeyboardMarkup:
     if schedule_mode == "monthly":
         hours_row = [_btn(i18n.get("hub_work_days_button"), "work_days")]
+        time_off_label = i18n.get("hub_breaks_button")
     else:
         hours_row = [_btn(i18n.get("hub_working_hours_button"), "working_hours")]
+        time_off_label = i18n.get("hub_time_off_button")
     return InlineKeyboardMarkup(
         inline_keyboard=[
             hours_row,
             [
-                _btn(i18n.get("hub_time_off_button"), "time_off")
+                _btn(time_off_label, "time_off")
             ],
             [
                 _btn(i18n.get("hub_gap_button"), "gap")
