@@ -450,9 +450,10 @@ runner baselines it (marks applied without re-running `CREATE TABLE`).
 
 ## Tests
 
+### Unit (domain)
+
 The domain layer is covered by unit tests that use in-memory fake repositories, so
-no database, Redis or bot token is needed. The same checks run on every push and
-pull request to `main` via [GitHub Actions](https://github.com/DigitalJacob/booking_bot/actions/workflows/ci.yml).
+no database, Redis or bot token is needed.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -461,16 +462,45 @@ mypy
 pytest
 ```
 
+Without Postgres integration enabled, integration tests are skipped automatically:
+
 ```
-...........................................                              [100%]
-43 passed in 0.10s
+43 passed, 8 skipped
 ```
 
-The suite covers `BookingService`, `AvailabilityService` and reminder due-rules:
+The unit suite covers `BookingService`, `AvailabilityService` and reminder due-rules:
 window booking (including monthly open days and open-month listing), confirm and
 cancel transitions with permission checks, client appointment listing filters, and
 evening / hour reminder eligibility (confirmed only, lead window, half-open evening
 hours, already-sent skip).
+
+### Integration (repositories + Postgres)
+
+`tests/integration/` exercises real SQL repositories against PostgreSQL 17: migrations,
+the appointments exclusion constraint (`TimeConflict` on overlap), `work_dates` upsert /
+date-range listing, and `time_off` overlap filtering. Tables are truncated between tests;
+`schema_migrations` is left alone.
+
+**Do not point these tests at a production or day-to-day bot database** — use a dedicated
+DB (for example `booking_bot_test`). Integration tests are off by default; they run only
+when `BOOKING_BOT_INTEGRATION=1` and `POSTGRES_*` are set. They call `run_migrations`
+directly and do not load bot secrets (`BOT_TOKEN`, Redis, …).
+
+```bash
+# Example: empty local DB created for tests only
+export BOOKING_BOT_INTEGRATION=1
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5432
+export POSTGRES_DB=booking_bot_test
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=your_postgres_password
+
+pytest -q -m integration          # integration only
+pytest -q                         # unit + integration
+```
+
+GitHub Actions starts a `postgres:17-alpine` service and runs the full suite on every
+push and pull request to `main` (see `.github/workflows/ci.yml`).
 
 ## Project Structure
 
@@ -493,7 +523,7 @@ booking_bot/
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
 ├── migrations/             # Versioned SQL migrations and runner
-├── tests/                  # Unit tests and FakeRepositories (ports)
+├── tests/                  # Unit tests (FakeRepositories) + integration/ (Postgres)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── main.py
