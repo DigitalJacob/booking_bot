@@ -17,6 +17,7 @@ import os
 import pytest
 import pytest_asyncio
 from app.infrastructure.database.connection import build_pg_conninfo
+from app.infrastructure.database.repositories import Repositories
 from migrations.migrate import run_migrations
 from psycopg import AsyncConnection
 
@@ -97,3 +98,8 @@ async def db_conn(_schema_ready: None, postgres_conninfo: str):
         yield conn
     finally:
         await conn.close()
+
+
+@pytest_asyncio.fixture
+async def repos(db_conn: AsyncConnection) -> Repositories:
+    return Repositories.from_connection(db_conn)
