@@ -58,6 +58,7 @@ class TimeOffSG(StatesGroup):
     hours_day = State()  # weekly: typed DD.MM.YYYY
     starts_time = State()
     ends_time = State()
+    warn_bookings = State()
 
 
 class GapSG(StatesGroup):

@@ -22,18 +22,25 @@ from app.bot.keyboards.time_off import (
     get_time_off_confirm_delete_kb,
     get_time_off_cancel_kb,
     get_time_off_kind_kb,
+    get_time_off_warn_kb,
 )
 from app.bot.keyboards.work_days import month_label
 from app.bot.states.states import TimeOffSG
-from app.bot.utils.format import get_zone, combine_local, local_month_bounds
+from app.bot.utils.format import (
+    client_contact,
+    combine_local,
+    format_dt,
+    get_zone,
+    local_month_bounds,
+)
 from app.bot.utils.hub_nav import (
     HUB_MESSAGE_ID_KEY,
     clear_state_keep_hub,
     show_hub_prompt,
 )
 from app.bot.utils.hub_registry import register
-from app.domain.enums import UserRole
-from app.domain.models import User
+from app.domain.enums import AppointmentStatus, UserRole
+from app.domain.models import Appointment, User
 from app.infrastructure.database.repositories import Repositories
 
 
@@ -42,10 +49,24 @@ time_off_router.message.filter(UserRoleFilter(UserRole.MASTER))
 time_off_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _MONTH_KEY = "toff_month"  # YYYY-MM
+_MAX_WARN_LINES = 8
+_PENDING_STARTS_KEY = "toff_starts_at"
+_PENDING_ENDS_KEY = "toff_ends_at"
+_PENDING_WHEN_KEY = "toff_when"
+_PENDING_KIND_KEY = "toff_kind"  # hours | days
 
 
 def _is_breaks_mode(schedule_mode: str) -> bool:
     return schedule_mode == "monthly"
+
+
+def _intervals_overlap(
+        start: datetime,
+        end: datetime,
+        other_start: datetime,
+        other_end: datetime,
+) -> bool:
+    return start < other_end and end > other_start
 
 
 def _parse_year_month(raw: str | None) -> tuple[int, int] | None:
@@ -173,6 +194,201 @@ async def _finish_time_off_add(
     await message.answer(
         text=i18n.get(ok_key).format(when=when),
         reply_markup=get_hub_dismiss_kb(i18n),
+    )
+
+
+async def _appointments_overlapping_block(
+        *,
+        repos: Repositories,
+        master_user_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+) -> list[Appointment]:
+    # list_by_master filters on starts_at; widen left so a slot that began
+    # before the block but still overlaps is included, then filter precisely.
+    rows = await repos.appointments.list_by_master(
+        master_user_id=master_user_id,
+        from_dt=starts_at - timedelta(days=1),
+        to_dt=ends_at,
+    )
+    result: list[Appointment] = []
+    for appointment in rows:
+        if appointment.status not in (
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
+        ):
+            continue
+        if _intervals_overlap(
+            starts_at,
+            ends_at,
+            appointment.starts_at,
+            appointment.ends_at,
+        ):
+            result.append(appointment)
+    return result
+
+
+async def _warn_bookings_text(
+        *,
+        repos: Repositories,
+        appointments: list[Appointment],
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> str:
+    lines: list[str] = []
+    for appointment in appointments[:_MAX_WARN_LINES]:
+        client = await repos.users.get_user_by_id(
+            user_id=appointment.client_user_id,
+        )
+        name, _ = client_contact(client)
+        lines.append(
+            i18n.get("time_off_warn_item").format(
+                when=format_dt(appointment.starts_at, bot_timezone),
+                client=name,
+            )
+        )
+    extra = len(appointments) - _MAX_WARN_LINES
+    if extra > 0:
+        lines.append(i18n.get("time_off_warn_more").format(n=extra))
+    return i18n.get("time_off_warn_header").format(list="\n".join(lines))
+
+
+async def _show_warn_bookings(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        appointments: list[Appointment],
+        i18n: dict[str, str],
+        bot_timezone: str,
+        starts_at: datetime,
+        ends_at: datetime,
+        when: str,
+        kind: str,
+) -> None:
+    await state.update_data(
+        {
+            _PENDING_STARTS_KEY: starts_at.isoformat(),
+            _PENDING_ENDS_KEY: ends_at.isoformat(),
+            _PENDING_WHEN_KEY: when,
+            _PENDING_KIND_KEY: kind,
+        }
+    )
+    text = await _warn_bookings_text(
+        repos=repos,
+        appointments=appointments,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await state.set_state(TimeOffSG.warn_bookings)
+    await _show_time_off_prompt(
+        message=message,
+        state=state,
+        text=text,
+        i18n=i18n,
+        reply_markup=get_time_off_warn_kb(i18n),
+    )
+
+
+async def _apply_pending_time_off(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        schedule_mode: str,
+) -> None:
+    data = await state.get_data()
+    starts_raw = data.get(_PENDING_STARTS_KEY)
+    ends_raw = data.get(_PENDING_ENDS_KEY)
+    when = data.get(_PENDING_WHEN_KEY)
+    if not starts_raw or not ends_raw or not when:
+        await clear_state_keep_hub(state)
+        await show_time_off_list(
+            message=message,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            edit=True,
+            state=state,
+            prefer_sticky=True,
+            schedule_mode=schedule_mode,
+        )
+        return
+
+    starts_at = datetime.fromisoformat(str(starts_raw))
+    ends_at = datetime.fromisoformat(str(ends_raw))
+    await repos.time_off.add(
+        master_user_id=user.user_id,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        note=None,
+    )
+    await _finish_time_off_add(
+        message=message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        when=str(when),
+        schedule_mode=schedule_mode,
+    )
+
+
+async def _save_time_off_or_warn(
+        *,
+        message: Message,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        schedule_mode: str,
+        starts_at: datetime,
+        ends_at: datetime,
+        when: str,
+        kind: str,
+) -> None:
+    conflicting = await _appointments_overlapping_block(
+        repos=repos,
+        master_user_id=user.user_id,
+        starts_at=starts_at,
+        ends_at=ends_at,
+    )
+    if conflicting:
+        await _show_warn_bookings(
+            message=message,
+            state=state,
+            repos=repos,
+            appointments=conflicting,
+            i18n=i18n,
+            bot_timezone=bot_timezone,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            when=when,
+            kind=kind,
+        )
+        return
+
+    await repos.time_off.add(
+        master_user_id=user.user_id,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        note=None,
+    )
+    await _finish_time_off_add(
+        message=message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+        when=when,
+        schedule_mode=schedule_mode,
     )
 
 
@@ -763,22 +979,18 @@ async def process_time_off_ends(
     starts_at = combine_local(starts, time(0, 0), bot_timezone)
     ends_at = combine_local(ends + timedelta(days=1), time(0, 0), bot_timezone)
 
-    await repos.time_off.add(
-        master_user_id=user.user_id,
-        starts_at=starts_at,
-        ends_at=ends_at,
-        note=None,
-    )
-
-    await _finish_time_off_add(
+    await _save_time_off_or_warn(
         message=message,
         state=state,
         repos=repos,
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        when=_format_day_range(starts, ends),
         schedule_mode=schedule_mode,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        when=_format_day_range(starts, ends),
+        kind="days",
     )
 
 
@@ -861,23 +1073,80 @@ async def process_time_off_hours_ends(
         await message.answer(text=i18n.get("time_off_invalid_hours_past"))
         return
 
-    await repos.time_off.add(
-        master_user_id=user.user_id,
-        starts_at=starts_at,
-        ends_at=ends_at,
-        note=None,
-    )
-
-    await _finish_time_off_add(
+    await _save_time_off_or_warn(
         message=message,
         state=state,
         repos=repos,
         user=user,
         i18n=i18n,
         bot_timezone=bot_timezone,
+        schedule_mode=schedule_mode,
+        starts_at=starts_at,
+        ends_at=ends_at,
         when=_format_hours_when(day, starts, ends),
+        kind="hours",
+    )
+
+
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "save_anyway"),
+    StateFilter(TimeOffSG.warn_bookings),
+)
+async def process_time_off_save_anyway(
+        callback: CallbackQuery,
+        state: FSMContext,
+        repos: Repositories,
+        user: User,
+        i18n: dict[str, str],
+        bot_timezone: str,
+        schedule_mode: str,
+) -> None:
+    await _apply_pending_time_off(
+        message=callback.message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
         schedule_mode=schedule_mode,
     )
+    await callback.answer()
+
+
+@time_off_router.callback_query(
+    TimeOffNavCallback.filter(F.action == "warn_back"),
+    StateFilter(TimeOffSG.warn_bookings),
+)
+async def process_time_off_warn_back(
+        callback: CallbackQuery,
+        state: FSMContext,
+        i18n: dict[str, str],
+        bot_timezone: str,
+) -> None:
+    data = await state.get_data()
+    kind = data.get(_PENDING_KIND_KEY)
+    if kind == "hours":
+        await state.set_state(TimeOffSG.ends_time)
+        await _show_time_off_prompt(
+            message=callback.message,
+            state=state,
+            text=i18n.get("time_off_enter_hours_ends"),
+            i18n=i18n,
+        )
+    else:
+        await state.set_state(TimeOffSG.ends_date)
+        example = _today_local(bot_timezone).strftime("%d.%m.%Y")
+        starts_raw = data.get("starts_date")
+        if starts_raw:
+            starts = date.fromisoformat(str(starts_raw))
+            example = max(starts, _today_local(bot_timezone)).strftime("%d.%m.%Y")
+        await _show_time_off_prompt(
+            message=callback.message,
+            state=state,
+            text=i18n.get("time_off_enter_ends").format(example=example),
+            i18n=i18n,
+        )
+    await callback.answer()
 
 
 async def _hub_time_off(

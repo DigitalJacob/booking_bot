@@ -10,7 +10,7 @@ from app.domain.models import TimeOff
 
 
 class TimeOffNavCallback(CallbackData, prefix="toff"):
-    action: str  # close | add | cancel | days | hours | month_*
+    action: str  # close | add | cancel | days | hours | month_* | save_anyway | warn_back
 
 
 class TimeOffDayCallback(CallbackData, prefix="toffday"):
@@ -253,5 +253,28 @@ def get_time_off_confirm_delete_kb(
                     ).pack(),
                 ),
             ]
+        ]
+    )
+
+
+def get_time_off_warn_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_warn_anyway"),
+                    callback_data=TimeOffNavCallback(
+                        action="save_anyway",
+                    ).pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("time_off_warn_back"),
+                    callback_data=TimeOffNavCallback(
+                        action="warn_back",
+                    ).pack(),
+                )
+            ],
         ]
     )
