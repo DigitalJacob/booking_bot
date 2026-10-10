@@ -428,6 +428,40 @@ EN: dict[str, str] = {
     "time_off_confirm_no": "No",
     "time_off_deleted": "Time off removed.",
     "time_off_delete_not_found": "Time off not found.",
+    "hub_breaks_button": "Breaks",
+    "time_off_breaks_header": "⏸ Upcoming breaks:",
+    "time_off_breaks_empty": (
+        "No upcoming breaks.\n\n"
+        "Add unavailable hours inside an open work day.\n"
+        "For a full day off, untoggle the day under Work days."
+    ),
+    "time_off_breaks_add_ok": "Break added: {when}.",
+    "time_off_breaks_deleted": "Break removed.",
+    "time_off_breaks_confirm_delete": "Delete break {item}?",
+    "time_off_choose_open_day": "Pick an open work day in {month}:",
+    "time_off_month_no_open_days": (
+        "No open work days in {month} for a break.\n"
+        "Mark days under Work days first, or pick another month."
+    ),
+    "time_off_day_not_work_day": (
+        "That day is not open. Pick a dotted day on the calendar "
+        "or mark it under Work days."
+    ),
+    "time_off_month_prev": "←",
+    "time_off_month_next": "→",
+    "time_off_month_current": "This month",
+    "time_off_calendar_day": "{day}",
+    "time_off_calendar_day_open": "•{day}",
+    "time_off_warn_header": (
+        "There are appointments in this interval. "
+        "The break will be saved; appointments stay:\n\n"
+        "{list}\n\n"
+        "Save anyway?"
+    ),
+    "time_off_warn_item": "• {when} — {client}",
+    "time_off_warn_more": "…and {n} more",
+    "time_off_warn_anyway": "Save anyway",
+    "time_off_warn_back": "← Back",
     "gap_view": (
         "⏱ Break after each appointment: {minutes} min\n\n"
         "Clients cannot book the next slot until this pause ends. "

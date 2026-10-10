@@ -428,6 +428,40 @@ RU: dict[str, str] = {
     "time_off_confirm_no": "Нет",
     "time_off_deleted": "Выходной удалён.",
     "time_off_delete_not_found": "Выходной не найден.",
+    "hub_breaks_button": "Перерывы",
+    "time_off_breaks_header": "⏸ Ближайшие перерывы:",
+    "time_off_breaks_empty": (
+        "Ближайших перерывов нет.\n\n"
+        "Добавьте часы недоступности внутри рабочего дня.\n"
+        "Полный выходной — снимите день в «Рабочих днях»."
+    ),
+    "time_off_breaks_add_ok": "Перерыв добавлен: {when}.",
+    "time_off_breaks_deleted": "Перерыв удалён.",
+    "time_off_breaks_confirm_delete": "Удалить перерыв {item}?",
+    "time_off_choose_open_day": "Выберите рабочий день на {month}:",
+    "time_off_month_no_open_days": (
+        "В {month} нет открытых рабочих дней для перерыва.\n"
+        "Сначала отметьте дни в «Рабочих днях» или выберите другой месяц."
+    ),
+    "time_off_day_not_work_day": (
+        "Этот день не рабочий. Выберите день с точкой на календаре "
+        "или отметьте его в «Рабочих днях»."
+    ),
+    "time_off_month_prev": "←",
+    "time_off_month_next": "→",
+    "time_off_month_current": "Этот месяц",
+    "time_off_calendar_day": "{day}",
+    "time_off_calendar_day_open": "•{day}",
+    "time_off_warn_header": (
+        "В этом интервале есть записи. "
+        "Перерыв сохранится, записи останутся:\n\n"
+        "{list}\n\n"
+        "Сохранить всё равно?"
+    ),
+    "time_off_warn_item": "• {when} — {client}",
+    "time_off_warn_more": "…и ещё {n}",
+    "time_off_warn_anyway": "Всё равно сохранить",
+    "time_off_warn_back": "← Назад",
     "gap_view": (
         "⏱ Перерыв после приёма: {minutes} мин\n\n"
         "Следующая запись клиента не начнётся раньше, чем закончится эта пауза. "
