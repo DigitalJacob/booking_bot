@@ -52,6 +52,7 @@ app/
 │   ├── models/       # Immutable dataclasses: User, Service, Appointment
 │   ├── enums/        # UserRole, AppointmentStatus
 │   ├── exceptions.py # TimeConflict, WindowNotAvailable, ForbiddenBookingAction, ...
+│   ├── ports.py      # typing.Protocol contracts for persistence (RepositoriesPort)
 │   └── services/     # BookingService, AvailabilityService
 │
 ├── infrastructure/   # Everything that talks to the outside world.
@@ -67,10 +68,13 @@ app/
     └── i18n/         # Locale resolution
 ```
 
-**Why it matters in practice.** `BookingService` never imports aiogram or psycopg —
-it depends only on repository objects passed into it. That is what makes the booking
-rules testable without a database, a Redis instance or a Telegram token: the test
-suite swaps in in-memory fakes and runs in well under a second.
+**Why it matters in practice.** `BookingService` and `AvailabilityService` never import
+aiogram, psycopg or `app.infrastructure`. They depend on `RepositoriesPort` — a
+`typing.Protocol` facade of the persistence methods the domain actually needs. Handlers
+build a concrete SQL `Repositories` object and pass it in; tests pass an in-memory
+`FakeRepositories` that satisfies the same shape. No inheritance required — structural
+typing keeps the layers decoupled while the suite still runs in well under a second
+without a database, Redis or a Telegram token.
 
 Repositories hold **only** SQL. Handlers hold **only** dialog flow and formatting.
 A rule like "only free windows from the master's schedule are offered" is written once, in
@@ -484,12 +488,12 @@ booking_bot/
 │   │   ├── reminders.py    # Background appointment-reminder worker
 │   │   ├── bot_commands.py # Telegram ☰ menu (/start, /menu)
 │   │   └── bot.py          # Dispatcher setup and startup
-│   ├── domain/             # Models, enums, exceptions, booking / availability / reminders
-│   └── infrastructure/     # Connection pool and repositories
+│   ├── domain/             # Models, ports, enums, exceptions, booking / availability / reminders
+│   └── infrastructure/     # Connection pool and SQL repositories
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
 ├── migrations/             # Versioned SQL migrations and runner
-├── tests/                  # Unit tests and fake repositories
+├── tests/                  # Unit tests and FakeRepositories (ports)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── main.py
