@@ -98,10 +98,10 @@ def get_work_days_calendar_kb(
                     )
                 )
                 continue
-            mark = "✓" if day in selected_days else str(day)
+            label = f"•{day}" if day in selected_days else str(day)
             row.append(
                 InlineKeyboardButton(
-                    text=mark,
+                    text=label,
                     callback_data=WorkDaysDayCallback(day=day).pack(),
                 )
             )
