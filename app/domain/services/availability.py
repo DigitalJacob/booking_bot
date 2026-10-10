@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from app.domain.enums import AppointmentStatus
 from app.domain.models import MasterSettings, TimeWindow
-from app.infrastructure.database.repositories import Repositories
+from app.domain.ports import RepositoriesPort
 
 
 def _as_utc(dt: datetime) -> datetime:
@@ -22,7 +22,7 @@ def _overlaps(
 
 
 class AvailabilityService:
-    def __init__(self, repos: Repositories) -> None:
+    def __init__(self, repos: RepositoriesPort) -> None:
         self._repos = repos
 
     async def list_windows(

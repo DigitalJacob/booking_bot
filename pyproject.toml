@@ -30,7 +30,7 @@ ignore = ["N818"]
 [tool.mypy]
 python_version = "3.13"
 files = ["app/domain"]
-# Domain still imports concrete Repositories; do not type-check that tree yet.
+# Domain no longer imports infrastructure; silent avoids noise from third-party stubs.
 follow_imports = "silent"
 warn_return_any = true
 warn_unused_configs = true

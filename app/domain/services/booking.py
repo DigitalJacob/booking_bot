@@ -11,14 +11,14 @@ from app.domain.exceptions import (
     WindowNotAvailable,
 )
 from app.domain.models import Appointment, Service, TimeWindow
+from app.domain.ports import RepositoriesPort
 from app.domain.services.availability import AvailabilityService
-from app.infrastructure.database.repositories import Repositories
 
 logger = logging.getLogger(__name__)
 
 
 class BookingService:
-    def __init__(self, repos: Repositories) -> None:
+    def __init__(self, repos: RepositoriesPort) -> None:
         self._repos = repos
 
     async def list_services(self, *, master_user_id: int) -> list[Service]:
