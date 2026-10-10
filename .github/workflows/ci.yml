@@ -1,33 +1,67 @@
+# GitHub Actions workflow: runs automatically on GitHub's servers.
+# After you push this file, open the "Actions" tab in the repo to see runs.
 name: CI
 
+# When to start this workflow:
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
+# One job = one clean virtual machine for this run.
 jobs:
   check:
     runs-on: ubuntu-latest
 
+    # Postgres is reachable from steps as localhost:<port>.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: booking_bot_test
+          POSTGRES_USER: booking_bot
+          POSTGRES_PASSWORD: booking_bot_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U booking_bot -d booking_bot_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      BOOKING_BOT_INTEGRATION: "1"
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: booking_bot_test
+      POSTGRES_USER: booking_bot
+      POSTGRES_PASSWORD: booking_bot_ci
+
     steps:
+      # 1) Download this repository onto the runner.
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2) Install the same Python major.minor as production (Dockerfile).
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
 
+      # 3) Dev deps include runtime deps via "-r requirements.txt".
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      # 4) Style / bugcatcher (must stay green after the Style commit).
       - name: Ruff
         run: ruff check app config migrations tests main.py
 
+      # 5) Types for app/domain only (see [tool.mypy] in pyproject.toml).
       - name: Mypy
         run: mypy
 
+      # 6) Unit tests + Postgres integration (see BOOKING_BOT_INTEGRATION / services).
       - name: Pytest
         run: pytest -q
