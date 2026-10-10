@@ -5,7 +5,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7.4-red.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-pytest-orange.svg)](https://docs.pytest.org/)
+[![CI](https://github.com/DigitalJacob/booking_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/DigitalJacob/booking_bot/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Telegram bot that runs appointment booking for a small service business — a barber,
@@ -35,6 +35,8 @@ with the business logic isolated from Telegram and SQL, and covered by unit test
 | **psycopg 3**               | Async PostgreSQL driver with connection pooling                   |
 | **Docker Compose**          | Runs the bot and all infrastructure services                      |
 | **pytest / pytest-asyncio** | Unit tests for the domain layer                                   |
+| **ruff / mypy**             | Lint and type-check (domain); config in `pyproject.toml`          |
+| **GitHub Actions**          | CI on push/PR: ruff, mypy, pytest (`.github/workflows/ci.yml`)    |
 | **pgAdmin**                 | Visual database management                                        |
 | **environs**                | Typed environment variable parsing                                |
 | **aiohttp-socks**           | Optional HTTP/SOCKS5 proxy for the Telegram session               |
@@ -445,10 +447,13 @@ runner baselines it (marks applied without re-running `CREATE TABLE`).
 ## Tests
 
 The domain layer is covered by unit tests that use in-memory fake repositories, so
-no database, Redis or bot token is needed.
+no database, Redis or bot token is needed. The same checks run on every push and
+pull request to `main` via [GitHub Actions](https://github.com/DigitalJacob/booking_bot/actions/workflows/ci.yml).
 
 ```bash
 pip install -r requirements-dev.txt
+ruff check app config migrations tests main.py
+mypy
 pytest
 ```
 
