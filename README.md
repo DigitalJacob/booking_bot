@@ -53,13 +53,13 @@ app/
 │   ├── enums/        # UserRole, AppointmentStatus
 │   ├── exceptions.py # TimeConflict, WindowNotAvailable, ForbiddenBookingAction, ...
 │   ├── ports.py      # typing.Protocol contracts for persistence (RepositoriesPort)
-│   └── services/     # BookingService, AvailabilityService
+│   └── services/     # Booking, Availability, ScheduleConflicts, reminders
 │
 ├── infrastructure/   # Everything that talks to the outside world.
 │   └── database/     # Connection pool and repositories (raw SQL only)
 │
 └── bot/              # Telegram presentation layer.
-    ├── handlers/     # Hub leaves and callbacks, grouped by role
+    ├── handlers/     # By role; larger master flows are packages (bookings, time_off, work_days)
     ├── keyboards/    # Inline keyboards and typed CallbackData
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
@@ -68,17 +68,21 @@ app/
     └── i18n/         # Locale resolution
 ```
 
-**Why it matters in practice.** `BookingService` and `AvailabilityService` never import
-aiogram, psycopg or `app.infrastructure`. They depend on `RepositoriesPort` — a
-`typing.Protocol` facade of the persistence methods the domain actually needs. Handlers
-build a concrete SQL `Repositories` object and pass it in; tests pass an in-memory
-`FakeRepositories` that satisfies the same shape. No inheritance required — structural
-typing keeps the layers decoupled while the suite still runs in well under a second
-without a database, Redis or a Telegram token.
+**Why it matters in practice.** Domain services (`BookingService`, `AvailabilityService`,
+`ScheduleConflictsService`, …) never import aiogram, psycopg or `app.infrastructure`.
+They depend on `RepositoriesPort` — a `typing.Protocol` facade of the persistence methods
+the domain actually needs. Handlers build a concrete SQL `Repositories` object and pass
+it in; tests pass an in-memory `FakeRepositories` that satisfies the same shape. No
+inheritance required — structural typing keeps the layers decoupled while the suite still
+runs in well under a second without a database, Redis or a Telegram token.
+
+Overlap checks when the master clears work days or adds time off live in
+`ScheduleConflictsService`; handlers only show the warning UI and apply the change.
 
 On the bot side, role modules register hub leaves (`hub_registry`) and cancel-resume
-hooks per source (`cancel_registry`) at import time, so the shared cancel flow and hub
-router stay free of circular imports into client/master handlers.
+hooks per source (`cancel_registry`) at import time, and startup asserts every cancel
+source has a resume hook, so the shared cancel flow and hub router stay free of circular
+imports into client/master handlers.
 
 Repositories hold **only** SQL. Handlers hold **only** dialog flow and formatting.
 A rule like "only free windows from the master's schedule are offered" is written once, in
@@ -513,7 +517,7 @@ booking_bot/
 ├── app/
 │   ├── bot/                # Telegram layer
 │   │   ├── filters/        # Role and locale filters
-│   │   ├── handlers/       # admin / client / master / common (incl. shared cancel)
+│   │   ├── handlers/       # admin / client / master packages / common (shared cancel)
 │   │   ├── i18n/           # Locale resolution
 │   │   ├── keyboards/      # Inline keyboards and typed CallbackData
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
@@ -522,7 +526,7 @@ booking_bot/
 │   │   ├── reminders.py    # Background appointment-reminder worker
 │   │   ├── bot_commands.py # Telegram ☰ menu (/start, /menu)
 │   │   └── bot.py          # Dispatcher setup and startup
-│   ├── domain/             # Models, ports, enums, exceptions, booking / availability / reminders
+│   ├── domain/             # Models, ports, enums, exceptions, domain services
 │   └── infrastructure/     # Connection pool and SQL repositories
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
