@@ -24,6 +24,12 @@ SOURCE_MASTER_BOOKINGS = "master_bookings"
 
 PUSH_SOURCES = frozenset({SOURCE_REMINDER, SOURCE_MASTER_PUSH})
 MASTER_SOURCES = frozenset({SOURCE_MASTER_PUSH, SOURCE_MASTER_BOOKINGS})
+REQUIRED_SOURCES = frozenset({
+    SOURCE_REMINDER,
+    SOURCE_MY_BOOKINGS,
+    SOURCE_MASTER_PUSH,
+    SOURCE_MASTER_BOOKINGS,
+})
 
 CancelPhase = Literal["abort", "success", "unavailable"]
 
@@ -70,6 +76,15 @@ def register(source: str, hooks: CancelSourceHooks) -> None:
 
 def get_hooks(source: str) -> CancelSourceHooks | None:
     return _HOOKS.get(source)
+
+
+def assert_all_registered() -> None:
+    """Fail fast if a cancel source has no resume hooks."""
+    missing = REQUIRED_SOURCES - _HOOKS.keys()
+    if missing:
+        raise RuntimeError(
+            f"Cancel hooks not registered for: {', '.join(sorted(missing))}"
+        )
 
 
 async def dispatch(

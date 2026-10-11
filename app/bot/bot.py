@@ -27,6 +27,7 @@ from app.bot.middlewares.i18n import TranslatorMiddleware
 from app.bot.middlewares.lang_settings import LangSettingsMiddleware
 from app.bot.middlewares.user_context import UserContextMiddleware
 from app.bot.reminders import reminder_worker
+from app.bot.utils.cancel_registry import assert_all_registered
 from app.infrastructure.database.connection import get_pg_pool
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,7 @@ async def main(config: Config) -> None:
         master_router,
         unsupported_router,
     )
+    assert_all_registered()
 
     logger.info("Including middlewares...")
     dp.update.middleware(DataBaseMiddleware())
