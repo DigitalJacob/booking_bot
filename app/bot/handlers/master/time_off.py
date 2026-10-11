@@ -46,8 +46,9 @@ from app.bot.utils.hub_nav import (
 )
 from app.bot.utils.hub_registry import register
 from app.bot.utils.telegram import delete_user_input, is_not_modified
-from app.domain.enums import AppointmentStatus, UserRole
+from app.domain.enums import UserRole
 from app.domain.models import Appointment, User
+from app.domain.services.schedule_conflicts import ScheduleConflictsService
 from app.infrastructure.database.repositories import Repositories
 
 time_off_router = Router(name="master_time_off")
@@ -64,15 +65,6 @@ _PENDING_KIND_KEY = "toff_kind"  # hours | days
 
 def _is_breaks_mode(schedule_mode: str) -> bool:
     return schedule_mode == "monthly"
-
-
-def _intervals_overlap(
-        start: datetime,
-        end: datetime,
-        other_start: datetime,
-        other_end: datetime,
-) -> bool:
-    return start < other_end and end > other_start
 
 
 def _list_from_dt(bot_timezone: str) -> datetime:
@@ -160,37 +152,6 @@ async def _finish_time_off_add(
         text=i18n.get(ok_key).format(when=when),
         reply_markup=get_hub_dismiss_kb(i18n),
     )
-
-
-async def _appointments_overlapping_block(
-        *,
-        repos: Repositories,
-        master_user_id: int,
-        starts_at: datetime,
-        ends_at: datetime,
-) -> list[Appointment]:
-    # list_by_master filters on starts_at; widen left so a slot that began
-    # before the block but still overlaps is included, then filter precisely.
-    rows = await repos.appointments.list_by_master(
-        master_user_id=master_user_id,
-        from_dt=starts_at - timedelta(days=1),
-        to_dt=ends_at,
-    )
-    result: list[Appointment] = []
-    for appointment in rows:
-        if appointment.status not in (
-            AppointmentStatus.PENDING,
-            AppointmentStatus.CONFIRMED,
-        ):
-            continue
-        if _intervals_overlap(
-            starts_at,
-            ends_at,
-            appointment.starts_at,
-            appointment.ends_at,
-        ):
-            result.append(appointment)
-    return result
 
 
 async def _warn_bookings_text(
@@ -318,8 +279,7 @@ async def _save_time_off_or_warn(
         when: str,
         kind: str,
 ) -> None:
-    conflicting = await _appointments_overlapping_block(
-        repos=repos,
+    conflicting = await ScheduleConflictsService(repos).active_overlapping(
         master_user_id=user.user_id,
         starts_at=starts_at,
         ends_at=ends_at,

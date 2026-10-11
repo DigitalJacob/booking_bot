@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
 
 from aiogram import F, Router
 from aiogram.filters import StateFilter
@@ -22,12 +22,13 @@ from app.bot.keyboards.work_days import (
 )
 from app.bot.states.states import WorkDaysSG
 from app.bot.utils.dates import parse_time
-from app.bot.utils.format import client_contact, format_dt, get_zone, to_local
+from app.bot.utils.format import client_contact, format_dt, get_zone
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.hub_registry import register
 from app.bot.utils.telegram import delete_user_input
-from app.domain.enums import AppointmentStatus, UserRole
+from app.domain.enums import UserRole
 from app.domain.models import Appointment, User
+from app.domain.services.schedule_conflicts import ScheduleConflictsService
 from app.infrastructure.database.repositories import Repositories
 
 work_days_router = Router(name="master_work_days")
@@ -217,39 +218,6 @@ async def _show_confirm(
         text=text,
         reply_markup=get_work_days_confirm_kb(i18n),
     )
-
-
-async def _appointments_on_removed_days(
-        *,
-        repos: Repositories,
-        master_user_id: int,
-        data: dict,
-        bot_timezone: str,
-) -> list[Appointment]:
-    _, _, removed, _ = _day_sets(data)
-    if not removed:
-        return []
-
-    removed_dates = {date.fromisoformat(value) for value in removed}
-    zone = get_zone(bot_timezone)
-    from_day = min(removed_dates)
-    to_day = max(removed_dates) + timedelta(days=1)
-    rows = await repos.appointments.list_by_master(
-        master_user_id=master_user_id,
-        from_dt=datetime.combine(from_day, time.min, tzinfo=zone),
-        to_dt=datetime.combine(to_day, time.min, tzinfo=zone),
-    )
-    result: list[Appointment] = []
-    for appointment in rows:
-        if appointment.status not in (
-            AppointmentStatus.PENDING,
-            AppointmentStatus.CONFIRMED,
-        ):
-            continue
-        local_day = to_local(appointment.starts_at, bot_timezone).date()
-        if local_day in removed_dates:
-            result.append(appointment)
-    return result
 
 
 async def _warn_bookings_text(
@@ -709,11 +677,12 @@ async def process_work_days_confirm_yes(
         bot_timezone: str,
 ) -> None:
     data = await state.get_data()
-    conflicting = await _appointments_on_removed_days(
-        repos=repos,
+    _, _, removed, _ = _day_sets(data)
+    removed_dates = {date.fromisoformat(value) for value in removed}
+    conflicting = await ScheduleConflictsService(repos).active_on_local_days(
         master_user_id=user.user_id,
-        data=data,
-        bot_timezone=bot_timezone,
+        days=removed_dates,
+        timezone=bot_timezone,
     )
     if conflicting:
         await _show_warn_bookings(
