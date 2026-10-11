@@ -35,7 +35,6 @@ class CancelResumeCtx:
     bot: Bot
     chat_id: int
     message_id: int
-    state: FSMContext
     repos: Repositories
     user: User
     i18n: dict[str, str]
@@ -43,6 +42,7 @@ class CancelResumeCtx:
     bot_timezone: str
     source: str
     mode: str
+    state: FSMContext | None = None
     appointment: Appointment | None = None
     appointment_id: int | None = None
     callback: CallbackQuery | None = None

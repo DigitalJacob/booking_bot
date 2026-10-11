@@ -1359,7 +1359,7 @@ def _cancel_appointment_id(ctx: CancelResumeCtx) -> int | None:
 
 
 async def _cancel_edit_day(ctx: CancelResumeCtx) -> None:
-    if ctx.appointment is None:
+    if ctx.appointment is None or ctx.state is None:
         return
     day = to_local(ctx.appointment.starts_at, ctx.bot_timezone).date()
     back_to = await _back_to_from_state(ctx.state)
@@ -1413,7 +1413,7 @@ async def _cancel_push_on_abort(ctx: CancelResumeCtx) -> None:
 
 
 async def _cancel_master_on_success(ctx: CancelResumeCtx) -> None:
-    if ctx.appointment is None:
+    if ctx.appointment is None or ctx.state is None:
         return
     await resume_master_after_cancel(
         bot=ctx.bot,
