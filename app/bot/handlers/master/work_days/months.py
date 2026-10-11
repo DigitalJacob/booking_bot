@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.handlers.common.hub import return_from_list
+from app.bot.handlers.master.work_days.calendar import show_work_days_calendar
 from app.bot.handlers.master.work_days.common import MONTH_CHOICES
 from app.bot.handlers.master.work_days.router import work_days_router
 from app.bot.keyboards.work_days import (
@@ -170,10 +171,11 @@ async def process_work_days_month(
         wd_starts=None,
         wd_ends=None,
     )
-    # Calendar lives in handlers until s6c; avoid months↔handlers cycle.
-    from app.bot.handlers.master.work_days.handlers import _show_calendar
-
-    await _show_calendar(message=callback.message, state=state, i18n=i18n)
+    await show_work_days_calendar(
+        message=callback.message,
+        state=state,
+        i18n=i18n,
+    )
     await callback.answer()
 
 
