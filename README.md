@@ -473,12 +473,14 @@ pytest
 Without Postgres integration enabled, integration tests are skipped automatically:
 
 ```
-43 passed, 8 skipped
+57 passed, 8 skipped
 ```
 
-The unit suite covers `BookingService`, `AvailabilityService` and reminder due-rules:
+The unit suite covers `BookingService`, `AvailabilityService`,
+`ScheduleConflictsService`, shared `time_range` helpers, and reminder due-rules:
 window booking (including monthly open days and open-month listing), confirm and
-cancel transitions with permission checks, client appointment listing filters, and
+cancel transitions with permission checks, client appointment listing filters,
+active appointment overlap / local-day conflict checks (half-open intervals), and
 evening / hour reminder eligibility (confirmed only, lead window, half-open evening
 hours, already-sent skip).
 
