@@ -44,10 +44,6 @@ async def appointment_notice_parts(
     return i18n, text
 
 
-# Backward-compatible alias for existing call sites.
-_appointment_notify_parts = appointment_notice_parts
-
-
 async def notify_appointment(
         *,
         bot: Bot,

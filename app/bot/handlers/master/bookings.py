@@ -655,10 +655,6 @@ async def disarm_stale_master_push(
         )
 
 
-# Backward-compatible alias for existing call sites in this module.
-_disarm_stale_master_push = disarm_stale_master_push
-
-
 async def resume_master_after_cancel(
         *,
         bot: Bot,
@@ -1169,7 +1165,7 @@ async def process_confirm(
     except (
         AppointmentNotFound, ForbiddenBookingAction, InvalidAppointmentStatus
     ):
-        await _disarm_stale_master_push(
+        await disarm_stale_master_push(
             callback=callback,
             bot=bot,
             repos=repos,

@@ -17,18 +17,11 @@ from app.bot.utils.cancel_registry import (
     register as register_cancel_source,
 )
 from app.bot.utils.notify import appointment_notice_parts
-from app.domain.enums import AppointmentStatus, ReminderKind
+from app.domain.enums import AppointmentStatus, parse_reminder_kind
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
 reminder_router = Router(name="reminders")
-
-
-def _parse_kind(raw: str) -> ReminderKind | None:
-    try:
-        return ReminderKind(raw)
-    except ValueError:
-        return None
 
 
 def _done_key(mode: str) -> str:
@@ -48,7 +41,7 @@ async def _edit_dismissable(ctx: CancelResumeCtx, *, text: str) -> None:
 async def _cancel_on_abort(ctx: CancelResumeCtx) -> None:
     if ctx.appointment is None or ctx.callback is None:
         return
-    kind = _parse_kind(ctx.reminder_kind)
+    kind = parse_reminder_kind(ctx.reminder_kind)
     if kind is None:
         return
     text_key = REMINDER_TEXT_KEY_BY_KIND[kind]
@@ -90,7 +83,7 @@ async def process_reminder_cancel(
         translations: dict,
         bot_timezone: str,
 ) -> None:
-    kind = _parse_kind(callback_data.kind)
+    kind = parse_reminder_kind(callback_data.kind)
     if kind is None:
         await callback.answer(
             text=i18n.get("cancel_failed"),

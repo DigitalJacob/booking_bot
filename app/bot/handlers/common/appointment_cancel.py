@@ -28,7 +28,7 @@ from app.bot.utils.notify import (
     notify_appointment,
     supersede_master_action_push,
 )
-from app.domain.enums import AppointmentStatus, ReminderKind
+from app.domain.enums import AppointmentStatus, ReminderKind, parse_reminder_kind
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
@@ -49,15 +49,6 @@ _MODE_KEY = "cancel_mode"
 _KIND_KEY = "cancel_reminder_kind"
 _PROMPT_ID_KEY = "cancel_prompt_message_id"
 _STATUSES_KEY = "cancel_allowed_statuses"
-
-
-def _parse_kind(raw: str) -> ReminderKind | None:
-    if not raw:
-        return None
-    try:
-        return ReminderKind(raw)
-    except ValueError:
-        return None
 
 
 def _confirm_text_key(mode: str) -> str:
@@ -495,7 +486,7 @@ async def process_cancel_no(
 
     if (
             callback_data.source == SOURCE_REMINDER
-            and _parse_kind(callback_data.reminder_kind) is None
+            and parse_reminder_kind(callback_data.reminder_kind) is None
     ):
         await callback.answer(
             text=i18n.get("cancel_failed"),
