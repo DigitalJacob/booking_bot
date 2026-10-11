@@ -63,7 +63,7 @@ app/
     ├── keyboards/    # Inline keyboards and typed CallbackData
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
-    ├── utils/        # Notifications, sticky hub helpers, shared formatting
+    ├── utils/        # Notifications, hub/cancel registries, sticky hub, formatting
     ├── bot_commands.py  # Telegram ☰ menu (/start, /menu)
     └── i18n/         # Locale resolution
 ```
@@ -75,6 +75,10 @@ build a concrete SQL `Repositories` object and pass it in; tests pass an in-memo
 `FakeRepositories` that satisfies the same shape. No inheritance required — structural
 typing keeps the layers decoupled while the suite still runs in well under a second
 without a database, Redis or a Telegram token.
+
+On the bot side, role modules register hub leaves (`hub_registry`) and cancel-resume
+hooks per source (`cancel_registry`) at import time, so the shared cancel flow and hub
+router stay free of circular imports into client/master handlers.
 
 Repositories hold **only** SQL. Handlers hold **only** dialog flow and formatting.
 A rule like "only free windows from the master's schedule are offered" is written once, in
@@ -514,7 +518,7 @@ booking_bot/
 │   │   ├── keyboards/      # Inline keyboards and typed CallbackData
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
 │   │   ├── states/         # FSM state groups
-│   │   ├── utils/          # Notifications, hub helpers, shared formatting
+│   │   ├── utils/          # Notifications, hub/cancel registries, sticky hub, formatting
 │   │   ├── reminders.py    # Background appointment-reminder worker
 │   │   ├── bot_commands.py # Telegram ☰ menu (/start, /menu)
 │   │   └── bot.py          # Dispatcher setup and startup
@@ -524,6 +528,7 @@ booking_bot/
 ├── locales/                # ru / en message dictionaries
 ├── migrations/             # Versioned SQL migrations and runner
 ├── tests/                  # Unit tests (FakeRepositories) + integration/ (Postgres)
+├── .github/workflows/      # CI (ruff, mypy, pytest + Postgres)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── main.py
