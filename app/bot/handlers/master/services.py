@@ -31,6 +31,7 @@ from app.bot.utils.hub_nav import (
     show_hub_prompt,
 )
 from app.bot.utils.hub_registry import register
+from app.bot.utils.telegram import delete_user_input, is_not_modified
 from app.domain.enums import UserRole
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
@@ -41,15 +42,6 @@ services_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _DESCRIPTION_MAX = 1000
 _CAPTION_MAX = 1024
-
-
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
-
-
-async def _delete_user_input(message: Message) -> None:
-    with suppress(TelegramBadRequest):
-        await message.delete()
 
 
 def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
@@ -159,7 +151,7 @@ async def show_services_list(
                 )
                 return
             except TelegramBadRequest as exc:
-                if _is_not_modified(exc):
+                if is_not_modified(exc):
                     return
                 with suppress(TelegramBadRequest):
                     await message.bot.edit_message_reply_markup(
@@ -243,7 +235,7 @@ async def _refresh_service_card(
                 await message.edit_caption(caption=text, reply_markup=kb)
                 return
             except TelegramBadRequest as exc:
-                if _is_not_modified(exc):
+                if is_not_modified(exc):
                     return
         with suppress(TelegramBadRequest):
             await message.delete()
@@ -259,7 +251,7 @@ async def _refresh_service_card(
     try:
         await message.edit_text(text=text, reply_markup=kb)
     except TelegramBadRequest as exc:
-        if _is_not_modified(exc):
+        if is_not_modified(exc):
             return
         await _send_service_card(message=message, service=service, i18n=i18n)
 
@@ -285,7 +277,7 @@ async def _prompt_on_sticky(
             )
             return
         except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
+            if is_not_modified(exc):
                 return
     await show_hub_prompt(
         message=message,
@@ -851,7 +843,7 @@ async def process_service_description_value(
         i18n: dict[str, str],
 ) -> None:
     text = (message.text or "").strip()
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if not text or len(text) > _DESCRIPTION_MAX:
         await show_hub_prompt(
             message=message,
@@ -984,7 +976,7 @@ async def process_service_photo_value(
         master_user_id=user.user_id,
         photo_file_id=photo_file_id,
     )
-    await _delete_user_input(message)
+    await delete_user_input(message)
     await _dismiss_photo_preview(message, state)
     await clear_state_keep_hub(state)
     if service is None:
@@ -1011,7 +1003,7 @@ async def process_service_photo_invalid(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    await _delete_user_input(message)
+    await delete_user_input(message)
     await show_hub_prompt(
         message=message,
         state=state,

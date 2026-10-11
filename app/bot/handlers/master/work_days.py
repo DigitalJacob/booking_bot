@@ -1,8 +1,6 @@
-from contextlib import suppress
 from datetime import date, datetime, time, timedelta
 
 from aiogram import F, Router
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -26,6 +24,7 @@ from app.bot.states.states import WorkDaysSG
 from app.bot.utils.format import client_contact, format_dt, get_zone, to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.hub_registry import register
+from app.bot.utils.telegram import delete_user_input
 from app.domain.enums import AppointmentStatus, UserRole
 from app.domain.models import Appointment, User
 from app.infrastructure.database.repositories import Repositories
@@ -63,11 +62,6 @@ def _day_sets(data: dict) -> tuple[set[str], set[str], set[str], set[str]]:
     removed = initial - current
     added = current - initial
     return current, initial, removed, added
-
-
-async def _delete_user_input(message: Message) -> None:
-    with suppress(TelegramBadRequest):
-        await message.delete()
 
 
 def _month_choices(bot_timezone: str) -> list[tuple[int, int]]:
@@ -653,7 +647,7 @@ async def process_work_days_starts(
         i18n: dict[str, str],
 ) -> None:
     starts = _parse_time(message.text or "")
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if starts is None:
         await show_hub_prompt(
             message=message,
@@ -673,7 +667,7 @@ async def process_work_days_ends(
         i18n: dict[str, str],
 ) -> None:
     ends = _parse_time(message.text or "")
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if ends is None:
         await show_hub_prompt(
             message=message,

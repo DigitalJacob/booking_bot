@@ -15,6 +15,7 @@ from app.bot.keyboards.catalog import (
 )
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY
 from app.bot.utils.hub_registry import register
+from app.bot.utils.telegram import is_not_modified
 from app.domain.enums import UserRole
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
@@ -46,10 +47,6 @@ def _card_body(service: Service, i18n: dict[str, str]) -> str:
     if len(text) > _CAPTION_MAX:
         return text[: _CAPTION_MAX - 3] + "..."
     return text
-
-
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
 
 
 async def show_catalog_list(
@@ -86,7 +83,7 @@ async def show_catalog_list(
                 )
                 return
             except TelegramBadRequest as exc:
-                if _is_not_modified(exc):
+                if is_not_modified(exc):
                     return
                 with suppress(TelegramBadRequest):
                     await message.bot.edit_message_reply_markup(

@@ -17,6 +17,7 @@ from app.bot.utils.hub_nav import (
     show_hub,
 )
 from app.bot.utils.hub_registry import dispatch_leaf
+from app.bot.utils.telegram import is_not_modified
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -32,10 +33,6 @@ def _help_text(role: UserRole | None, i18n: dict[str, str]) -> str:
     return i18n.get("/help")
 
 
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
-
-
 async def _edit_section(
         message: Message,
         *,
@@ -45,7 +42,7 @@ async def _edit_section(
     try:
         await message.edit_text(text=text, reply_markup=reply_markup)
     except TelegramBadRequest as exc:
-        if not _is_not_modified(exc):
+        if not is_not_modified(exc):
             raise
 
 

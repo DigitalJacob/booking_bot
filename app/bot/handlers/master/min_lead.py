@@ -21,6 +21,7 @@ from app.bot.utils.hub_nav import (
     show_hub_prompt,
 )
 from app.bot.utils.hub_registry import register
+from app.bot.utils.telegram import delete_user_input, is_not_modified
 from app.domain.enums import UserRole
 from app.domain.models import MasterSettings, User
 from app.infrastructure.database.repositories import Repositories
@@ -30,15 +31,6 @@ min_lead_router.message.filter(UserRoleFilter(UserRole.MASTER))
 min_lead_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _MAX_MIN_LEAD_MINUTES = 1440
-
-
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
-
-
-async def _delete_user_input(message: Message) -> None:
-    with suppress(TelegramBadRequest):
-        await message.delete()
 
 
 async def _ensure_settings(
@@ -105,7 +97,7 @@ async def show_min_lead_screen(
                 )
                 return
             except TelegramBadRequest as exc:
-                if _is_not_modified(exc):
+                if is_not_modified(exc):
                     return
                 with suppress(TelegramBadRequest):
                     await message.bot.edit_message_reply_markup(
@@ -195,7 +187,7 @@ async def process_min_lead_value(
         bot_timezone: str,
 ) -> None:
     raw = (message.text or "").strip()
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if not raw.isdigit():
         await message.answer(text=i18n.get("min_lead_invalid"))
         return

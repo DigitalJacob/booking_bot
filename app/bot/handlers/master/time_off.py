@@ -39,6 +39,7 @@ from app.bot.utils.hub_nav import (
     show_hub_prompt,
 )
 from app.bot.utils.hub_registry import register
+from app.bot.utils.telegram import delete_user_input, is_not_modified
 from app.domain.enums import AppointmentStatus, UserRole
 from app.domain.models import Appointment, User
 from app.infrastructure.database.repositories import Repositories
@@ -133,15 +134,6 @@ def _format_hours_when(day: date, starts: time, ends: time) -> str:
         f"{day.strftime('%d.%m.%Y')} "
         f"{starts.strftime('%H:%M')}–{ends.strftime('%H:%M')}"
     )
-
-
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
-
-
-async def _delete_user_input(message: Message) -> None:
-    with suppress(TelegramBadRequest):
-        await message.delete()
 
 
 async def _show_time_off_prompt(
@@ -542,7 +534,7 @@ async def show_time_off_list(
                 )
                 return
             except TelegramBadRequest as exc:
-                if _is_not_modified(exc):
+                if is_not_modified(exc):
                     return
                 # Sticky gone or not editable — fall through and re-point.
                 with suppress(TelegramBadRequest):
@@ -933,7 +925,7 @@ async def process_time_off_starts(
         bot_timezone: str,
 ) -> None:
     starts = _parse_date(message.text or "")
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if starts is None:
         await message.answer(text=i18n.get("time_off_invalid_date"))
         return
@@ -960,7 +952,7 @@ async def process_time_off_ends(
         schedule_mode: str,
 ) -> None:
     ends = _parse_date(message.text or "")
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if ends is None:
         await message.answer(text=i18n.get("time_off_invalid_date"))
         return
@@ -1001,7 +993,7 @@ async def process_time_off_hours_day(
         bot_timezone: str,
 ) -> None:
     day = _parse_date(message.text or "")
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if day is None:
         await message.answer(text=i18n.get("time_off_invalid_date"))
         return
@@ -1027,7 +1019,7 @@ async def process_time_off_hours_starts(
         i18n: dict[str, str],
 ) -> None:
     starts = _parse_time(message.text or "")
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if starts is None:
         await message.answer(text=i18n.get("time_off_invalid_time"))
         return
@@ -1053,7 +1045,7 @@ async def process_time_off_hours_ends(
         schedule_mode: str,
 ) -> None:
     ends = _parse_time(message.text or "")
-    await _delete_user_input(message)
+    await delete_user_input(message)
     if ends is None:
         await message.answer(text=i18n.get("time_off_invalid_time"))
         return

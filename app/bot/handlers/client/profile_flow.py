@@ -14,14 +14,11 @@ from app.bot.keyboards.profile import (
 )
 from app.bot.states.states import ProfileSG
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
+from app.bot.utils.telegram import is_not_modified
 from app.domain.models import User
 
 _PROFILE_PROMPT_ID_KEY = "profile_prompt_message_id"
 _PROFILE_AUX_ID_KEY = "profile_aux_message_id"
-
-
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
 
 
 async def _delete_chat_message(
@@ -147,7 +144,7 @@ async def show_profile_prompt(
             )
             edited = True
         except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
+            if is_not_modified(exc):
                 edited = True
 
     if not edited:

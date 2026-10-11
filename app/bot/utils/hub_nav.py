@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, Message
 
 from app.bot.keyboards.hub import get_hub_root_kb
+from app.bot.utils.telegram import is_not_modified
 from app.domain.enums import UserRole
 from app.domain.models import User
 
@@ -19,10 +20,6 @@ _HUB_NAV_KEYS = (
 
 def _role(user: User | None) -> UserRole:
     return user.role if user else UserRole.CLIENT
-
-
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
 
 
 async def clear_state_keep_hub(state: FSMContext) -> None:
@@ -71,7 +68,7 @@ async def show_hub_prompt(
             await message.edit_text(text=text, reply_markup=reply_markup)
             return
         except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
+            if is_not_modified(exc):
                 return
         sent = await message.answer(text=text, reply_markup=reply_markup)
         await state.update_data({HUB_MESSAGE_ID_KEY: sent.message_id})
@@ -87,7 +84,7 @@ async def show_hub_prompt(
             )
             return
         except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
+            if is_not_modified(exc):
                 return
             with suppress(TelegramBadRequest):
                 await bot.edit_message_reply_markup(
@@ -134,7 +131,7 @@ async def show_hub(
             )
             return int(sticky_id)
         except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
+            if is_not_modified(exc):
                 return int(sticky_id)
             # Sticky gone or not editable — fall through.
 
@@ -144,7 +141,7 @@ async def show_hub(
             await state.update_data({HUB_MESSAGE_ID_KEY: message.message_id})
             return message.message_id
         except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
+            if is_not_modified(exc):
                 await state.update_data({HUB_MESSAGE_ID_KEY: message.message_id})
                 return message.message_id
 

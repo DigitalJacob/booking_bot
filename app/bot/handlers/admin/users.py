@@ -22,6 +22,7 @@ from app.bot.states.states import AdminModSG
 from app.bot.utils.format import format_dt
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
 from app.bot.utils.hub_registry import register
+from app.bot.utils.telegram import delete_user_input, is_not_modified
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
@@ -31,15 +32,6 @@ logger = logging.getLogger(__name__)
 admin_users_router = Router(name="admin_users")
 admin_users_router.message.filter(UserRoleFilter(UserRole.ADMIN))
 admin_users_router.callback_query.filter(UserRoleFilter(UserRole.ADMIN))
-
-
-def _is_not_modified(exc: TelegramBadRequest) -> bool:
-    return "message is not modified" in str(exc).lower()
-
-
-async def _delete_user_input(message: Message) -> None:
-    with suppress(TelegramBadRequest):
-        await message.delete()
 
 
 async def _show_admin_prompt(
@@ -65,7 +57,7 @@ async def _show_admin_prompt(
             )
             return
         except TelegramBadRequest as exc:
-            if _is_not_modified(exc):
+            if is_not_modified(exc):
                 return
 
     await message.answer(text=text, reply_markup=kb)
@@ -294,7 +286,7 @@ async def process_admin_mod_target(
         bot_timezone: str,
 ) -> None:
     raw = (message.text or "").strip()
-    await _delete_user_input(message)
+    await delete_user_input(message)
 
     if not raw:
         await _show_admin_prompt(
