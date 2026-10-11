@@ -44,6 +44,7 @@ class CancelResumeCtx:
     source: str
     mode: str
     appointment: Appointment | None = None
+    appointment_id: int | None = None
     callback: CallbackQuery | None = None
     reminder_kind: str = ""
     notice_key: str | None = None
