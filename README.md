@@ -34,7 +34,7 @@ with the business logic isolated from Telegram and SQL, and covered by unit test
 | **Redis 7.4**               | FSM state storage for multi-step dialogs                          |
 | **psycopg 3**               | Async PostgreSQL driver with connection pooling                   |
 | **Docker Compose**          | Runs the bot and all infrastructure services                      |
-| **pytest / pytest-asyncio** | Unit tests for the domain layer                                   |
+| **pytest / pytest-asyncio** | Unit + Postgres integration tests                                 |
 | **ruff / mypy**             | Lint and type-check (domain); config in `pyproject.toml`          |
 | **GitHub Actions**          | CI on push/PR: ruff, mypy, pytest (`.github/workflows/ci.yml`)    |
 | **pgAdmin**                 | Visual database management                                        |
