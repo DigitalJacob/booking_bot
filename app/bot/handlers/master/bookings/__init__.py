@@ -1,8 +1,9 @@
 """Master bookings: week/month/day lists, cards, and cancel resume hooks."""
 
-# Register callback handlers on bookings_router (import side effects).
-# handlers imports list, so list handlers register before action handlers.
-from app.bot.handlers.master.bookings import handlers as _action_handlers  # noqa: F401
+# Register callback/hub/cancel handlers (import side effects).
+# actions imports list, so list handlers register before action handlers.
+from app.bot.handlers.master.bookings import actions as _actions  # noqa: F401
+from app.bot.handlers.master.bookings import cancel_hooks as _cancel_hooks  # noqa: F401
 from app.bot.handlers.master.bookings import list as _list_handlers  # noqa: F401
 from app.bot.handlers.master.bookings.router import bookings_router
 
