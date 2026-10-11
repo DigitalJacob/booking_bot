@@ -71,7 +71,7 @@ async def _mark_applied(conn: AsyncConnection, version: str) -> None:
                 VALUES (%s)
                 ON CONFLICT (version) DO NOTHING;
             """,
-            params=(version, ),
+            params=(version,),
         )
 
 
@@ -93,10 +93,7 @@ async def run_migrations(conn: AsyncConnection) -> None:
 
     first = files[0]
     first_version = _version_id(first)
-    if (
-        first_version not in applied
-        and await _users_table_exists(conn)
-    ):
+    if first_version not in applied and await _users_table_exists(conn):
         async with conn.transaction():
             await _mark_applied(conn, first_version)
         applied.add(first_version)

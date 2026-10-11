@@ -29,9 +29,9 @@ class UserRoleFilter(BaseFilter):
             raise ValueError("No valid roles provided to `UserRoleFilter`.")
 
     async def __call__(
-            self,
-            event: Message | CallbackQuery,
-            user: User | None,
+        self,
+        event: Message | CallbackQuery,
+        user: User | None,
     ) -> bool:
         if event.from_user is None or user is None:
             return False

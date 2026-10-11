@@ -24,7 +24,7 @@ async def test_migrations_create_appointments_table(db_conn: AsyncConnection) ->
 
 @pytest.mark.asyncio
 async def test_migrations_install_appointments_no_overlap(
-        db_conn: AsyncConnection,
+    db_conn: AsyncConnection,
 ) -> None:
     async with db_conn.cursor() as cursor:
         await cursor.execute(

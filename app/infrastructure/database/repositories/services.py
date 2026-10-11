@@ -26,13 +26,13 @@ class ServicesRepository:
         self._conn = conn
 
     async def add_service(
-            self,
-            *,
-            master_user_id: int,
-            title: str,
-            duration_minutes: int,
-            price: Decimal | None = None,
-            is_active: bool = True,
+        self,
+        *,
+        master_user_id: int,
+        title: str,
+        duration_minutes: int,
+        price: Decimal | None = None,
+        is_active: bool = True,
     ) -> Service:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -71,9 +71,9 @@ class ServicesRepository:
         return Service.from_db_row(row)
 
     async def get_service(
-            self,
-            *,
-            service_id: int,
+        self,
+        *,
+        service_id: int,
     ) -> Service | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -82,16 +82,16 @@ class ServicesRepository:
                     FROM services
                     WHERE id = %s;
                 """,
-                params=(service_id, ),
+                params=(service_id,),
             )
             row = await cursor.fetchone()
         return Service.from_db_row(row) if row else None
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            active_only: bool = True,
+        self,
+        *,
+        master_user_id: int,
+        active_only: bool = True,
     ) -> list[Service]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -111,13 +111,13 @@ class ServicesRepository:
         return [Service.from_db_row(row) for row in rows]
 
     async def update(
-            self,
-            *,
-            service_id: int,
-            master_user_id: int,
-            title: str,
-            duration_minutes: int,
-            price: Decimal | None,
+        self,
+        *,
+        service_id: int,
+        master_user_id: int,
+        title: str,
+        duration_minutes: int,
+        price: Decimal | None,
     ) -> Service | None:
         """Update only if the service belongs to this master. Returns None if missing."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -152,11 +152,11 @@ class ServicesRepository:
         return Service.from_db_row(row)
 
     async def update_description(
-            self,
-            *,
-            service_id: int,
-            master_user_id: int,
-            description: str | None,
+        self,
+        *,
+        service_id: int,
+        master_user_id: int,
+        description: str | None,
     ) -> Service | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -184,11 +184,11 @@ class ServicesRepository:
         return Service.from_db_row(row)
 
     async def update_photo_file_id(
-            self,
-            *,
-            service_id: int,
-            master_user_id: int,
-            photo_file_id: str | None,
+        self,
+        *,
+        service_id: int,
+        master_user_id: int,
+        photo_file_id: str | None,
     ) -> Service | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -216,11 +216,11 @@ class ServicesRepository:
         return Service.from_db_row(row)
 
     async def set_active(
-            self,
-            *,
-            service_id: int,
-            master_user_id: int,
-            is_active: bool,
+        self,
+        *,
+        service_id: int,
+        master_user_id: int,
+        is_active: bool,
     ) -> Service | None:
         """Toggle is_active only if the service belongs to this master."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:

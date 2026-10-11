@@ -23,11 +23,11 @@ class WorkDatesRepository:
         self._conn = conn
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_date: date | None = None,
-            to_date: date | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> list[WorkDate]:
         """List open days; from_date inclusive, to_date exclusive when set."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -56,11 +56,11 @@ class WorkDatesRepository:
         return [WorkDate.from_db_row(row) for row in rows]
 
     async def list_month(
-            self,
-            *,
-            master_user_id: int,
-            year: int,
-            month: int,
+        self,
+        *,
+        master_user_id: int,
+        year: int,
+        month: int,
     ) -> list[WorkDate]:
         first = date(year, month, 1)
         to_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
@@ -71,10 +71,10 @@ class WorkDatesRepository:
         )
 
     async def delete_dates(
-            self,
-            *,
-            master_user_id: int,
-            work_dates: list[date],
+        self,
+        *,
+        master_user_id: int,
+        work_dates: list[date],
     ) -> int:
         """Delete specific open days. Returns number of deleted rows."""
         days = sorted(set(work_dates))
@@ -101,12 +101,12 @@ class WorkDatesRepository:
         return deleted
 
     async def upsert_dates(
-            self,
-            *,
-            master_user_id: int,
-            work_dates: list[date],
-            starts_time: time,
-            ends_time: time,
+        self,
+        *,
+        master_user_id: int,
+        work_dates: list[date],
+        starts_time: time,
+        ends_time: time,
     ) -> list[WorkDate]:
         """Insert or update hours for the given days only."""
         if ends_time <= starts_time:
@@ -159,14 +159,14 @@ class WorkDatesRepository:
         return [WorkDate.from_db_row(row) for row in rows]
 
     async def replace_month(
-            self,
-            *,
-            master_user_id: int,
-            year: int,
-            month: int,
-            work_dates: list[date],
-            starts_time: time | None = None,
-            ends_time: time | None = None,
+        self,
+        *,
+        master_user_id: int,
+        year: int,
+        month: int,
+        work_dates: list[date],
+        starts_time: time | None = None,
+        ends_time: time | None = None,
     ) -> list[WorkDate]:
         """Replace all open days in the month with the given dates and hours.
 
@@ -183,9 +183,7 @@ class WorkDatesRepository:
 
         for day in work_dates:
             if day.year != year or day.month != month:
-                raise ValueError(
-                    f"work_date {day.isoformat()} is outside {year}-{month:02d}"
-                )
+                raise ValueError(f"work_date {day.isoformat()} is outside {year}-{month:02d}")
 
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(

@@ -12,20 +12,17 @@ class AvailabilityService:
         self._repos = repos
 
     async def list_windows(
-            self,
-            *,
-            master_user_id: int,
-            duration_minutes: int,
-            schedule_mode: str = "weekly",
-            now: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        duration_minutes: int,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
     ) -> list[TimeWindow]:
         if duration_minutes <= 0:
             raise ValueError("Duration_minutes must be positive")
         if schedule_mode not in ("weekly", "monthly"):
-            raise ValueError(
-                f"schedule_mode must be 'weekly' or 'monthly', "
-                f"got: {schedule_mode!r}"
-            )
+            raise ValueError(f"schedule_mode must be 'weekly' or 'monthly', got: {schedule_mode!r}")
 
         now = as_utc(now or datetime.now(UTC))
         settings = await self._repos.master_settings.get_by_master(
@@ -81,10 +78,12 @@ class AvailabilityService:
                 AppointmentStatus.CONFIRMED,
             ):
                 continue
-            busy.append((
-                as_utc(appointment.starts_at),
-                as_utc(appointment.ends_at) + gap,
-            ))
+            busy.append(
+                (
+                    as_utc(appointment.starts_at),
+                    as_utc(appointment.ends_at) + gap,
+                )
+            )
 
         step_minutes = settings.slot_step_minutes or duration_minutes
         step = timedelta(minutes=step_minutes)
@@ -100,10 +99,14 @@ class AvailabilityService:
 
             for interval in intervals:
                 day_start = datetime.combine(
-                    day, interval.starts_time, tzinfo=zone,
+                    day,
+                    interval.starts_time,
+                    tzinfo=zone,
                 )
                 day_end = datetime.combine(
-                    day, interval.ends_time, tzinfo=zone,
+                    day,
+                    interval.ends_time,
+                    tzinfo=zone,
                 )
                 cursor = day_start
                 while cursor + duration <= day_end:
@@ -116,9 +119,7 @@ class AvailabilityService:
                         continue
 
                     blocking_ends = [
-                        b1
-                        for b0, b1 in busy
-                        if intervals_overlap(start_utc, end_utc, b0, b1)
+                        b1 for b0, b1 in busy if intervals_overlap(start_utc, end_utc, b0, b1)
                     ]
                     if blocking_ends:
                         # Jump to the end of the blocking busy (includes gap).
@@ -138,11 +139,11 @@ class AvailabilityService:
         return windows
 
     async def list_open_months(
-            self,
-            *,
-            master_user_id: int,
-            schedule_mode: str = "weekly",
-            now: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
     ) -> list[tuple[int, int]]:
         """Months inside the booking horizon that have at least one open day.
 
@@ -150,10 +151,7 @@ class AvailabilityService:
         weekly: months that contain a horizon day matching ``working_hours``.
         """
         if schedule_mode not in ("weekly", "monthly"):
-            raise ValueError(
-                f"schedule_mode must be 'weekly' or 'monthly', "
-                f"got: {schedule_mode!r}"
-            )
+            raise ValueError(f"schedule_mode must be 'weekly' or 'monthly', got: {schedule_mode!r}")
 
         now = as_utc(now or datetime.now(UTC))
         settings = await self._repos.master_settings.get_by_master(

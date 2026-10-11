@@ -25,22 +25,18 @@ def _role(user: User | None) -> UserRole:
 async def clear_state_keep_hub(state: FSMContext) -> None:
     """Clear FSM but keep sticky hub id and hub navigation keys."""
     data = await state.get_data()
-    keep = {
-        key: data[key]
-        for key in _HUB_NAV_KEYS
-        if key in data and data[key] is not None
-    }
+    keep = {key: data[key] for key in _HUB_NAV_KEYS if key in data and data[key] is not None}
     await state.clear()
     if keep:
         await state.update_data(keep)
 
 
 async def show_hub_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        reply_markup: InlineKeyboardMarkup,
+    *,
+    message: Message,
+    state: FSMContext,
+    text: str,
+    reply_markup: InlineKeyboardMarkup,
 ) -> None:
     """
     Show an FSM prompt on the message the user is looking at when possible.
@@ -98,12 +94,12 @@ async def show_hub_prompt(
 
 
 async def show_hub(
-        *,
-        message: Message,
-        user: User | None,
-        i18n: dict[str, str],
-        state: FSMContext,
-        force_new: bool = False,
+    *,
+    message: Message,
+    user: User | None,
+    i18n: dict[str, str],
+    state: FSMContext,
+    force_new: bool = False,
 ) -> int:
     """
     Show root hub on a single sticky message when possible.

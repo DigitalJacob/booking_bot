@@ -13,9 +13,9 @@ class CatalogNavCallback(CallbackData, prefix="csvnav"):
 
 
 def get_catalog_list_kb(
-        *,
-        services: list[Service],
-        i18n: dict[str, str],
+    *,
+    services: list[Service],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = [
         [

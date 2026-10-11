@@ -54,15 +54,16 @@ def truncate_button(text: str) -> str:
 
 def active_only(appointments: list[Appointment]) -> list[Appointment]:
     return [
-        a for a in appointments
+        a
+        for a in appointments
         if a.status in (AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
     ]
 
 
 def counts_by_local_day(
-        *,
-        appointments: list[Appointment],
-        bot_timezone: str,
+    *,
+    appointments: list[Appointment],
+    bot_timezone: str,
 ) -> dict[date, int]:
     counts: dict[date, int] = {}
     for appointment in appointments:
@@ -72,11 +73,11 @@ def counts_by_local_day(
 
 
 async def load_week_active(
-        *,
-        repos: Repositories,
-        user: User,
-        bot_timezone: str,
-        week_start: date | None,
+    *,
+    repos: Repositories,
+    user: User,
+    bot_timezone: str,
+    week_start: date | None,
 ) -> tuple[date, list[Appointment], bool]:
     from_dt, to_dt, week_start = local_week_bounds(
         bot_timezone,
@@ -93,12 +94,12 @@ async def load_week_active(
 
 
 async def load_month_active(
-        *,
-        repos: Repositories,
-        user: User,
-        bot_timezone: str,
-        year: int | None,
-        month: int | None,
+    *,
+    repos: Repositories,
+    user: User,
+    bot_timezone: str,
+    year: int | None,
+    month: int | None,
 ) -> tuple[int, int, list[Appointment], bool]:
     from_dt, to_dt, year, month = local_month_bounds(
         bot_timezone,

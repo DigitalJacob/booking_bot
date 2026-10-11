@@ -12,10 +12,10 @@ class ReminderCallback(CallbackData, prefix="remind"):
 
 
 def get_reminder_kb(
-        *,
-        i18n: dict[str, str],
-        appointment_id: int,
-        kind: ReminderKind,
+    *,
+    i18n: dict[str, str],
+    appointment_id: int,
+    kind: ReminderKind,
 ) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

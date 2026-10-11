@@ -30,16 +30,16 @@ from app.infrastructure.database.repositories import Repositories
 
 
 async def show_time_off_list(
-        *,
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        edit: bool,
-        state: FSMContext | None = None,
-        prefer_sticky: bool = False,
-        schedule_mode: str = "weekly",
+    *,
+    message: Message,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    edit: bool,
+    state: FSMContext | None = None,
+    prefer_sticky: bool = False,
+    schedule_mode: str = "weekly",
 ) -> None:
     rows = await repos.time_off.list_by_master(
         master_user_id=user.user_id,
@@ -52,9 +52,7 @@ async def show_time_off_list(
         header_key = "time_off_header"
         empty_key = "time_off_empty"
     if rows:
-        body = "\n".join(
-            format_time_off_line(row, i18n, bot_timezone) for row in rows
-        )
+        body = "\n".join(format_time_off_line(row, i18n, bot_timezone) for row in rows)
         text = i18n.get(header_key) + "\n\n" + body
     else:
         text = i18n.get(empty_key)
@@ -100,11 +98,11 @@ async def show_time_off_list(
 
 @time_off_router.callback_query(TimeOffNavCallback.filter(F.action == "close"))
 async def process_time_off_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-        schedule_mode: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
+    schedule_mode: str,
 ) -> None:
     """Back → hub schedule section."""
     await return_from_list(
@@ -119,13 +117,13 @@ async def process_time_off_close(
 
 @time_off_router.callback_query(TimeOffDeleteCallback.filter())
 async def process_time_off_delete(
-        callback: CallbackQuery,
-        callback_data: TimeOffDeleteCallback,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: TimeOffDeleteCallback,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     row = await repos.time_off.get(
         time_off_id=callback_data.time_off_id,
@@ -157,13 +155,13 @@ async def process_time_off_delete(
     TimeOffConfirmCallback.filter(F.action == "yes"),
 )
 async def process_time_off_delete_yes(
-        callback: CallbackQuery,
-        callback_data: TimeOffConfirmCallback,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: TimeOffConfirmCallback,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     deleted = await repos.time_off.delete(
         time_off_id=callback_data.time_off_id,
@@ -175,11 +173,7 @@ async def process_time_off_delete_yes(
             show_alert=True,
         )
         return
-    deleted_key = (
-        "time_off_breaks_deleted"
-        if is_breaks_mode(schedule_mode)
-        else "time_off_deleted"
-    )
+    deleted_key = "time_off_breaks_deleted" if is_breaks_mode(schedule_mode) else "time_off_deleted"
     await callback.answer(text=i18n.get(deleted_key))
     await show_time_off_list(
         message=callback.message,
@@ -196,12 +190,12 @@ async def process_time_off_delete_yes(
     TimeOffConfirmCallback.filter(F.action == "no"),
 )
 async def process_time_off_delete_no(
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     await show_time_off_list(
         message=callback.message,
@@ -216,15 +210,15 @@ async def process_time_off_delete_no(
 
 
 async def _hub_time_off(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        schedule_mode: str = "weekly",
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    schedule_mode: str = "weekly",
+    **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
         return

@@ -52,19 +52,16 @@ def format_day_range(starts: date, ends: date) -> str:
 
 
 def format_hours_when(day: date, starts: time, ends: time) -> str:
-    return (
-        f"{day.strftime('%d.%m.%Y')} "
-        f"{starts.strftime('%H:%M')}–{ends.strftime('%H:%M')}"
-    )
+    return f"{day.strftime('%d.%m.%Y')} {starts.strftime('%H:%M')}–{ends.strftime('%H:%M')}"
 
 
 async def show_time_off_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        i18n: dict[str, str],
-        reply_markup: InlineKeyboardMarkup | None = None,
+    *,
+    message: Message,
+    state: FSMContext,
+    text: str,
+    i18n: dict[str, str],
+    reply_markup: InlineKeyboardMarkup | None = None,
 ) -> None:
     """Show FSM prompt on the tapped hub message / sticky when possible."""
     kb = reply_markup if reply_markup is not None else get_time_off_cancel_kb(i18n)

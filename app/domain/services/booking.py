@@ -28,12 +28,12 @@ class BookingService:
         )
 
     async def list_available_windows(
-            self,
-            *,
-            master_user_id: int,
-            duration_minutes: int,
-            schedule_mode: str = "weekly",
-            now: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        duration_minutes: int,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
     ) -> list[TimeWindow]:
         return await AvailabilityService(self._repos).list_windows(
             master_user_id=master_user_id,
@@ -43,11 +43,11 @@ class BookingService:
         )
 
     async def list_open_months(
-            self,
-            *,
-            master_user_id: int,
-            schedule_mode: str = "weekly",
-            now: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
     ) -> list[tuple[int, int]]:
         return await AvailabilityService(self._repos).list_open_months(
             master_user_id=master_user_id,
@@ -56,13 +56,13 @@ class BookingService:
         )
 
     async def book_window(
-            self,
-            *,
-            client_user_id: int,
-            service_id: int,
-            starts_at: datetime,
-            schedule_mode: str = "weekly",
-            now: datetime | None = None
+        self,
+        *,
+        client_user_id: int,
+        service_id: int,
+        starts_at: datetime,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
     ) -> Appointment:
         if now is None:
             now = datetime.now(UTC)
@@ -84,10 +84,7 @@ class BookingService:
             now=now,
         )
         match = next(
-            (
-                window for window in windows
-                if window.starts_at.astimezone(UTC) == starts_at
-            ),
+            (window for window in windows if window.starts_at.astimezone(UTC) == starts_at),
             None,
         )
         if match is None:
@@ -112,10 +109,10 @@ class BookingService:
         return appointment
 
     async def list_client_appointments(
-            self,
-            *,
-            client_user_id: int,
-            now: datetime | None = None,
+        self,
+        *,
+        client_user_id: int,
+        now: datetime | None = None,
     ) -> list[Appointment]:
         if now is None:
             now = datetime.now(UTC)
@@ -125,18 +122,20 @@ class BookingService:
             from_dt=now,
         )
         return [
-            appointment for appointment in appointments
-            if appointment.status in (
+            appointment
+            for appointment in appointments
+            if appointment.status
+            in (
                 AppointmentStatus.PENDING,
                 AppointmentStatus.CONFIRMED,
             )
         ]
 
     async def confirm(
-            self,
-            *,
-            appointment_id: int,
-            master_user_id: int,
+        self,
+        *,
+        appointment_id: int,
+        master_user_id: int,
     ) -> Appointment:
         appointment = await self._repos.appointments.get_appointment(
             appointment_id=appointment_id,
@@ -157,10 +156,10 @@ class BookingService:
         return updated
 
     async def cancel(
-            self,
-            *,
-            appointment_id: int,
-            actor_user_id: int,
+        self,
+        *,
+        appointment_id: int,
+        actor_user_id: int,
     ) -> Appointment:
         appointment = await self._repos.appointments.get_appointment(
             appointment_id=appointment_id,

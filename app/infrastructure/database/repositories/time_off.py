@@ -14,12 +14,12 @@ class TimeOffRepository:
         self._conn = conn
 
     async def add(
-            self,
-            *,
-            master_user_id: int,
-            starts_at: datetime,
-            ends_at: datetime,
-            note: str | None = None,
+        self,
+        *,
+        master_user_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        note: str | None = None,
     ) -> TimeOff:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -61,9 +61,9 @@ class TimeOffRepository:
         return TimeOff.from_db_row(row)
 
     async def get(
-            self,
-            *,
-            time_off_id: int,
+        self,
+        *,
+        time_off_id: int,
     ) -> TimeOff | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -78,17 +78,17 @@ class TimeOffRepository:
                     FROM time_off
                     WHERE id = %s;
                 """,
-                params=(time_off_id, ),
+                params=(time_off_id,),
             )
             row = await cursor.fetchone()
         return TimeOff.from_db_row(row) if row else None
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[TimeOff]:
         """
         If from_dt/to_dt are set, return blocks that overlap [from_dt, to_dt).
@@ -126,10 +126,10 @@ class TimeOffRepository:
         return [TimeOff.from_db_row(row) for row in rows]
 
     async def delete(
-            self,
-            *,
-            time_off_id: int,
-            master_user_id: int,
+        self,
+        *,
+        time_off_id: int,
+        master_user_id: int,
     ) -> bool:
         """Delete only if the row belongs to this master. Returns True if deleted."""
         async with self._conn.cursor() as cursor:

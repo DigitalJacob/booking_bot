@@ -8,19 +8,17 @@ logger = logging.getLogger(__name__)
 
 
 def build_pg_conninfo(
-        db_name: str,
-        host: str,
-        port: int,
-        user: str,
-        password: str,
+    db_name: str,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
 ) -> str:
     conninfo = (
-        f"postgresql://{quote(user, safe='')}:{quote(password, safe='')}"
-        f"@{host}:{port}/{db_name}"
+        f"postgresql://{quote(user, safe='')}:{quote(password, safe='')}@{host}:{port}/{db_name}"
     )
     logger.debug(
-        "Building PostgreSQL connection string (password omitted): "
-        "postgresql://%s@%s:%s/%s",
+        "Building PostgreSQL connection string (password omitted): postgresql://%s@%s:%s/%s",
         quote(user, safe=""),
         host,
         port,
@@ -40,11 +38,11 @@ async def log_db_version(connection: AsyncConnection) -> None:
 
 
 async def get_pg_connection(
-        db_name: str,
-        host: str,
-        port: int,
-        user: str,
-        password: str,
+    db_name: str,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
 ) -> AsyncConnection:
     conninfo = build_pg_conninfo(db_name, host, port, user, password)
     connection: AsyncConnection | None = None
@@ -61,14 +59,14 @@ async def get_pg_connection(
 
 
 async def get_pg_pool(
-        db_name: str,
-        host: str,
-        port: int,
-        user: str,
-        password: str,
-        min_size: int = 1,
-        max_size: int = 3,
-        timeout: float | None = 10.0,
+    db_name: str,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    min_size: int = 1,
+    max_size: int = 3,
+    timeout: float | None = 10.0,
 ) -> AsyncConnectionPool:
     conninfo = build_pg_conninfo(db_name, host, port, user, password)
     db_pool: AsyncConnectionPool | None = None

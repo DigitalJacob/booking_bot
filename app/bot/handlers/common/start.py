@@ -19,21 +19,17 @@ start_router = Router(name="start")
 
 
 async def _ensure_registered_user(
-        *,
-        message: Message,
-        admin_ids: list[int],
-        translations: dict,
-        repos: Repositories,
-        user: User | None,
+    *,
+    message: Message,
+    admin_ids: list[int],
+    translations: dict,
+    repos: Repositories,
+    user: User | None,
 ) -> tuple[User, UserRole]:
     if user is not None:
         return user, user.role
 
-    user_role = (
-        UserRole.ADMIN
-        if message.from_user.id in admin_ids
-        else UserRole.CLIENT
-    )
+    user_role = UserRole.ADMIN if message.from_user.id in admin_ids else UserRole.CLIENT
     language = resolve_language(
         language=message.from_user.language_code,
         translations=translations,
@@ -49,11 +45,11 @@ async def _ensure_registered_user(
 
 
 async def _set_chat_commands(
-        *,
-        bot: Bot,
-        chat_id: int,
-        i18n: dict[str, str],
-        role: UserRole,
+    *,
+    bot: Bot,
+    chat_id: int,
+    i18n: dict[str, str],
+    role: UserRole,
 ) -> None:
     await bot.set_my_commands(
         commands=get_main_menu_commands(i18n=i18n, role=role),
@@ -66,14 +62,14 @@ async def _set_chat_commands(
 
 @start_router.message(CommandStart())
 async def process_start_command(
-        message: Message,
-        bot: Bot,
-        i18n: dict[str, str],
-        state: FSMContext,
-        admin_ids: list[int],
-        translations: dict,
-        repos: Repositories,
-        user: User | None,
+    message: Message,
+    bot: Bot,
+    i18n: dict[str, str],
+    state: FSMContext,
+    admin_ids: list[int],
+    translations: dict,
+    repos: Repositories,
+    user: User | None,
 ) -> None:
     user, user_role = await _ensure_registered_user(
         message=message,
@@ -116,14 +112,14 @@ async def process_start_command(
 
 @start_router.message(Command("menu"))
 async def process_menu_command(
-        message: Message,
-        bot: Bot,
-        i18n: dict[str, str],
-        state: FSMContext,
-        admin_ids: list[int],
-        translations: dict,
-        repos: Repositories,
-        user: User | None,
+    message: Message,
+    bot: Bot,
+    i18n: dict[str, str],
+    state: FSMContext,
+    admin_ids: list[int],
+    translations: dict,
+    repos: Repositories,
+    user: User | None,
 ) -> None:
     user, user_role = await _ensure_registered_user(
         message=message,

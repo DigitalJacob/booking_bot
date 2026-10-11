@@ -22,18 +22,11 @@ class User:
 
     @property
     def profile_complete(self) -> bool:
-        return bool(
-            self.first_name
-            and self.last_name
-            and self.phone
-        )
+        return bool(self.first_name and self.last_name and self.phone)
 
     def has_pdn_consent(self, *, version: str) -> bool:
         """True if the user accepted the given consent document version."""
-        return (
-            self.pdn_consent_at is not None
-            and self.pdn_consent_version == version
-        )
+        return self.pdn_consent_at is not None and self.pdn_consent_version == version
 
     @property
     def display_name(self) -> str:

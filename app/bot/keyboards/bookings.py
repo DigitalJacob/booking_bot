@@ -22,9 +22,9 @@ class MasterBookingsPadCallback(CallbackData, prefix="maptp"):
 
 
 def is_slot_past(
-        *,
-        slot_ends_at: datetime | None,
-        now: datetime,
+    *,
+    slot_ends_at: datetime | None,
+    now: datetime,
 ) -> bool:
     if slot_ends_at is None:
         return False
@@ -32,11 +32,11 @@ def is_slot_past(
 
 
 def get_appointment_actions_kb(
-        *,
-        appointment: Appointment,
-        i18n: dict[str, str],
-        now: datetime | None = None,
-        slot_ends_at: datetime | None = None,
+    *,
+    appointment: Appointment,
+    i18n: dict[str, str],
+    now: datetime | None = None,
+    slot_ends_at: datetime | None = None,
 ) -> InlineKeyboardMarkup | None:
     """Confirm/cancel controls for master booking push notifications."""
     if now is not None and is_slot_past(slot_ends_at=slot_ends_at, now=now):
@@ -73,9 +73,9 @@ def get_appointment_actions_kb(
 
 
 def _week_nav_row(
-        *,
-        i18n: dict[str, str],
-        is_current_week: bool,
+    *,
+    i18n: dict[str, str],
+    is_current_week: bool,
 ) -> list[InlineKeyboardButton]:
     nav: list[InlineKeyboardButton] = [
         InlineKeyboardButton(
@@ -102,10 +102,10 @@ def _week_nav_row(
 
 
 def get_master_bookings_week_kb(
-        *,
-        day_buttons: list[tuple[date, str]],
-        i18n: dict[str, str],
-        is_current_week: bool,
+    *,
+    day_buttons: list[tuple[date, str]],
+    i18n: dict[str, str],
+    is_current_week: bool,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for day, label in day_buttons:
@@ -133,9 +133,9 @@ def get_master_bookings_week_kb(
 
 
 def _month_nav_row(
-        *,
-        i18n: dict[str, str],
-        is_current_month: bool,
+    *,
+    i18n: dict[str, str],
+    is_current_month: bool,
 ) -> list[InlineKeyboardButton]:
     nav: list[InlineKeyboardButton] = [
         InlineKeyboardButton(
@@ -162,12 +162,12 @@ def _month_nav_row(
 
 
 def get_master_bookings_month_kb(
-        *,
-        year: int,
-        month: int,
-        busy_days: set[int],
-        i18n: dict[str, str],
-        is_current_month: bool,
+    *,
+    year: int,
+    month: int,
+    busy_days: set[int],
+    i18n: dict[str, str],
+    is_current_month: bool,
 ) -> InlineKeyboardMarkup:
     """Month grid; busy days marked; all days in the month are selectable."""
     rows: list[list[InlineKeyboardButton]] = [
@@ -221,11 +221,11 @@ def get_master_bookings_month_kb(
 
 
 def get_master_bookings_day_kb(
-        *,
-        appointments: list[Appointment],
-        labels: dict[int, str],
-        i18n: dict[str, str],
-        back_to: str = "week",
+    *,
+    appointments: list[Appointment],
+    labels: dict[int, str],
+    i18n: dict[str, str],
+    back_to: str = "week",
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for appointment in appointments:
@@ -260,10 +260,10 @@ def get_master_bookings_day_kb(
 
 
 def get_master_booking_card_kb(
-        *,
-        appointment: Appointment,
-        i18n: dict[str, str],
-        now: datetime,
+    *,
+    appointment: Appointment,
+    i18n: dict[str, str],
+    now: datetime,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     past = is_slot_past(slot_ends_at=appointment.ends_at, now=now)

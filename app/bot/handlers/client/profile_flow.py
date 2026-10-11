@@ -22,9 +22,9 @@ _PROFILE_AUX_ID_KEY = "profile_aux_message_id"
 
 
 async def _delete_chat_message(
-        *,
-        message: Message,
-        message_id: int | None,
+    *,
+    message: Message,
+    message_id: int | None,
 ) -> None:
     if message_id is None:
         return
@@ -48,10 +48,10 @@ async def _drop_reply_keyboard(message: Message) -> None:
 
 
 async def cleanup_profile_messages(
-        *,
-        message: Message,
-        state: FSMContext,
-        drop_reply_kb: bool,
+    *,
+    message: Message,
+    state: FSMContext,
+    drop_reply_kb: bool,
 ) -> None:
     data = await state.get_data()
     sticky_id = data.get(HUB_MESSAGE_ID_KEY)
@@ -66,12 +66,12 @@ async def cleanup_profile_messages(
 
 
 async def finish_profile_flow(
-        *,
-        message: Message,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
-        drop_reply_kb: bool = False,
+    *,
+    message: Message,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
+    drop_reply_kb: bool = False,
 ) -> None:
     """Remove FSM prompts/aux and restore sticky hub when possible."""
     await cleanup_profile_messages(
@@ -90,27 +90,25 @@ async def finish_profile_flow(
 
 
 def _consent_text(
-        *,
-        i18n: dict[str, str],
-        operator_name: str,
-        operator_contacts: str,
+    *,
+    i18n: dict[str, str],
+    operator_name: str,
+    operator_contacts: str,
 ) -> str:
     return i18n.get("profile_consent_text").format(
         operator_name=operator_name or i18n.get("profile_pdn_operator_fallback"),
-        operator_contacts=(
-            operator_contacts or i18n.get("profile_pdn_contacts_fallback")
-        ),
+        operator_contacts=(operator_contacts or i18n.get("profile_pdn_contacts_fallback")),
     )
 
 
 async def show_profile_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-        text: str,
-        with_phone_kb: bool = False,
-        reply_markup: InlineKeyboardMarkup | None = None,
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
+    text: str,
+    with_phone_kb: bool = False,
+    reply_markup: InlineKeyboardMarkup | None = None,
 ) -> None:
     """
     Show the next FSM question on the sticky hub message when possible.
@@ -162,16 +160,14 @@ async def show_profile_prompt(
 
 
 async def begin_profile_fields(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-        resume_book: bool,
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
+    resume_book: bool,
 ) -> None:
     await state.set_state(ProfileSG.first_name)
-    intro_key = (
-        "profile_intro_book" if resume_book else "profile_intro_edit"
-    )
+    intro_key = "profile_intro_book" if resume_book else "profile_intro_edit"
     await show_profile_prompt(
         message=message,
         state=state,
@@ -181,17 +177,17 @@ async def begin_profile_fields(
 
 
 async def start_profile_flow(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-        user: User,
-        pdn_consent_version: str,
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
-        resume_book: bool = False,
-        edit: bool = False,
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
+    user: User,
+    pdn_consent_version: str,
+    pdn_operator_name: str = "",
+    pdn_operator_contacts: str = "",
+    pdn_policy_url: str = "",
+    resume_book: bool = False,
+    edit: bool = False,
 ) -> None:
     data = await state.get_data()
     had_sticky = data.get(HUB_MESSAGE_ID_KEY) is not None

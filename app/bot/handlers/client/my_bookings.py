@@ -34,10 +34,10 @@ _BUTTON_LABEL_MAX = 64
 
 
 def _booking_when_parts(
-        *,
-        appointment: Appointment,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    appointment: Appointment,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> tuple[str, str]:
     local = to_local(appointment.starts_at, bot_timezone)
     weekday = i18n.get(WEEKDAY_KEYS[local.isoweekday()])
@@ -46,11 +46,11 @@ def _booking_when_parts(
 
 
 def _list_button_label(
-        *,
-        weekday: str,
-        when: str,
-        title: str,
-        i18n: dict[str, str],
+    *,
+    weekday: str,
+    when: str,
+    title: str,
+    i18n: dict[str, str],
 ) -> str:
     text = i18n.get("my_bookings_list_button").format(
         weekday=weekday,
@@ -63,11 +63,11 @@ def _list_button_label(
 
 
 async def build_my_bookings_list(
-        *,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> tuple[str, InlineKeyboardMarkup]:
     booking = BookingService(repos)
     appointments = await booking.list_client_appointments(
@@ -119,13 +119,13 @@ async def build_my_bookings_list(
 
 
 async def show_my_bookings_list(
-        *,
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        edit: bool,
+    *,
+    message: Message,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    edit: bool,
 ) -> None:
     text, kb = await build_my_bookings_list(
         repos=repos,
@@ -140,11 +140,11 @@ async def show_my_bookings_list(
 
 
 async def build_my_booking_card(
-        *,
-        appointment: Appointment,
-        repos: Repositories,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    appointment: Appointment,
+    repos: Repositories,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> tuple[str, InlineKeyboardMarkup]:
     service = await repos.services.get_service(service_id=appointment.service_id)
     title = service.title if service else "?"
@@ -157,12 +157,12 @@ async def build_my_booking_card(
 
 
 async def show_my_booking_card(
-        *,
-        message: Message,
-        appointment: Appointment,
-        repos: Repositories,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    message: Message,
+    appointment: Appointment,
+    repos: Repositories,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     text, kb = await build_my_booking_card(
         appointment=appointment,
@@ -177,12 +177,12 @@ async def show_my_booking_card(
     ClientAppointmentCallback.filter(F.action == "open"),
 )
 async def process_open(
-        callback: CallbackQuery,
-        callback_data: ClientAppointmentCallback,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    callback_data: ClientAppointmentCallback,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     if user is None:
         await callback.answer(
@@ -194,10 +194,7 @@ async def process_open(
     appointment = await repos.appointments.get_appointment(
         appointment_id=callback_data.appointment_id,
     )
-    if (
-        appointment is None
-        or appointment.client_user_id != user.user_id
-    ):
+    if appointment is None or appointment.client_user_id != user.user_id:
         await callback.answer(
             text=i18n.get("my_bookings_action_failed"),
             show_alert=True,
@@ -218,11 +215,11 @@ async def process_open(
     ClientAppointmentCallback.filter(F.action == "back"),
 )
 async def process_back(
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     if user is None:
         await callback.answer(
@@ -246,10 +243,10 @@ async def process_back(
     ClientAppointmentCallback.filter(F.action == "close"),
 )
 async def process_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
 ) -> None:
     if user is None:
         await callback.answer(
@@ -271,13 +268,13 @@ async def process_close(
     ClientAppointmentCallback.filter(F.action == "cancel"),
 )
 async def process_client_cancel(
-        callback: CallbackQuery,
-        callback_data: ClientAppointmentCallback,
-        translations: dict,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    callback_data: ClientAppointmentCallback,
+    translations: dict,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await start_appointment_cancel(
         callback=callback,
@@ -299,14 +296,14 @@ async def process_client_cancel(
 
 
 async def _hub_my_bookings(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    **_,
 ) -> None:
     if user.role != UserRole.CLIENT or repos is None:
         return

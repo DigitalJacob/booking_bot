@@ -21,11 +21,11 @@ settings_router = Router(name="settings")
 
 
 async def _finish_lang_flow(
-        *,
-        message: Message,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
 ) -> None:
     """Clear lang FSM and restore sticky hub without a notice message."""
     data = await state.get_data()
@@ -42,11 +42,7 @@ async def _finish_lang_flow(
         )
 
     # Lang picker may have opened a non-sticky prompt — remove after hub restore.
-    if (
-        lang_msg_id is not None
-        and sticky_id is not None
-        and lang_msg_id != sticky_id
-    ):
+    if lang_msg_id is not None and sticky_id is not None and lang_msg_id != sticky_id:
         with suppress(TelegramBadRequest):
             await message.bot.delete_message(
                 chat_id=message.chat.id,
@@ -60,11 +56,11 @@ async def _finish_lang_flow(
     ~Command("menu"),
 )
 async def process_any_message_when_lang(
-        message: Message,
-        bot: Bot,
-        i18n: dict[str, str],
-        state: FSMContext,
-        locales: list[str],
+    message: Message,
+    bot: Bot,
+    i18n: dict[str, str],
+    state: FSMContext,
+    locales: list[str],
 ) -> None:
     data = await state.get_data()
     user_lang = data.get("user_lang")
@@ -95,13 +91,13 @@ async def process_any_message_when_lang(
 
 
 async def start_lang_settings(
-        *,
-        message: Message,
-        i18n: dict[str, str],
-        state: FSMContext,
-        locales: list[str],
-        user: User | None,
-        edit: bool = False,
+    *,
+    message: Message,
+    i18n: dict[str, str],
+    state: FSMContext,
+    locales: list[str],
+    user: User | None,
+    edit: bool = False,
 ) -> None:
     await state.set_state(LangSG.lang)
     user_lang = user.language if user else None
@@ -125,12 +121,12 @@ async def start_lang_settings(
 
 @settings_router.callback_query(F.data == "save_lang_button_data")
 async def process_save_click(
-        callback: CallbackQuery,
-        bot: Bot,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
+    callback: CallbackQuery,
+    bot: Bot,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
 ) -> None:
     await callback.answer()
     fsm_data = await state.get_data()
@@ -159,10 +155,10 @@ async def process_save_click(
 
 @settings_router.callback_query(F.data == "cancel_lang_button_data")
 async def process_cancel_click(
-        callback: CallbackQuery,
-        i18n: dict[str, str],
-        state: FSMContext,
-        user: User | None,
+    callback: CallbackQuery,
+    i18n: dict[str, str],
+    state: FSMContext,
+    user: User | None,
 ) -> None:
     await callback.answer()
     await _finish_lang_flow(
@@ -175,9 +171,9 @@ async def process_cancel_click(
 
 @settings_router.callback_query(LocaleFilter())
 async def process_lang_click(
-        callback: CallbackQuery,
-        i18n: dict[str, str],
-        locales: list[str],
+    callback: CallbackQuery,
+    i18n: dict[str, str],
+    locales: list[str],
 ) -> None:
     try:
         await callback.message.edit_text(
@@ -193,13 +189,13 @@ async def process_lang_click(
 
 
 async def _hub_lang(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        locales: list[str] | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    locales: list[str] | None = None,
+    **_,
 ) -> None:
     if locales is None:
         return

@@ -19,9 +19,7 @@ def get_hub_home_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     """Single Home button (e.g. after a successful operation)."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                _btn(i18n.get("hub_home_button"), "root")
-            ],
+            [_btn(i18n.get("hub_home_button"), "root")],
         ]
     )
 
@@ -44,16 +42,14 @@ def get_hub_back_home_row(i18n: dict[str, str]) -> list[InlineKeyboardButton]:
 
 def get_hub_back_home_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        inline_keyboard=[
-            get_hub_back_home_row(i18n)
-        ],
+        inline_keyboard=[get_hub_back_home_row(i18n)],
     )
 
 
 def get_hub_root_kb(
-        *,
-        role: UserRole,
-        i18n: dict[str, str],
+    *,
+    role: UserRole,
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
 
@@ -69,9 +65,7 @@ def get_hub_root_kb(
 
     if role == UserRole.ADMIN:
         rows.append([_btn(i18n.get("hub_admin_user_button"), "admin_user")])
-        rows.append(
-            [_btn(i18n.get("hub_admin_set_role_button"), "admin_set_role")]
-        )
+        rows.append([_btn(i18n.get("hub_admin_set_role_button"), "admin_set_role")])
         rows.append([_btn(i18n.get("hub_admin_ban_button"), "admin_ban")])
         rows.append([_btn(i18n.get("hub_admin_unban_button"), "admin_unban")])
 
@@ -82,15 +76,9 @@ def get_hub_root_kb(
 def get_hub_settings_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                _btn(i18n.get("hub_lang_button"), "lang")
-            ],
-            [
-                _btn(i18n.get("hub_help_button"), "help")
-            ],
-            [
-                _btn(i18n.get("hub_back_button"), "back")
-            ],
+            [_btn(i18n.get("hub_lang_button"), "lang")],
+            [_btn(i18n.get("hub_help_button"), "help")],
+            [_btn(i18n.get("hub_back_button"), "back")],
         ]
     )
 
@@ -98,23 +86,17 @@ def get_hub_settings_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
 def get_hub_profile_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                _btn(i18n.get("hub_profile_show_button"), "profile_show")
-            ],
-            [
-                _btn(i18n.get("hub_profile_edit_button"), "profile_edit")
-            ],
-            [
-                _btn(i18n.get("hub_back_button"), "back")
-            ],
+            [_btn(i18n.get("hub_profile_show_button"), "profile_show")],
+            [_btn(i18n.get("hub_profile_edit_button"), "profile_edit")],
+            [_btn(i18n.get("hub_back_button"), "back")],
         ]
     )
 
 
 def get_hub_schedule_kb(
-        i18n: dict[str, str],
-        *,
-        schedule_mode: str = "weekly",
+    i18n: dict[str, str],
+    *,
+    schedule_mode: str = "weekly",
 ) -> InlineKeyboardMarkup:
     if schedule_mode == "monthly":
         hours_row = [_btn(i18n.get("hub_work_days_button"), "work_days")]
@@ -125,20 +107,10 @@ def get_hub_schedule_kb(
     return InlineKeyboardMarkup(
         inline_keyboard=[
             hours_row,
-            [
-                _btn(time_off_label, "time_off")
-            ],
-            [
-                _btn(i18n.get("hub_gap_button"), "gap")
-            ],
-            [
-                _btn(i18n.get("hub_min_lead_button"), "min_lead")
-            ],
-            [
-                _btn(i18n.get("hub_slot_step_button"), "slot_step")
-            ],
-            [
-                _btn(i18n.get("hub_back_button"), "back")
-            ],
+            [_btn(time_off_label, "time_off")],
+            [_btn(i18n.get("hub_gap_button"), "gap")],
+            [_btn(i18n.get("hub_min_lead_button"), "min_lead")],
+            [_btn(i18n.get("hub_slot_step_button"), "slot_step")],
+            [_btn(i18n.get("hub_back_button"), "back")],
         ]
     )

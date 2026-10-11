@@ -29,8 +29,8 @@ REMINDER_TEXT_KEY_BY_KIND: dict[ReminderKind, str] = {
 
 
 def _recipient_user_id(
-        appointment: Appointment,
-        kind: ReminderKind,
+    appointment: Appointment,
+    kind: ReminderKind,
 ) -> int:
     if kind in (ReminderKind.CLIENT_EVENING, ReminderKind.CLIENT_HOUR):
         return appointment.client_user_id
@@ -38,9 +38,9 @@ def _recipient_user_id(
 
 
 def _tomorrow_local_bounds(
-        *,
-        now: datetime,
-        timezone_name: str,
+    *,
+    now: datetime,
+    timezone_name: str,
 ) -> tuple[datetime, datetime]:
     tz = ZoneInfo(timezone_name)
     local_now = now.astimezone(tz)
@@ -54,21 +54,21 @@ def _tomorrow_local_bounds(
 
 
 def _in_evening_clock_window(
-        *,
-        now: datetime,
-        timezone_name: str,
-        evening_hour_start: int,
-        evening_hour_end: int,
+    *,
+    now: datetime,
+    timezone_name: str,
+    evening_hour_start: int,
+    evening_hour_end: int,
 ) -> bool:
     local_now = now.astimezone(ZoneInfo(timezone_name))
     return evening_hour_start <= local_now.hour < evening_hour_end
 
 
 async def _load_confirmed_between(
-        *,
-        db_pool: AsyncConnectionPool,
-        from_dt: datetime,
-        to_dt: datetime,
+    *,
+    db_pool: AsyncConnectionPool,
+    from_dt: datetime,
+    to_dt: datetime,
 ) -> list[Appointment]:
     async with db_pool.connection() as connection, connection.transaction():
         repos = Repositories.from_connection(connection)
@@ -79,14 +79,14 @@ async def _load_confirmed_between(
 
 
 async def _deliver_one(
-        *,
-        bot: Bot,
-        db_pool: AsyncConnectionPool,
-        appointment: Appointment,
-        kind: ReminderKind,
-        now: datetime,
-        translations: dict,
-        bot_timezone: str,
+    *,
+    bot: Bot,
+    db_pool: AsyncConnectionPool,
+    appointment: Appointment,
+    kind: ReminderKind,
+    now: datetime,
+    translations: dict,
+    bot_timezone: str,
 ) -> None:
     """Send one reminder and mark it in its own transaction."""
     text_key = REMINDER_TEXT_KEY_BY_KIND[kind]
@@ -128,17 +128,17 @@ async def _deliver_one(
 
 
 async def _process_kinds(
-        *,
-        bot: Bot,
-        db_pool: AsyncConnectionPool,
-        appointments: list[Appointment],
-        kinds: tuple[ReminderKind, ...],
-        now: datetime,
-        translations: dict,
-        bot_timezone: str,
-        lead_minutes: int,
-        evening_hour_start: int,
-        evening_hour_end: int,
+    *,
+    bot: Bot,
+    db_pool: AsyncConnectionPool,
+    appointments: list[Appointment],
+    kinds: tuple[ReminderKind, ...],
+    now: datetime,
+    translations: dict,
+    bot_timezone: str,
+    lead_minutes: int,
+    evening_hour_start: int,
+    evening_hour_end: int,
 ) -> None:
     for kind in kinds:
         due = filter_due_reminders(
@@ -163,14 +163,14 @@ async def _process_kinds(
 
 
 async def run_reminder_tick(
-        *,
-        bot: Bot,
-        db_pool: AsyncConnectionPool,
-        translations: dict,
-        bot_timezone: str,
-        lead_minutes: int,
-        evening_hour_start: int,
-        evening_hour_end: int,
+    *,
+    bot: Bot,
+    db_pool: AsyncConnectionPool,
+    translations: dict,
+    bot_timezone: str,
+    lead_minutes: int,
+    evening_hour_start: int,
+    evening_hour_end: int,
 ) -> None:
     now = datetime.now(UTC)
 
@@ -226,14 +226,14 @@ async def run_reminder_tick(
 
 
 async def reminder_worker(
-        *,
-        bot: Bot,
-        db_pool: AsyncConnectionPool,
-        translations: dict,
-        bot_timezone: str,
-        lead_minutes: int,
-        evening_hour_start: int,
-        evening_hour_end: int,
+    *,
+    bot: Bot,
+    db_pool: AsyncConnectionPool,
+    translations: dict,
+    bot_timezone: str,
+    lead_minutes: int,
+    evening_hour_start: int,
+    evening_hour_end: int,
 ) -> None:
     logger.info(
         "Reminder worker started (tick=%ss, lead=%smin, evening=[%s,%s))",

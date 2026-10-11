@@ -34,10 +34,10 @@ def _help_text(role: UserRole | None, i18n: dict[str, str]) -> str:
 
 
 async def _edit_section(
-        message: Message,
-        *,
-        text: str,
-        reply_markup,
+    message: Message,
+    *,
+    text: str,
+    reply_markup,
 ) -> None:
     try:
         await message.edit_text(text=text, reply_markup=reply_markup)
@@ -47,21 +47,21 @@ async def _edit_section(
 
 
 async def show_hub_screen(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        action: str,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        master_user_id: int | None = None,
-        locales: list[str] | None = None,
-        schedule_mode: str = "weekly",
-        pdn_consent_version: str = "v1",
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    action: str,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    master_user_id: int | None = None,
+    locales: list[str] | None = None,
+    schedule_mode: str = "weekly",
+    pdn_consent_version: str = "v1",
+    pdn_operator_name: str = "",
+    pdn_operator_contacts: str = "",
+    pdn_policy_url: str = "",
 ) -> None:
     """Open a hub section or a registered leaf by action name."""
     role = user.role
@@ -153,12 +153,12 @@ async def show_hub_screen(
 
 
 async def return_from_list(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        schedule_mode: str = "weekly",
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    schedule_mode: str = "weekly",
 ) -> None:
     """Close a list UI: back to schedule section or hub root."""
     data = await state.get_data()
@@ -175,10 +175,10 @@ async def return_from_list(
 
 @hub_router.callback_query(HubCallback.filter(F.action == "dismiss"))
 async def process_hub_dismiss(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
 ) -> None:
     """OK on book_ok / status push: restore sticky hub or delete the push."""
     if user is None:
@@ -205,10 +205,10 @@ async def process_hub_dismiss(
 
 @hub_router.callback_query(HubCallback.filter(F.action == "root"))
 async def process_hub_root(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -227,19 +227,19 @@ async def process_hub_root(
 
 @hub_router.callback_query(HubCallback.filter(F.action == "back"))
 async def process_hub_back(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
-        repos: Repositories,
-        bot_timezone: str,
-        master_user_id: int,
-        locales: list[str],
-        schedule_mode: str,
-        pdn_consent_version: str,
-        pdn_operator_name: str,
-        pdn_operator_contacts: str,
-        pdn_policy_url: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
+    repos: Repositories,
+    bot_timezone: str,
+    master_user_id: int,
+    locales: list[str],
+    schedule_mode: str,
+    pdn_consent_version: str,
+    pdn_operator_name: str,
+    pdn_operator_contacts: str,
+    pdn_policy_url: str,
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)
@@ -272,20 +272,20 @@ async def process_hub_back(
 
 @hub_router.callback_query(HubCallback.filter())
 async def process_hub_action(
-        callback: CallbackQuery,
-        callback_data: HubCallback,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
-        repos: Repositories,
-        bot_timezone: str,
-        master_user_id: int,
-        locales: list[str],
-        schedule_mode: str,
-        pdn_consent_version: str,
-        pdn_operator_name: str,
-        pdn_operator_contacts: str,
-        pdn_policy_url: str,
+    callback: CallbackQuery,
+    callback_data: HubCallback,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
+    repos: Repositories,
+    bot_timezone: str,
+    master_user_id: int,
+    locales: list[str],
+    schedule_mode: str,
+    pdn_consent_version: str,
+    pdn_operator_name: str,
+    pdn_operator_contacts: str,
+    pdn_policy_url: str,
 ) -> None:
     if user is None:
         await callback.answer(text=i18n.get("book_need_start"), show_alert=True)

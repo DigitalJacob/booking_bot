@@ -101,16 +101,11 @@ def load_config(path: str | None = None) -> Config:
     try:
         ZoneInfo(timezone_name)
     except ZoneInfoNotFoundError as e:
-        raise ValueError(
-            f"TIMEZONE must be a valid IANA name, got: {timezone_name!r}"
-        ) from e
+        raise ValueError(f"TIMEZONE must be a valid IANA name, got: {timezone_name!r}") from e
 
     schedule_mode = env.str("SCHEDULE_MODE", default="weekly").strip().lower()
     if schedule_mode not in ("weekly", "monthly"):
-        raise ValueError(
-            "SCHEDULE_MODE must be 'weekly' or 'monthly', "
-            f"got: {schedule_mode!r}"
-        )
+        raise ValueError(f"SCHEDULE_MODE must be 'weekly' or 'monthly', got: {schedule_mode!r}")
 
     pdn_consent_version = env.str(
         "PDN_CONSENT_VERSION",
@@ -126,19 +121,14 @@ def load_config(path: str | None = None) -> Config:
     ).strip()
     pdn_policy_url = env.str("PDN_POLICY_URL", default="").strip()
     if pdn_policy_url and not (
-        pdn_policy_url.startswith("https://")
-        or pdn_policy_url.startswith("http://")
+        pdn_policy_url.startswith("https://") or pdn_policy_url.startswith("http://")
     ):
-        raise ValueError(
-            "PDN_POLICY_URL must be empty or an http(s) URL, "
-            f"got: {pdn_policy_url!r}"
-        )
+        raise ValueError(f"PDN_POLICY_URL must be empty or an http(s) URL, got: {pdn_policy_url!r}")
 
     reminder_lead_minutes = env.int("REMINDER_LEAD_MINUTES", default=60)
     if reminder_lead_minutes <= 0:
         raise ValueError(
-            "REMINDER_LEAD_MINUTES must be a positive integer, "
-            f"got: {reminder_lead_minutes!r}"
+            f"REMINDER_LEAD_MINUTES must be a positive integer, got: {reminder_lead_minutes!r}"
         )
 
     reminder_evening_hour_start = env.int(
@@ -149,9 +139,7 @@ def load_config(path: str | None = None) -> Config:
         "REMINDER_EVENING_HOUR_END",
         default=22,
     )
-    if not (
-        0 <= reminder_evening_hour_start < reminder_evening_hour_end <= 24
-    ):
+    if not (0 <= reminder_evening_hour_start < reminder_evening_hour_end <= 24):
         raise ValueError(
             "REMINDER_EVENING_HOUR_START/END must satisfy "
             "0 <= start < end <= 24 "
@@ -160,15 +148,15 @@ def load_config(path: str | None = None) -> Config:
             f"end={reminder_evening_hour_end!r}"
         )
 
-    proxy_ip = env.str("PROXY_IP", default='').strip()
+    proxy_ip = env.str("PROXY_IP", default="").strip()
     proxy = None
     if proxy_ip:
         proxy = ProxySettings(
-            type=env.str("PROXY_TYPE", default='http'),
+            type=env.str("PROXY_TYPE", default="http"),
             ip=proxy_ip,
             port=env.str("PROXY_PORT"),
-            login=env.str("PROXY_LOGIN", default=''),
-            password=env.str("PROXY_PASSWORD", default=''),
+            login=env.str("PROXY_LOGIN", default=""),
+            password=env.str("PROXY_PASSWORD", default=""),
         )
 
     db = DatabaseSettings(

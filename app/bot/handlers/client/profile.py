@@ -37,18 +37,18 @@ def format_profile_card(user: User, i18n: dict[str, str]) -> str:
 
 
 async def _save_profile(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        phone: str,
-        master_user_id: int,
-        pdn_consent_version: str,
-        pdn_operator_name: str,
-        pdn_operator_contacts: str,
-        pdn_policy_url: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    phone: str,
+    master_user_id: int,
+    pdn_consent_version: str,
+    pdn_operator_name: str,
+    pdn_operator_contacts: str,
+    pdn_policy_url: str,
 ) -> None:
     if user is None:
         await cleanup_profile_messages(
@@ -101,10 +101,10 @@ async def _save_profile(
     ProfileNavCallback.filter(F.action == "cancel"),
 )
 async def process_profile_cancel_cb(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
 ) -> None:
     await callback.answer()
     drop_reply_kb = await state.get_state() == ProfileSG.phone.state
@@ -122,10 +122,10 @@ async def process_profile_cancel_cb(
     ProfileNavCallback.filter(F.action == "consent_no"),
 )
 async def process_consent_no(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User | None,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User | None,
+    i18n: dict[str, str],
 ) -> None:
     await finish_profile_flow(
         message=callback.message,
@@ -144,16 +144,16 @@ async def process_consent_no(
     ProfileNavCallback.filter(F.action == "consent_yes"),
 )
 async def process_consent_yes(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        master_user_id: int,
-        pdn_consent_version: str,
-        pdn_operator_name: str,
-        pdn_operator_contacts: str,
-        pdn_policy_url: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    master_user_id: int,
+    pdn_consent_version: str,
+    pdn_operator_name: str,
+    pdn_operator_contacts: str,
+    pdn_policy_url: str,
 ) -> None:
     if user is None:
         await callback.answer(
@@ -210,9 +210,9 @@ async def process_consent_yes(
     ~F.text.startswith("/"),
 )
 async def process_first_name(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     first_name = (message.text or "").strip()
     await delete_user_input(message)
@@ -240,9 +240,9 @@ async def process_first_name(
     ~F.text.startswith("/"),
 )
 async def process_last_name(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     last_name = (message.text or "").strip()
     await delete_user_input(message)
@@ -267,16 +267,16 @@ async def process_last_name(
 
 @profile_router.message(StateFilter(ProfileSG.phone), F.contact)
 async def process_phone_contact(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        master_user_id: int,
-        pdn_consent_version: str,
-        pdn_operator_name: str,
-        pdn_operator_contacts: str,
-        pdn_policy_url: str,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    master_user_id: int,
+    pdn_consent_version: str,
+    pdn_operator_name: str,
+    pdn_operator_contacts: str,
+    pdn_policy_url: str,
 ) -> None:
     contact = message.contact
     phone = contact.phone_number if contact else None
@@ -324,16 +324,16 @@ async def process_phone_contact(
     ~F.text.startswith("/"),
 )
 async def process_phone_text(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        master_user_id: int,
-        pdn_consent_version: str,
-        pdn_operator_name: str,
-        pdn_operator_contacts: str,
-        pdn_policy_url: str,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    master_user_id: int,
+    pdn_consent_version: str,
+    pdn_operator_name: str,
+    pdn_operator_contacts: str,
+    pdn_policy_url: str,
 ) -> None:
     raw = (message.text or "").strip()
     await delete_user_input(message)
@@ -374,24 +374,21 @@ async def process_phone_text(
 
 
 async def _hub_profile_show(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        pdn_consent_version: str = "v1",
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    pdn_consent_version: str = "v1",
+    pdn_operator_name: str = "",
+    pdn_operator_contacts: str = "",
+    pdn_policy_url: str = "",
+    **_,
 ) -> None:
     if user.role != UserRole.CLIENT:
         return
     await state.update_data(hub_screen="profile_show", hub_back="profile")
-    if (
-        not user.profile_complete
-        or not user.has_pdn_consent(version=pdn_consent_version)
-    ):
+    if not user.profile_complete or not user.has_pdn_consent(version=pdn_consent_version):
         await start_profile_flow(
             message=message,
             state=state,
@@ -412,16 +409,16 @@ async def _hub_profile_show(
 
 
 async def _hub_profile_edit(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        pdn_consent_version: str = "v1",
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    pdn_consent_version: str = "v1",
+    pdn_operator_name: str = "",
+    pdn_operator_contacts: str = "",
+    pdn_policy_url: str = "",
+    **_,
 ) -> None:
     if user.role != UserRole.CLIENT:
         return

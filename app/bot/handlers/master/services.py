@@ -117,14 +117,14 @@ def _service_card_text(service: Service, i18n: dict[str, str]) -> str:
 
 
 async def show_services_list(
-        *,
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        edit: bool,
-        state: FSMContext | None = None,
-        prefer_sticky: bool = False,
+    *,
+    message: Message,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    edit: bool,
+    state: FSMContext | None = None,
+    prefer_sticky: bool = False,
 ) -> None:
     services = await repos.services.list_by_master(
         master_user_id=user.user_id,
@@ -173,8 +173,8 @@ async def show_services_list(
 
 
 async def _dismiss_photo_preview(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ) -> None:
     data = await state.get_data()
     preview_id = data.get("service_photo_preview_id")
@@ -189,8 +189,8 @@ async def _dismiss_photo_preview(
 
 
 async def _dismiss_aux_message(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ) -> None:
     """Delete a card/preview that is not the sticky hub message."""
     await _dismiss_photo_preview(message, state)
@@ -202,10 +202,10 @@ async def _dismiss_aux_message(
 
 
 async def _send_service_card(
-        *,
-        message: Message,
-        service: Service,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    service: Service,
+    i18n: dict[str, str],
 ) -> None:
     """Open service card as a new message (with photo when set)."""
     text = _service_card_text(service, i18n)
@@ -221,10 +221,10 @@ async def _send_service_card(
 
 
 async def _refresh_service_card(
-        *,
-        message: Message,
-        service: Service,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    service: Service,
+    i18n: dict[str, str],
 ) -> None:
     """Update an existing card message after toggle / clear."""
     text = _service_card_text(service, i18n)
@@ -257,11 +257,11 @@ async def _refresh_service_card(
 
 
 async def _prompt_on_sticky(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        reply_markup,
+    *,
+    message: Message,
+    state: FSMContext,
+    text: str,
+    reply_markup,
 ) -> None:
     """Show an FSM prompt on the sticky hub; drop a non-sticky card first."""
     await _dismiss_aux_message(message, state)
@@ -288,14 +288,14 @@ async def _prompt_on_sticky(
 
 
 async def _finish_media_edit(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        service: Service,
-        notice: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    service: Service,
+    notice: str,
 ) -> None:
     """After description/photo save: restore list, show card, dismissable OK."""
     await show_services_list(
@@ -312,10 +312,10 @@ async def _finish_media_edit(
 
 
 async def _load_owned_service(
-        *,
-        repos: Repositories,
-        user: User,
-        service_id: int,
+    *,
+    repos: Repositories,
+    user: User,
+    service_id: int,
 ) -> Service | None:
     service = await repos.services.get_service(service_id=service_id)
     if service is None or service.master_user_id != user.user_id:
@@ -325,11 +325,11 @@ async def _load_owned_service(
 
 @services_router.callback_query(MasterServiceCallback.filter())
 async def process_service_open(
-        callback: CallbackQuery,
-        callback_data: MasterServiceCallback,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: MasterServiceCallback,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     service = await _load_owned_service(
         repos=repos,
@@ -352,11 +352,11 @@ async def process_service_open(
 
 @services_router.callback_query(MasterServiceNavCallback.filter(F.action == "back"))
 async def process_services_back(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await _dismiss_aux_message(callback.message, state)
     await show_services_list(
@@ -373,10 +373,10 @@ async def process_services_back(
 
 @services_router.callback_query(MasterServiceNavCallback.filter(F.action == "close"))
 async def process_services_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await return_from_list(
         message=callback.message,
@@ -391,11 +391,11 @@ async def process_services_close(
     MasterServiceNavCallback.filter(F.action == "toggle"),
 )
 async def process_service_toggle(
-        callback: CallbackQuery,
-        callback_data: MasterServiceNavCallback,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: MasterServiceNavCallback,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     service = await _load_owned_service(
         repos=repos,
@@ -437,9 +437,9 @@ async def process_service_toggle(
 
 @services_router.callback_query(MasterServiceNavCallback.filter(F.action == "add"))
 async def process_services_add_button(
-        callback: CallbackQuery,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(AddServiceSG.title)
@@ -455,11 +455,11 @@ async def process_services_add_button(
     StateFilter(AddServiceSG, EditServiceSG),
 )
 async def process_service_fsm_cancel(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
     await show_services_list(
@@ -477,11 +477,11 @@ async def process_service_fsm_cancel(
     StateFilter(ServiceDescriptionSG, ServicePhotoSG),
 )
 async def process_service_media_fsm_cancel(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     service_id = data.get("service_id")
@@ -513,9 +513,9 @@ async def process_service_media_fsm_cancel(
 
 @services_router.message(StateFilter(AddServiceSG.title))
 async def process_add_service_title(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     title = (message.text or "").strip()
     if not title or len(title) > 100:
@@ -535,9 +535,9 @@ async def process_add_service_title(
 
 @services_router.message(StateFilter(AddServiceSG.duration))
 async def process_add_service_duration(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     text = (message.text or "").strip()
     if not text.isdigit():
@@ -565,11 +565,11 @@ async def process_add_service_duration(
 
 @services_router.message(StateFilter(AddServiceSG.price))
 async def process_add_service_price(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     try:
         price = _parse_price(message.text or "")
@@ -607,12 +607,12 @@ async def process_add_service_price(
 
 @services_router.callback_query(MasterServiceNavCallback.filter(F.action == "edit"))
 async def process_service_edit(
-        callback: CallbackQuery,
-        callback_data: MasterServiceNavCallback,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: MasterServiceNavCallback,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     service = await _load_owned_service(
         repos=repos,
@@ -637,11 +637,11 @@ async def process_service_edit(
 
 @services_router.message(StateFilter(EditServiceSG.title))
 async def process_edit_service_title(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     title = (message.text or "").strip()
     if not title or len(title) > 100:
@@ -675,11 +675,11 @@ async def process_edit_service_title(
 
 @services_router.message(StateFilter(EditServiceSG.duration))
 async def process_edit_service_duration(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     text = (message.text or "").strip()
     if not text.isdigit():
@@ -721,11 +721,11 @@ async def process_edit_service_duration(
 
 @services_router.message(StateFilter(EditServiceSG.price))
 async def process_edit_service_price(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     try:
         price = _parse_price(message.text or "")
@@ -770,12 +770,12 @@ async def process_edit_service_price(
     MasterServiceNavCallback.filter(F.action == "description"),
 )
 async def process_service_description(
-        callback: CallbackQuery,
-        callback_data: MasterServiceNavCallback,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: MasterServiceNavCallback,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     service = await _load_owned_service(
         repos=repos,
@@ -806,11 +806,11 @@ async def process_service_description(
     StateFilter(ServiceDescriptionSG),
 )
 async def process_service_clear_description(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     service = await repos.services.update_description(
@@ -836,11 +836,11 @@ async def process_service_clear_description(
 
 @services_router.message(StateFilter(ServiceDescriptionSG.value))
 async def process_service_description_value(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     text = (message.text or "").strip()
     await delete_user_input(message)
@@ -884,12 +884,12 @@ async def process_service_description_value(
     MasterServiceNavCallback.filter(F.action == "photo"),
 )
 async def process_service_photo(
-        callback: CallbackQuery,
-        callback_data: MasterServiceNavCallback,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: MasterServiceNavCallback,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     service = await _load_owned_service(
         repos=repos,
@@ -932,11 +932,11 @@ async def process_service_photo(
     StateFilter(ServicePhotoSG),
 )
 async def process_service_clear_photo(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     service = await repos.services.update_photo_file_id(
@@ -963,11 +963,11 @@ async def process_service_clear_photo(
 
 @services_router.message(StateFilter(ServicePhotoSG.value), F.photo)
 async def process_service_photo_value(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     photo_file_id = message.photo[-1].file_id
     data = await state.get_data()
@@ -999,9 +999,9 @@ async def process_service_photo_value(
 
 @services_router.message(StateFilter(ServicePhotoSG.value))
 async def process_service_photo_invalid(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await delete_user_input(message)
     await show_hub_prompt(
@@ -1013,13 +1013,13 @@ async def process_service_photo_invalid(
 
 
 async def _hub_services(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None:
         return

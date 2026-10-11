@@ -19,7 +19,7 @@ async def _seed_master(repos: Repositories) -> None:
 
 @pytest.mark.asyncio
 async def test_upsert_updates_hours_on_unique_conflict(
-        repos: Repositories,
+    repos: Repositories,
 ) -> None:
     await _seed_master(repos)
     day = date(2026, 11, 3)

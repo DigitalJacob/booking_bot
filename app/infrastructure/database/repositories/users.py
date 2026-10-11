@@ -30,13 +30,13 @@ class UsersRepository:
         self._conn = conn
 
     async def add_user(
-            self,
-            *,
-            user_id: int,
-            username: str | None = None,
-            language: str = "ru",
-            role: UserRole = UserRole.CLIENT,
-            banned: bool = False,
+        self,
+        *,
+        user_id: int,
+        username: str | None = None,
+        language: str = "ru",
+        role: UserRole = UserRole.CLIENT,
+        banned: bool = False,
     ) -> None:
         async with self._conn.cursor() as cursor:
             await cursor.execute(
@@ -67,9 +67,9 @@ class UsersRepository:
             )
 
     async def get_user_by_id(
-            self,
-            *,
-            user_id: int,
+        self,
+        *,
+        user_id: int,
     ) -> User | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -78,15 +78,15 @@ class UsersRepository:
                     FROM users
                     WHERE user_id = %s;
                 """,
-                params=(user_id, ),
+                params=(user_id,),
             )
             row = await cursor.fetchone()
         return User.from_db_row(row) if row else None
 
     async def get_user_by_username(
-            self,
-            *,
-            username: str,
+        self,
+        *,
+        username: str,
     ) -> User | None:
         normalized_username = username.lstrip("@").lower()
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -96,16 +96,16 @@ class UsersRepository:
                     FROM users
                     WHERE lower(username) = %s;
                 """,
-                params=(normalized_username, ),
+                params=(normalized_username,),
             )
             row = await cursor.fetchone()
         return User.from_db_row(row) if row else None
 
     async def change_user_lang(
-            self,
-            *,
-            user_id: int,
-            language: str,
+        self,
+        *,
+        user_id: int,
+        language: str,
     ) -> None:
         async with self._conn.cursor() as cursor:
             await cursor.execute(
@@ -119,10 +119,10 @@ class UsersRepository:
         logger.info("Updated language to '%s' for user %d", language, user_id)
 
     async def change_user_banned_status(
-            self,
-            *,
-            user_id: int,
-            banned: bool,
+        self,
+        *,
+        user_id: int,
+        banned: bool,
     ) -> None:
         async with self._conn.cursor() as cursor:
             await cursor.execute(
@@ -136,10 +136,10 @@ class UsersRepository:
         logger.info("Updated banned=%s for user %d", banned, user_id)
 
     async def change_user_role(
-            self,
-            *,
-            user_id: int,
-            role: UserRole,
+        self,
+        *,
+        user_id: int,
+        role: UserRole,
     ) -> None:
         async with self._conn.cursor() as cursor:
             await cursor.execute(
@@ -153,12 +153,12 @@ class UsersRepository:
         logger.info("Updated role to '%s' for user %d", role, user_id)
 
     async def update_profile(
-            self,
-            *,
-            user_id: int,
-            first_name: str,
-            last_name: str,
-            phone: str,
+        self,
+        *,
+        user_id: int,
+        first_name: str,
+        last_name: str,
+        phone: str,
     ) -> None:
         async with self._conn.cursor() as cursor:
             await cursor.execute(
@@ -174,11 +174,11 @@ class UsersRepository:
         logger.info("Updated profile for user %d", user_id)
 
     async def set_pdn_consent(
-            self,
-            *,
-            user_id: int,
-            version: str,
-            consented_at: datetime | None = None,
+        self,
+        *,
+        user_id: int,
+        version: str,
+        consented_at: datetime | None = None,
     ) -> None:
         when = consented_at or datetime.now(UTC)
         async with self._conn.cursor() as cursor:
@@ -198,10 +198,10 @@ class UsersRepository:
         )
 
     async def update_username(
-            self,
-            *,
-            user_id: int,
-            username: str | None,
+        self,
+        *,
+        user_id: int,
+        username: str | None,
     ) -> None:
         async with self._conn.cursor() as cursor:
             await cursor.execute(

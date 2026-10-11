@@ -11,16 +11,14 @@ class AppointmentCancelCallback(CallbackData, prefix="acancel"):
 
 
 def get_appointment_cancel_confirm_kb(
-        *,
-        i18n: dict[str, str],
-        appointment_id: int,
-        source: str,
-        mode: str = "cancel",
-        reminder_kind: str = "",
+    *,
+    i18n: dict[str, str],
+    appointment_id: int,
+    source: str,
+    mode: str = "cancel",
+    reminder_kind: str = "",
 ) -> InlineKeyboardMarkup:
-    yes_key = (
-        "decline_yes_button" if mode == "decline" else "cancel_yes_button"
-    )
+    yes_key = "decline_yes_button" if mode == "decline" else "cancel_yes_button"
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -52,12 +50,12 @@ def get_appointment_cancel_confirm_kb(
 
 
 def get_appointment_cancel_reason_kb(
-        *,
-        i18n: dict[str, str],
-        appointment_id: int,
-        source: str,
-        mode: str = "cancel",
-        reminder_kind: str = "",
+    *,
+    i18n: dict[str, str],
+    appointment_id: int,
+    source: str,
+    mode: str = "cancel",
+    reminder_kind: str = "",
 ) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

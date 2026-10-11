@@ -44,14 +44,14 @@ from app.infrastructure.database.repositories import Repositories
 
 
 async def show_master_bookings_week(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        edit: bool,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    edit: bool,
 ) -> None:
     data = await state.get_data()
     week_start = parse_iso_date(data.get(WEEK_START_KEY))
@@ -127,14 +127,14 @@ async def show_master_bookings_week(
 
 
 async def show_master_bookings_month(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        edit: bool,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    edit: bool,
 ) -> None:
     data = await state.get_data()
     parsed = parse_year_month(data.get(MONTH_KEY))
@@ -204,15 +204,15 @@ async def show_master_bookings_month(
 
 
 async def show_master_bookings_overview(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
-        edit: bool,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    schedule_mode: str,
+    edit: bool,
 ) -> None:
     if schedule_mode == "monthly":
         await show_master_bookings_month(
@@ -237,13 +237,13 @@ async def show_master_bookings_overview(
 
 
 async def build_master_bookings_day(
-        *,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        day: date,
-        back_to: str = "week",
+    *,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    day: date,
+    back_to: str = "week",
 ) -> tuple[str, InlineKeyboardMarkup]:
     day_start = combine_local(day, time.min, bot_timezone)
     day_end = day_start + timedelta(days=1)
@@ -288,11 +288,7 @@ async def build_master_bookings_day(
                 status=status_label(appointment.status, i18n),
             )
         )
-    text = (
-        i18n.get("master_bookings_day_header").format(day=day_text)
-        + "\n\n"
-        + "\n".join(lines)
-    )
+    text = i18n.get("master_bookings_day_header").format(day=day_text) + "\n\n" + "\n".join(lines)
     kb = get_master_bookings_day_kb(
         appointments=active,
         labels=labels,
@@ -303,16 +299,16 @@ async def build_master_bookings_day(
 
 
 async def show_master_bookings_day(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        day: date,
-        edit: bool,
-        schedule_mode: str = "weekly",
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    day: date,
+    edit: bool,
+    schedule_mode: str = "weekly",
 ) -> None:
     updates: dict[str, str | None] = {DAY_KEY: day.isoformat()}
     if schedule_mode == "monthly":
@@ -335,11 +331,11 @@ async def show_master_bookings_day(
 
 
 async def _set_week_start(
-        *,
-        state: FSMContext,
-        bot_timezone: str,
-        delta_weeks: int = 0,
-        to_current: bool = False,
+    *,
+    state: FSMContext,
+    bot_timezone: str,
+    delta_weeks: int = 0,
+    to_current: bool = False,
 ) -> None:
     if to_current:
         _, _, week_start = local_week_bounds(bot_timezone)
@@ -361,11 +357,11 @@ async def _set_week_start(
 
 
 async def _set_month(
-        *,
-        state: FSMContext,
-        bot_timezone: str,
-        delta_months: int = 0,
-        to_current: bool = False,
+    *,
+    state: FSMContext,
+    bot_timezone: str,
+    delta_months: int = 0,
+    to_current: bool = False,
 ) -> None:
     if to_current:
         _, _, year, month = local_month_bounds(bot_timezone)
@@ -391,14 +387,14 @@ async def _set_month(
 
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "open_day"))
 async def process_open_day(
-        callback: CallbackQuery,
-        callback_data: MasterAppointmentCallback,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: MasterAppointmentCallback,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     day = parse_iso_date(callback_data.day)
     if day is None:
@@ -423,13 +419,13 @@ async def process_open_day(
 
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "back"))
 async def process_back(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     data = await state.get_data()
     day = parse_iso_date(data.get(DAY_KEY))
@@ -463,12 +459,12 @@ async def process_back(
     MasterAppointmentCallback.filter(F.action == "back_week"),
 )
 async def process_back_week(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await show_master_bookings_week(
         message=callback.message,
@@ -486,12 +482,12 @@ async def process_back_week(
     MasterAppointmentCallback.filter(F.action == "back_month"),
 )
 async def process_back_month(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await show_master_bookings_month(
         message=callback.message,
@@ -509,12 +505,12 @@ async def process_back_month(
     MasterAppointmentCallback.filter(F.action == "week_prev"),
 )
 async def process_week_prev(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _set_week_start(
         state=state,
@@ -537,12 +533,12 @@ async def process_week_prev(
     MasterAppointmentCallback.filter(F.action == "week_next"),
 )
 async def process_week_next(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _set_week_start(
         state=state,
@@ -565,12 +561,12 @@ async def process_week_next(
     MasterAppointmentCallback.filter(F.action == "week_current"),
 )
 async def process_week_current(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _set_week_start(
         state=state,
@@ -593,12 +589,12 @@ async def process_week_current(
     MasterAppointmentCallback.filter(F.action == "month_prev"),
 )
 async def process_month_prev(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _set_month(
         state=state,
@@ -621,12 +617,12 @@ async def process_month_prev(
     MasterAppointmentCallback.filter(F.action == "month_next"),
 )
 async def process_month_next(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _set_month(
         state=state,
@@ -649,12 +645,12 @@ async def process_month_next(
     MasterAppointmentCallback.filter(F.action == "month_current"),
 )
 async def process_month_current(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _set_month(
         state=state,
@@ -680,11 +676,11 @@ async def process_month_pad(callback: CallbackQuery) -> None:
 
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "close"))
 async def process_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-        schedule_mode: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
+    schedule_mode: str,
 ) -> None:
     await return_from_list(
         message=callback.message,
@@ -694,5 +690,3 @@ async def process_close(
         schedule_mode=schedule_mode,
     )
     await callback.answer()
-
-

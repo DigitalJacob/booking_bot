@@ -43,7 +43,7 @@ async def _seed_service(repos: Repositories) -> Service:
 
 @pytest.mark.asyncio
 async def test_overlapping_pending_raises_time_conflict(
-        repos: Repositories,
+    repos: Repositories,
 ) -> None:
     service = await _seed_service(repos)
 

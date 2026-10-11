@@ -35,12 +35,12 @@ admin_users_router.callback_query.filter(UserRoleFilter(UserRole.ADMIN))
 
 
 async def _show_admin_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        i18n: dict[str, str],
-        reply_markup: InlineKeyboardMarkup | None = None,
+    *,
+    message: Message,
+    state: FSMContext,
+    text: str,
+    i18n: dict[str, str],
+    reply_markup: InlineKeyboardMarkup | None = None,
 ) -> None:
     """Show FSM prompt on the sticky hub message when possible."""
     data = await state.get_data()
@@ -64,12 +64,12 @@ async def _show_admin_prompt(
 
 
 async def _finish_admin_flow(
-        *,
-        message: Message,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-        result_text: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
+    result_text: str,
 ) -> None:
     """Restore sticky hub, then send a dismissible result notice."""
     await clear_state_keep_hub(state)
@@ -86,11 +86,11 @@ async def _finish_admin_flow(
 
 
 async def _cancel_admin_flow(
-        *,
-        message: Message,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
     await show_hub(
@@ -102,9 +102,9 @@ async def _cancel_admin_flow(
 
 
 async def lookup_user_ref(
-        *,
-        repos: Repositories,
-        raw: str,
+    *,
+    repos: Repositories,
+    raw: str,
 ) -> User | None:
     raw = raw.strip()
     if not raw:
@@ -117,8 +117,7 @@ async def lookup_user_ref(
 def _user_card(target: User, i18n: dict[str, str], bot_timezone: str) -> str:
     return i18n.get("admin_user_card").format(
         user_id=target.user_id,
-        username=f"@{target.username}" if target.username
-        else i18n.get("admin_no_username"),
+        username=f"@{target.username}" if target.username else i18n.get("admin_no_username"),
         first_name=target.first_name or "-",
         last_name=target.last_name or "-",
         phone=target.phone or "-",
@@ -130,11 +129,11 @@ def _user_card(target: User, i18n: dict[str, str], bot_timezone: str) -> str:
 
 
 async def _apply_ban(
-        *,
-        repos: Repositories,
-        actor: User,
-        target: User,
-        i18n: dict[str, str],
+    *,
+    repos: Repositories,
+    actor: User,
+    target: User,
+    i18n: dict[str, str],
 ) -> tuple[bool, str]:
     if target.user_id == actor.user_id:
         return False, i18n.get("admin_ban_self")
@@ -154,11 +153,11 @@ async def _apply_ban(
 
 
 async def _apply_unban(
-        *,
-        repos: Repositories,
-        actor: User,
-        target: User,
-        i18n: dict[str, str],
+    *,
+    repos: Repositories,
+    actor: User,
+    target: User,
+    i18n: dict[str, str],
 ) -> tuple[bool, str]:
     if not target.banned:
         return False, i18n.get("admin_not_banned").format(user_id=target.user_id)
@@ -172,15 +171,15 @@ async def _apply_unban(
 
 
 async def _apply_set_role(
-        *,
-        bot: Bot,
-        translations: dict,
-        repos: Repositories,
-        actor: User,
-        target: User,
-        role: UserRole,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    bot: Bot,
+    translations: dict,
+    repos: Repositories,
+    actor: User,
+    target: User,
+    role: UserRole,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> tuple[bool, str]:
     if target.user_id == actor.user_id and role != UserRole.ADMIN:
         return False, i18n.get("admin_demote_self")
@@ -233,11 +232,11 @@ async def _apply_set_role(
 
 
 async def start_admin_mod_flow(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-        action: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
+    action: str,
 ) -> None:
     """Start guided moderation FSM from hub (action: user|ban|unban|set_role)."""
     await clear_state_keep_hub(state)
@@ -255,15 +254,16 @@ async def start_admin_mod_flow(
 # Guided FSM from hub
 # ---------------------------------------------------------------------------
 
+
 @admin_users_router.callback_query(
     AdminNavCallback.filter(F.action == "cancel"),
     StateFilter(AdminModSG),
 )
 async def process_admin_mod_cancel_cb(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await callback.answer()
     await _cancel_admin_flow(
@@ -276,14 +276,14 @@ async def process_admin_mod_cancel_cb(
 
 @admin_users_router.message(StateFilter(AdminModSG.target))
 async def process_admin_mod_target(
-        message: Message,
-        state: FSMContext,
-        bot: Bot,
-        translations: dict,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    message: Message,
+    state: FSMContext,
+    bot: Bot,
+    translations: dict,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     raw = (message.text or "").strip()
     await delete_user_input(message)
@@ -395,15 +395,15 @@ async def process_admin_mod_target(
     StateFilter(AdminModSG.role),
 )
 async def process_admin_mod_role(
-        callback: CallbackQuery,
-        callback_data: AdminRoleCallback,
-        state: FSMContext,
-        bot: Bot,
-        translations: dict,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    callback_data: AdminRoleCallback,
+    state: FSMContext,
+    bot: Bot,
+    translations: dict,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     try:
         role = UserRole(callback_data.role)
@@ -466,12 +466,12 @@ async def process_admin_mod_role(
 
 def _register_admin_leaf(hub_action: str, mod_action: str) -> None:
     async def _hub(
-            *,
-            message: Message,
-            user: User,
-            i18n: dict[str, str],
-            state: FSMContext,
-            **_,
+        *,
+        message: Message,
+        user: User,
+        i18n: dict[str, str],
+        state: FSMContext,
+        **_,
     ) -> None:
         if user.role != UserRole.ADMIN:
             return

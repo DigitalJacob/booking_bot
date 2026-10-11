@@ -10,10 +10,10 @@ from app.infrastructure.database.repositories import Repositories
 
 class UserContextMiddleware(BaseMiddleware):
     async def __call__(
-            self,
-            handler: Callable[[Update, dict[str, Any]], Awaitable[Any]],
-            event: Update,
-            data: dict[str, Any],
+        self,
+        handler: Callable[[Update, dict[str, Any]], Awaitable[Any]],
+        event: Update,
+        data: dict[str, Any],
     ) -> Any:
         tg_user = data.get("event_from_user")
         if tg_user is None:

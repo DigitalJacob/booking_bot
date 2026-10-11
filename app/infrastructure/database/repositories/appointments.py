@@ -34,14 +34,14 @@ class AppointmentsRepository:
         self._conn = conn
 
     async def add_appointment(
-            self,
-            *,
-            client_user_id: int,
-            master_user_id: int,
-            service_id: int,
-            starts_at: datetime,
-            ends_at: datetime,
-            status: AppointmentStatus = AppointmentStatus.PENDING,
+        self,
+        *,
+        client_user_id: int,
+        master_user_id: int,
+        service_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        status: AppointmentStatus = AppointmentStatus.PENDING,
     ) -> Appointment:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             try:
@@ -88,9 +88,9 @@ class AppointmentsRepository:
         return Appointment.from_db_row(row)
 
     async def get_appointment(
-            self,
-            *,
-            appointment_id: int,
+        self,
+        *,
+        appointment_id: int,
     ) -> Appointment | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -106,11 +106,11 @@ class AppointmentsRepository:
         return Appointment.from_db_row(row) if row else None
 
     async def list_by_client(
-            self,
-            *,
-            client_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        client_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[Appointment]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -133,11 +133,11 @@ class AppointmentsRepository:
         return [Appointment.from_db_row(row) for row in rows]
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[Appointment]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -160,10 +160,10 @@ class AppointmentsRepository:
         return [Appointment.from_db_row(row) for row in rows]
 
     async def change_status(
-            self,
-            *,
-            appointment_id: int,
-            status: AppointmentStatus,
+        self,
+        *,
+        appointment_id: int,
+        status: AppointmentStatus,
     ) -> Appointment | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -188,10 +188,10 @@ class AppointmentsRepository:
         return Appointment.from_db_row(row) if row else None
 
     async def set_master_notify_message_id(
-            self,
-            *,
-            appointment_id: int,
-            message_id: int | None,
+        self,
+        *,
+        appointment_id: int,
+        message_id: int | None,
     ) -> None:
         async with self._conn.cursor() as cursor:
             await cursor.execute(
@@ -212,10 +212,10 @@ class AppointmentsRepository:
         )
 
     async def list_confirmed_starting_between(
-            self,
-            *,
-            from_dt: datetime,
-            to_dt: datetime,
+        self,
+        *,
+        from_dt: datetime,
+        to_dt: datetime,
     ) -> list[Appointment]:
         """Confirmed appointments with starts_at in [from_dt, to_dt)."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -239,11 +239,11 @@ class AppointmentsRepository:
         return [Appointment.from_db_row(row) for row in rows]
 
     async def mark_reminder_sent(
-            self,
-            *,
-            appointment_id: int,
-            kind: ReminderKind,
-            sent_at: datetime | None = None,
+        self,
+        *,
+        appointment_id: int,
+        kind: ReminderKind,
+        sent_at: datetime | None = None,
     ) -> None:
         column = reminded_at_attr(kind)
         when = sent_at or datetime.now(UTC)

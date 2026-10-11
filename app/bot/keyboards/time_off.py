@@ -31,9 +31,9 @@ class TimeOffConfirmCallback(CallbackData, prefix="toffcfm"):
 
 
 def _month_nav_row(
-        *,
-        i18n: dict[str, str],
-        is_current_month: bool,
+    *,
+    i18n: dict[str, str],
+    is_current_month: bool,
 ) -> list[InlineKeyboardButton]:
     nav: list[InlineKeyboardButton] = [
         InlineKeyboardButton(
@@ -60,12 +60,12 @@ def _month_nav_row(
 
 
 def get_time_off_day_calendar_kb(
-        *,
-        year: int,
-        month: int,
-        open_days: set[int],
-        i18n: dict[str, str],
-        is_current_month: bool,
+    *,
+    year: int,
+    month: int,
+    open_days: set[int],
+    i18n: dict[str, str],
+    is_current_month: bool,
 ) -> InlineKeyboardMarkup:
     """Month grid; only ``open_days`` (work days) are selectable."""
     rows: list[list[InlineKeyboardButton]] = [
@@ -123,17 +123,14 @@ def get_time_off_day_calendar_kb(
 
 
 def format_time_off_line(
-        row: TimeOff,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    row: TimeOff,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> str:
     start_local = to_local(row.starts_at, bot_timezone)
     end_local = to_local(row.ends_at, bot_timezone)
 
-    is_full_day = (
-        start_local.time() == time.min
-        and end_local.time() == time.min
-    )
+    is_full_day = start_local.time() == time.min and end_local.time() == time.min
     if is_full_day:
         # half-open: end is next midnight → show last inclusive day
         end_display = end_local - timedelta(seconds=1)
@@ -190,10 +187,10 @@ def get_time_off_kind_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
 
 
 def get_time_off_edit_kb(
-        *,
-        rows: list[TimeOff],
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    rows: list[TimeOff],
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> InlineKeyboardMarkup:
     """List with delete/add; back returns to hub schedule section."""
     buttons: list[list[InlineKeyboardButton]] = []
@@ -231,9 +228,9 @@ def get_time_off_edit_kb(
 
 
 def get_time_off_confirm_delete_kb(
-        *,
-        time_off_id: int,
-        i18n: dict[str, str],
+    *,
+    time_off_id: int,
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

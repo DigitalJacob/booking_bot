@@ -33,9 +33,9 @@ def to_local(dt: datetime, tz_name: str) -> datetime:
 
 
 def combine_local(
-        day: date,
-        time_part: time,
-        tz_name: str,
+    day: date,
+    time_part: time,
+    tz_name: str,
 ) -> datetime:
     """Interpret wall-clock date+time in bot timezone, return aware UTC-comparable datetime."""
     local = datetime.combine(day, time_part, tzinfo=get_zone(tz_name))
@@ -43,10 +43,10 @@ def combine_local(
 
 
 def format_dt(
-        dt: datetime | None,
-        tz_name: str,
-        fmt: str = "%d.%m.%Y %H:%M",
-        fallback: str = "?",
+    dt: datetime | None,
+    tz_name: str,
+    fmt: str = "%d.%m.%Y %H:%M",
+    fallback: str = "?",
 ) -> str:
     if dt is None:
         return fallback
@@ -54,17 +54,17 @@ def format_dt(
 
 
 def format_time(
-        dt: datetime | None,
-        tz_name: str,
-        fallback: str = "?",
+    dt: datetime | None,
+    tz_name: str,
+    fallback: str = "?",
 ) -> str:
     return format_dt(dt, tz_name, fmt="%H:%M", fallback=fallback)
 
 
 def local_week_bounds(
-        tz_name: str,
-        *,
-        week_start: date | None = None,
+    tz_name: str,
+    *,
+    week_start: date | None = None,
 ) -> tuple[datetime, datetime, date]:
     """
     Monday 00:00 .. next Monday 00:00 in bot TZ.
@@ -80,10 +80,10 @@ def local_week_bounds(
 
 
 def local_month_bounds(
-        tz_name: str,
-        *,
-        year: int | None = None,
-        month: int | None = None,
+    tz_name: str,
+    *,
+    year: int | None = None,
+    month: int | None = None,
 ) -> tuple[datetime, datetime, int, int]:
     """
     1st 00:00 .. next month 1st 00:00 in bot TZ.
@@ -119,11 +119,11 @@ def _plural_form_index(n: int) -> int:
 
 
 def i18n_plural(
-        n: int,
-        i18n: dict[str, str],
-        *,
-        key_prefix: str,
-        **extra: object,
+    n: int,
+    i18n: dict[str, str],
+    *,
+    key_prefix: str,
+    **extra: object,
 ) -> str:
     suffix = ("one", "few", "many")[_plural_form_index(n)]
     return i18n.get(f"{key_prefix}_{suffix}").format(n=n, **extra)

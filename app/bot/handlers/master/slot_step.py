@@ -34,10 +34,10 @@ _MAX_SLOT_STEP_MINUTES = 180
 
 
 async def _ensure_settings(
-        *,
-        repos: Repositories,
-        user: User,
-        bot_timezone: str,
+    *,
+    repos: Repositories,
+    user: User,
+    bot_timezone: str,
 ) -> MasterSettings:
     settings = await repos.master_settings.get_by_master(
         master_user_id=user.user_id,
@@ -61,11 +61,11 @@ def _view_text(settings: MasterSettings, i18n: dict[str, str]) -> str:
 
 
 async def _show_slot_step_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    text: str,
+    i18n: dict[str, str],
 ) -> None:
     await show_hub_prompt(
         message=message,
@@ -76,15 +76,15 @@ async def _show_slot_step_prompt(
 
 
 async def show_slot_step_screen(
-        *,
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        edit: bool,
-        state: FSMContext | None = None,
-        prefer_sticky: bool = False,
+    *,
+    message: Message,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    edit: bool,
+    state: FSMContext | None = None,
+    prefer_sticky: bool = False,
 ) -> None:
     settings = await _ensure_settings(
         repos=repos,
@@ -127,15 +127,15 @@ async def show_slot_step_screen(
 
 
 async def _save_slot_step(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        slot_step_minutes: int | None,
-        saved_text: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    slot_step_minutes: int | None,
+    saved_text: str,
 ) -> None:
     await _ensure_settings(
         repos=repos,
@@ -169,11 +169,11 @@ async def _save_slot_step(
 
 @slot_step_router.callback_query(SlotStepNavCallback.filter(F.action == "close"))
 async def process_slot_step_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-        schedule_mode: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
+    schedule_mode: str,
 ) -> None:
     await return_from_list(
         message=callback.message,
@@ -187,9 +187,9 @@ async def process_slot_step_close(
 
 @slot_step_router.callback_query(SlotStepNavCallback.filter(F.action == "edit"))
 async def process_slot_step_edit(
-        callback: CallbackQuery,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(SlotStepSG.value)
@@ -207,12 +207,12 @@ async def process_slot_step_edit(
     StateFilter(SlotStepSG),
 )
 async def process_slot_step_cancel(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await clear_state_keep_hub(state)
     await show_slot_step_screen(
@@ -233,12 +233,12 @@ async def process_slot_step_cancel(
     StateFilter(SlotStepSG),
 )
 async def process_slot_step_default(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _save_slot_step(
         message=callback.message,
@@ -255,12 +255,12 @@ async def process_slot_step_default(
 
 @slot_step_router.message(StateFilter(SlotStepSG.value))
 async def process_slot_step_value(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     raw = (message.text or "").strip()
     await delete_user_input(message)
@@ -292,14 +292,14 @@ async def process_slot_step_value(
 
 
 async def _hub_slot_step(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
         return

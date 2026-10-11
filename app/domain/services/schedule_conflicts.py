@@ -18,11 +18,11 @@ class ScheduleConflictsService:
         self._repos = repos
 
     async def active_overlapping(
-            self,
-            *,
-            master_user_id: int,
-            starts_at: datetime,
-            ends_at: datetime,
+        self,
+        *,
+        master_user_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
     ) -> list[Appointment]:
         """Active appointments overlapping ``[starts_at, ends_at)``.
 
@@ -51,11 +51,11 @@ class ScheduleConflictsService:
         return result
 
     async def active_on_local_days(
-            self,
-            *,
-            master_user_id: int,
-            days: set[date],
-            timezone: str,
+        self,
+        *,
+        master_user_id: int,
+        days: set[date],
+        timezone: str,
     ) -> list[Appointment]:
         """Active appointments whose local start date is in ``days``."""
         if not days:

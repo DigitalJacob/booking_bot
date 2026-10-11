@@ -35,10 +35,10 @@ def month_label_short(year: int, month: int, i18n: dict[str, str]) -> str:
 
 
 def get_work_days_months_kb(
-        *,
-        months: list[tuple[int, int]],
-        marked: set[tuple[int, int]],
-        i18n: dict[str, str],
+    *,
+    months: list[tuple[int, int]],
+    marked: set[tuple[int, int]],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
@@ -70,11 +70,11 @@ def get_work_days_months_kb(
 
 
 def get_work_days_calendar_kb(
-        *,
-        year: int,
-        month: int,
-        selected_days: set[int],
-        i18n: dict[str, str],
+    *,
+    year: int,
+    month: int,
+    selected_days: set[int],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = [
         [

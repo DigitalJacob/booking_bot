@@ -17,21 +17,21 @@ def register(action: str, handler: HubLeaf) -> None:
 
 
 async def dispatch_leaf(
-        *,
-        action: str,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        master_user_id: int | None = None,
-        locales: list[str] | None = None,
-        schedule_mode: str = "weekly",
-        pdn_consent_version: str = "v1",
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
+    *,
+    action: str,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    master_user_id: int | None = None,
+    locales: list[str] | None = None,
+    schedule_mode: str = "weekly",
+    pdn_consent_version: str = "v1",
+    pdn_operator_name: str = "",
+    pdn_operator_contacts: str = "",
+    pdn_policy_url: str = "",
 ) -> None:
     """Run a registered leaf if present; no-op for unknown actions."""
     handler = _LEAVES.get(action)

@@ -60,11 +60,11 @@ from app.infrastructure.database.repositories import Repositories
 
 
 async def build_master_booking_card(
-        *,
-        appointment: Appointment,
-        repos: Repositories,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    appointment: Appointment,
+    repos: Repositories,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> tuple[str, InlineKeyboardMarkup]:
     service = await repos.services.get_service(service_id=appointment.service_id)
     title = service.title if service else "?"
@@ -72,9 +72,7 @@ async def build_master_booking_card(
     client_name, client_phone = client_contact(client)
     now = datetime.now(UTC)
     past = is_slot_past(slot_ends_at=appointment.ends_at, now=now)
-    text_key = (
-        "master_bookings_card_past" if past else "master_bookings_card"
-    )
+    text_key = "master_bookings_card_past" if past else "master_bookings_card"
     text = i18n.get(text_key).format(
         when=format_dt(appointment.starts_at, bot_timezone),
         title=title,
@@ -90,11 +88,11 @@ async def build_master_booking_card(
 
 
 async def build_master_new_booking_push(
-        *,
-        appointment: Appointment,
-        repos: Repositories,
-        translations: dict,
-        bot_timezone: str,
+    *,
+    appointment: Appointment,
+    repos: Repositories,
+    translations: dict,
+    bot_timezone: str,
 ) -> tuple[dict[str, str], str, InlineKeyboardMarkup | None]:
     i18n, text = await appointment_notice_parts(
         repos=repos,
@@ -114,13 +112,13 @@ async def build_master_new_booking_push(
 
 
 async def _show_booking_card(
-        *,
-        message: Message,
-        state: FSMContext,
-        appointment: Appointment,
-        repos: Repositories,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    appointment: Appointment,
+    repos: Repositories,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     day = to_local(appointment.starts_at, bot_timezone).date()
     await state.update_data({DAY_KEY: day.isoformat()})
@@ -134,11 +132,11 @@ async def _show_booking_card(
 
 
 async def _reject_if_slot_past(
-        *,
-        callback: CallbackQuery,
-        repos: Repositories,
-        appointment_id: int,
-        i18n: dict[str, str],
+    *,
+    callback: CallbackQuery,
+    repos: Repositories,
+    appointment_id: int,
+    i18n: dict[str, str],
 ) -> bool:
     """Return True if the handler should stop"""
     appointment = await repos.appointments.get_appointment(
@@ -166,29 +164,29 @@ async def _reject_if_slot_past(
 
 
 async def disarm_stale_master_push(
-        *,
-        callback: CallbackQuery,
-        bot: Bot,
-        repos: Repositories,
-        appointment_id: int,
-        translations: dict,
-        bot_timezone: str,
+    *,
+    callback: CallbackQuery,
+    bot: Bot,
+    repos: Repositories,
+    appointment_id: int,
+    translations: dict,
+    bot_timezone: str,
 ) -> None:
     """Turn a stale confirm/cancel push into status+OK or strip its keyboard."""
     appointment = await repos.appointments.get_appointment(
         appointment_id=appointment_id,
     )
     if (
-            appointment is not None
-            and appointment.status == AppointmentStatus.CANCELLED
-            and await supersede_master_action_push(
-                bot=bot,
-                repos=repos,
-                appointment=appointment,
-                translations=translations,
-                text_key="master_booking_cancelled_by_client",
-                bot_timezone=bot_timezone,
-            )
+        appointment is not None
+        and appointment.status == AppointmentStatus.CANCELLED
+        and await supersede_master_action_push(
+            bot=bot,
+            repos=repos,
+            appointment=appointment,
+            translations=translations,
+            text_key="master_booking_cancelled_by_client",
+            bot_timezone=bot_timezone,
+        )
     ):
         return
 
@@ -202,17 +200,17 @@ async def disarm_stale_master_push(
 
 
 async def resume_master_after_cancel(
-        *,
-        bot: Bot,
-        chat_id: int,
-        message_id: int,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        appointment: Appointment,
-        source: str,
+    *,
+    bot: Bot,
+    chat_id: int,
+    message_id: int,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    appointment: Appointment,
+    source: str,
 ) -> None:
     """Sticky day list, or hub restore + delete push — after master cancel/decline."""
     await repos.appointments.set_master_notify_message_id(
@@ -272,16 +270,16 @@ async def resume_master_after_cancel(
 
 
 async def _finish_master_decision(
-        *,
-        callback: CallbackQuery,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        appointment_id: int,
-        bot_timezone: str,
-        ack_text: str,
-        schedule_mode: str = "weekly",
+    *,
+    callback: CallbackQuery,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    appointment_id: int,
+    bot_timezone: str,
+    ack_text: str,
+    schedule_mode: str = "weekly",
 ) -> None:
     """
     Sticky card: refresh the day list in place.
@@ -342,21 +340,18 @@ async def _finish_master_decision(
 
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "open"))
 async def process_open(
-        callback: CallbackQuery,
-        callback_data: MasterAppointmentCallback,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    callback_data: MasterAppointmentCallback,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     appointment = await repos.appointments.get_appointment(
         appointment_id=callback_data.appointment_id,
     )
-    if (
-        appointment is None
-        or appointment.master_user_id != user.user_id
-    ):
+    if appointment is None or appointment.master_user_id != user.user_id:
         await callback.answer(
             text=i18n.get("master_action_failed"),
             show_alert=True,
@@ -376,16 +371,16 @@ async def process_open(
 
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "confirm"))
 async def process_confirm(
-        callback: CallbackQuery,
-        callback_data: MasterAppointmentCallback,
-        bot: Bot,
-        translations: dict,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        state: FSMContext,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: MasterAppointmentCallback,
+    bot: Bot,
+    translations: dict,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    state: FSMContext,
+    schedule_mode: str,
 ) -> None:
     if await _reject_if_slot_past(
         callback=callback,
@@ -401,9 +396,7 @@ async def process_confirm(
             appointment_id=callback_data.appointment_id,
             master_user_id=user.user_id,
         )
-    except (
-        AppointmentNotFound, ForbiddenBookingAction, InvalidAppointmentStatus
-    ):
+    except (AppointmentNotFound, ForbiddenBookingAction, InvalidAppointmentStatus):
         await disarm_stale_master_push(
             callback=callback,
             bot=bot,
@@ -443,22 +436,19 @@ async def process_confirm(
 
 @bookings_router.callback_query(MasterAppointmentCallback.filter(F.action == "cancel"))
 async def process_cancel(
-        callback: CallbackQuery,
-        callback_data: MasterAppointmentCallback,
-        translations: dict,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        state: FSMContext,
+    callback: CallbackQuery,
+    callback_data: MasterAppointmentCallback,
+    translations: dict,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    state: FSMContext,
 ) -> None:
     appointment = await repos.appointments.get_appointment(
         appointment_id=callback_data.appointment_id,
     )
-    if (
-        appointment is None
-        or appointment.master_user_id != user.user_id
-    ):
+    if appointment is None or appointment.master_user_id != user.user_id:
         await callback.answer(
             text=i18n.get("master_action_failed"),
             show_alert=True,
@@ -506,15 +496,15 @@ async def process_cancel(
 
 
 async def _hub_bookings(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        schedule_mode: str = "weekly",
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    schedule_mode: str = "weekly",
+    **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
         return
@@ -564,5 +554,3 @@ async def _hub_bookings(
 
 
 register("bookings", _hub_bookings)
-
-

@@ -20,7 +20,7 @@ async def _seed_master(repos: Repositories) -> None:
 
 @pytest.mark.asyncio
 async def test_list_by_master_returns_overlapping_blocks_only(
-        repos: Repositories,
+    repos: Repositories,
 ) -> None:
     await _seed_master(repos)
 

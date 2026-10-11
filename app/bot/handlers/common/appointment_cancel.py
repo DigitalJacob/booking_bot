@@ -63,9 +63,7 @@ async def _clear_cancel_state(state: FSMContext) -> None:
     """Clear cancel FSM but keep sticky hub nav and master Bookings nav keys."""
     data = await state.get_data()
     bookings_keep = {
-        key: data[key]
-        for key in _BOOKINGS_NAV_KEYS
-        if key in data and data[key] is not None
+        key: data[key] for key in _BOOKINGS_NAV_KEYS if key in data and data[key] is not None
     }
     await clear_state_keep_hub(state)
     if bookings_keep:
@@ -122,23 +120,23 @@ def _statuses_from_state(raw: object) -> frozenset[AppointmentStatus]:
 
 
 def _resume_ctx(
-        *,
-        bot: Bot,
-        chat_id: int,
-        message_id: int,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
-        source: str,
-        mode: str,
-        state: FSMContext | None = None,
-        appointment: Appointment | None = None,
-        appointment_id: int | None = None,
-        callback: CallbackQuery | None = None,
-        reminder_kind: str = "",
-        notice_key: str | None = None,
+    *,
+    bot: Bot,
+    chat_id: int,
+    message_id: int,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
+    source: str,
+    mode: str,
+    state: FSMContext | None = None,
+    appointment: Appointment | None = None,
+    appointment_id: int | None = None,
+    callback: CallbackQuery | None = None,
+    reminder_kind: str = "",
+    notice_key: str | None = None,
 ) -> CancelResumeCtx:
     return CancelResumeCtx(
         bot=bot,
@@ -161,25 +159,25 @@ def _resume_ctx(
 
 
 async def _dispatch_resume(
-        source: str,
-        phase: CancelPhase,
-        ctx: CancelResumeCtx,
+    source: str,
+    phase: CancelPhase,
+    ctx: CancelResumeCtx,
 ) -> None:
     await dispatch(source, phase, ctx)
 
 
 async def _disarm_stale(
-        *,
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
-        source: str,
-        appointment: Appointment,
-        text_key: str,
-        state: FSMContext | None = None,
+    *,
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
+    source: str,
+    appointment: Appointment,
+    text_key: str,
+    state: FSMContext | None = None,
 ) -> None:
     await _dispatch_resume(
         source,
@@ -205,17 +203,17 @@ async def _disarm_stale(
 
 
 async def _load_usable_appointment(
-        *,
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User | None,
-        appointment_id: int,
-        i18n: dict[str, str],
-        allowed_statuses: frozenset[AppointmentStatus],
-        source: str,
-        bot_timezone: str,
-        translations: dict,
-        state: FSMContext | None = None,
+    *,
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User | None,
+    appointment_id: int,
+    i18n: dict[str, str],
+    allowed_statuses: frozenset[AppointmentStatus],
+    source: str,
+    bot_timezone: str,
+    translations: dict,
+    state: FSMContext | None = None,
 ) -> Appointment | None:
     if user is None:
         await callback.answer(
@@ -276,22 +274,22 @@ async def _load_usable_appointment(
 
 
 async def _finish_cancel(
-        *,
-        bot: Bot,
-        chat_id: int,
-        message_id: int,
-        state: FSMContext,
-        repos: Repositories,
-        translations: dict,
-        bot_timezone: str,
-        user: User,
-        i18n: dict[str, str],
-        appointment_id: int,
-        reason: str | None,
-        source: str,
-        mode: str,
-        callback: CallbackQuery | None = None,
-        reminder_kind: str = "",
+    *,
+    bot: Bot,
+    chat_id: int,
+    message_id: int,
+    state: FSMContext,
+    repos: Repositories,
+    translations: dict,
+    bot_timezone: str,
+    user: User,
+    i18n: dict[str, str],
+    appointment_id: int,
+    reason: str | None,
+    source: str,
+    mode: str,
+    callback: CallbackQuery | None = None,
+    reminder_kind: str = "",
 ) -> None:
     booking = BookingService(repos)
     try:
@@ -398,19 +396,19 @@ async def _finish_cancel(
 
 
 async def start_appointment_cancel(
-        *,
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
-        appointment_id: int,
-        source: str,
-        mode: str = "cancel",
-        reminder_kind: ReminderKind | None = None,
-        allowed_statuses: frozenset[AppointmentStatus] | None = None,
-        state: FSMContext | None = None,
+    *,
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
+    appointment_id: int,
+    source: str,
+    mode: str = "cancel",
+    reminder_kind: ReminderKind | None = None,
+    allowed_statuses: frozenset[AppointmentStatus] | None = None,
+    state: FSMContext | None = None,
 ) -> None:
     """Show confirm screen for cancelling / declining an appointment."""
     statuses = allowed_statuses or _default_allowed_statuses(source)
@@ -456,14 +454,14 @@ async def start_appointment_cancel(
     AppointmentCancelCallback.filter(F.action == "no"),
 )
 async def process_cancel_no(
-        callback: CallbackQuery,
-        callback_data: AppointmentCancelCallback,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
-        state: FSMContext,
+    callback: CallbackQuery,
+    callback_data: AppointmentCancelCallback,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
+    state: FSMContext,
 ) -> None:
     statuses = _default_allowed_statuses(callback_data.source)
     appointment = await _load_usable_appointment(
@@ -485,8 +483,8 @@ async def process_cancel_no(
     await _clear_cancel_state(state)
 
     if (
-            callback_data.source == SOURCE_REMINDER
-            and parse_reminder_kind(callback_data.reminder_kind) is None
+        callback_data.source == SOURCE_REMINDER
+        and parse_reminder_kind(callback_data.reminder_kind) is None
     ):
         await callback.answer(
             text=i18n.get("cancel_failed"),
@@ -522,14 +520,14 @@ async def process_cancel_no(
     AppointmentCancelCallback.filter(F.action == "yes"),
 )
 async def process_cancel_yes(
-        callback: CallbackQuery,
-        callback_data: AppointmentCancelCallback,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
-        state: FSMContext,
+    callback: CallbackQuery,
+    callback_data: AppointmentCancelCallback,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
+    state: FSMContext,
 ) -> None:
     statuses = _default_allowed_statuses(callback_data.source)
     appointment = await _load_usable_appointment(
@@ -576,15 +574,15 @@ async def process_cancel_yes(
     AppointmentCancelCallback.filter(F.action == "skip_reason"),
 )
 async def process_cancel_skip_reason(
-        callback: CallbackQuery,
-        callback_data: AppointmentCancelCallback,
-        bot: Bot,
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
+    callback: CallbackQuery,
+    callback_data: AppointmentCancelCallback,
+    bot: Bot,
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
 ) -> None:
     statuses = _default_allowed_statuses(callback_data.source)
     appointment = await _load_usable_appointment(
@@ -626,14 +624,14 @@ async def process_cancel_skip_reason(
 
 @appointment_cancel_router.message(StateFilter(AppointmentCancelSG.reason), F.text)
 async def process_cancel_reason_text(
-        message: Message,
-        bot: Bot,
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
+    message: Message,
+    bot: Bot,
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
 ) -> None:
     if user is None:
         await _clear_cancel_state(state)
@@ -659,10 +657,7 @@ async def process_cancel_reason_text(
             await bot.edit_message_text(
                 chat_id=message.chat.id,
                 message_id=prompt_id,
-                text=(
-                    f"{i18n.get('cancel_reason_too_long')}\n\n"
-                    f"{i18n.get(_ask_reason_key(mode))}"
-                ),
+                text=(f"{i18n.get('cancel_reason_too_long')}\n\n{i18n.get(_ask_reason_key(mode))}"),
                 reply_markup=get_appointment_cancel_reason_kb(
                     i18n=i18n,
                     appointment_id=appointment_id,

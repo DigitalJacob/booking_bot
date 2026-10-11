@@ -10,10 +10,10 @@ class ClientAppointmentCallback(CallbackData, prefix="capt"):
 
 
 def get_my_bookings_list_kb(
-        *,
-        appointments: list[Appointment],
-        labels: dict[int, str],
-        i18n: dict[str, str],
+    *,
+    appointments: list[Appointment],
+    labels: dict[int, str],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for appointment in appointments:
@@ -40,9 +40,9 @@ def get_my_bookings_list_kb(
 
 
 def get_my_booking_card_kb(
-        *,
-        appointment: Appointment,
-        i18n: dict[str, str],
+    *,
+    appointment: Appointment,
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

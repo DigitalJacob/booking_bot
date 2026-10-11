@@ -17,11 +17,11 @@ from app.infrastructure.database.repositories import Repositories
 
 
 async def _show_services(
-        *,
-        message: Message,
-        state: FSMContext,
-        services: list[Service],
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    services: list[Service],
+    i18n: dict[str, str],
 ) -> None:
     await show_hub_prompt(
         message=message,
@@ -32,23 +32,20 @@ async def _show_services(
 
 
 async def start_booking_flow(
-        *,
-        message: Message,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        master_user_id: int,
-        pdn_consent_version: str = "v1",
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
-        edit: bool = False,
+    *,
+    message: Message,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    master_user_id: int,
+    pdn_consent_version: str = "v1",
+    pdn_operator_name: str = "",
+    pdn_operator_contacts: str = "",
+    pdn_policy_url: str = "",
+    edit: bool = False,
 ) -> None:
-    if (
-        not user.profile_complete
-        or not user.has_pdn_consent(version=pdn_consent_version)
-    ):
+    if not user.profile_complete or not user.has_pdn_consent(version=pdn_consent_version):
         await start_profile_flow(
             message=message,
             state=state,
@@ -87,18 +84,18 @@ async def start_booking_flow(
 
 
 async def resume_booking_after_profile(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        master_user_id: int,
-        pdn_consent_version: str,
-        pdn_operator_name: str,
-        pdn_operator_contacts: str,
-        pdn_policy_url: str,
-        drop_reply_kb: bool = False,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    master_user_id: int,
+    pdn_consent_version: str,
+    pdn_operator_name: str,
+    pdn_operator_contacts: str,
+    pdn_policy_url: str,
+    drop_reply_kb: bool = False,
 ) -> None:
     await cleanup_profile_messages(
         message=message,

@@ -16,14 +16,14 @@ CREATED = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 
 
 def _appt(
-        *,
-        starts_at: datetime,
-        status: AppointmentStatus = AppointmentStatus.CONFIRMED,
-        client_evening_reminded_at: datetime | None = None,
-        client_hour_reminded_at: datetime | None = None,
-        master_evening_reminded_at: datetime | None = None,
-        master_hour_reminded_at: datetime | None = None,
-        appointment_id: int = 1,
+    *,
+    starts_at: datetime,
+    status: AppointmentStatus = AppointmentStatus.CONFIRMED,
+    client_evening_reminded_at: datetime | None = None,
+    client_hour_reminded_at: datetime | None = None,
+    master_evening_reminded_at: datetime | None = None,
+    master_hour_reminded_at: datetime | None = None,
+    appointment_id: int = 1,
 ) -> Appointment:
     return Appointment(
         id=appointment_id,

@@ -18,89 +18,89 @@ class ServicesRepoPort(Protocol):
     async def get_service(self, *, service_id: int) -> Service | None: ...
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            active_only: bool = True,
+        self,
+        *,
+        master_user_id: int,
+        active_only: bool = True,
     ) -> list[Service]: ...
 
 
 class AppointmentsRepoPort(Protocol):
     async def add_appointment(
-            self,
-            *,
-            client_user_id: int,
-            master_user_id: int,
-            service_id: int,
-            starts_at: datetime,
-            ends_at: datetime,
-            status: AppointmentStatus = AppointmentStatus.PENDING,
+        self,
+        *,
+        client_user_id: int,
+        master_user_id: int,
+        service_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        status: AppointmentStatus = AppointmentStatus.PENDING,
     ) -> Appointment: ...
 
     async def get_appointment(
-            self,
-            *,
-            appointment_id: int,
+        self,
+        *,
+        appointment_id: int,
     ) -> Appointment | None: ...
 
     async def list_by_client(
-            self,
-            *,
-            client_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        client_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[Appointment]: ...
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[Appointment]: ...
 
     async def change_status(
-            self,
-            *,
-            appointment_id: int,
-            status: AppointmentStatus,
+        self,
+        *,
+        appointment_id: int,
+        status: AppointmentStatus,
     ) -> Appointment | None: ...
 
 
 class MasterSettingsRepoPort(Protocol):
     async def get_by_master(
-            self,
-            *,
-            master_user_id: int,
+        self,
+        *,
+        master_user_id: int,
     ) -> MasterSettings | None: ...
 
 
 class WorkingHoursRepoPort(Protocol):
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            weekday: int | None = None,
+        self,
+        *,
+        master_user_id: int,
+        weekday: int | None = None,
     ) -> list[WorkingHours]: ...
 
 
 class WorkDatesRepoPort(Protocol):
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_date: date | None = None,
-            to_date: date | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> list[WorkDate]: ...
 
 
 class TimeOffRepoPort(Protocol):
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[TimeOff]: ...
 
 

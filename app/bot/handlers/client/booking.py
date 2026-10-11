@@ -48,21 +48,15 @@ def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
 
 
 def _unique_days(windows: list[TimeWindow], bot_timezone: str) -> list[date]:
-    return sorted({
-        to_local(window.starts_at, bot_timezone).date()
-        for window in windows
-    })
+    return sorted({to_local(window.starts_at, bot_timezone).date() for window in windows})
 
 
 def _windows_on_day(
-        windows: list[TimeWindow],
-        day: date,
-        bot_timezone: str,
+    windows: list[TimeWindow],
+    day: date,
+    bot_timezone: str,
 ) -> list[TimeWindow]:
-    return [
-        window for window in windows
-        if to_local(window.starts_at, bot_timezone).date() == day
-    ]
+    return [window for window in windows if to_local(window.starts_at, bot_timezone).date() == day]
 
 
 def _days_in_month(days: list[date], year: int, month: int) -> list[date]:
@@ -70,8 +64,8 @@ def _days_in_month(days: list[date], year: int, month: int) -> list[date]:
 
 
 def _bookable_months(
-        open_months: list[tuple[int, int]],
-        days: list[date],
+    open_months: list[tuple[int, int]],
+    days: list[date],
 ) -> list[tuple[int, int]]:
     """Open schedule months that still have at least one free slot day."""
     day_months = {(day.year, day.month) for day in days}
@@ -79,11 +73,11 @@ def _bookable_months(
 
 
 async def _show_services(
-        *,
-        message: Message,
-        services: list[Service],
-        i18n: dict[str, str],
-        edit: bool,
+    *,
+    message: Message,
+    services: list[Service],
+    i18n: dict[str, str],
+    edit: bool,
 ) -> None:
     text = i18n.get("book_choose_service")
     kb = get_services_kb(services=services, i18n=i18n)
@@ -94,10 +88,10 @@ async def _show_services(
 
 
 async def _show_months(
-        *,
-        message: Message,
-        months: list[tuple[int, int]],
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    months: list[tuple[int, int]],
+    i18n: dict[str, str],
 ) -> None:
     await message.edit_text(
         text=i18n.get("book_choose_month"),
@@ -106,12 +100,12 @@ async def _show_months(
 
 
 async def _show_days(
-        *,
-        message: Message,
-        year: int,
-        month: int,
-        days: list[date],
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    year: int,
+    month: int,
+    days: list[date],
+    i18n: dict[str, str],
 ) -> None:
     await message.edit_text(
         text=i18n.get("book_choose_day").format(
@@ -127,11 +121,11 @@ async def _show_days(
 
 
 async def _show_windows(
-        *,
-        message: Message,
-        windows: list[TimeWindow],
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    message: Message,
+    windows: list[TimeWindow],
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await message.edit_text(
         text=i18n.get("book_choose_window"),
@@ -144,12 +138,12 @@ async def _show_windows(
 
 
 async def _show_confirm(
-        *,
-        message: Message,
-        service: Service,
-        starts_at: datetime,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    message: Message,
+    service: Service,
+    starts_at: datetime,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     text = i18n.get("book_confirm").format(
         title=service.title,
@@ -165,8 +159,8 @@ async def _show_confirm(
 
 @booking_router.message(StateFilter(BookingSG), F.text)
 async def process_booking_text(
-        message: Message,
-        i18n: dict[str, str],
+    message: Message,
+    i18n: dict[str, str],
 ) -> None:
     await message.answer(text=i18n.get("book_use_buttons"))
 
@@ -176,23 +170,19 @@ async def process_booking_text(
     StateFilter(BookingSG.choosing_service),
 )
 async def process_service_choice(
-        callback: CallbackQuery,
-        callback_data: ServiceCallback,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: ServiceCallback,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
 
     service = await repos.services.get_service(service_id=callback_data.service_id)
-    if (
-        service is None
-        or service.master_user_id != master_user_id
-        or not service.is_active
-    ):
+    if service is None or service.master_user_id != master_user_id or not service.is_active:
         await callback.answer(
             text=i18n.get("book_service_not_found"),
             show_alert=True,
@@ -233,13 +223,13 @@ async def process_service_choice(
     StateFilter(BookingSG.choosing_month),
 )
 async def process_month_choice(
-        callback: CallbackQuery,
-        callback_data: MonthCallback,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: MonthCallback,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -292,13 +282,13 @@ async def process_day_pad(callback: CallbackQuery) -> None:
     StateFilter(BookingSG.choosing_day),
 )
 async def process_day_choice(
-        callback: CallbackQuery,
-        callback_data: DayCallback,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: DayCallback,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -347,13 +337,13 @@ async def process_day_choice(
     StateFilter(BookingSG.choosing_window),
 )
 async def process_window_choice(
-        callback: CallbackQuery,
-        callback_data: WindowCallback,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    callback_data: WindowCallback,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
@@ -381,11 +371,12 @@ async def process_window_choice(
     )
     match = next(
         (
-            window for window in windows
+            window
+            for window in windows
             if window.starts_at == starts_at
             or window.starts_at.isoformat() == callback_data.starts_at
         ),
-        None
+        None,
     )
     if match is None:
         await callback.answer(
@@ -411,15 +402,15 @@ async def process_window_choice(
     StateFilter(BookingSG.confirming),
 )
 async def process_confirm(
-        callback: CallbackQuery,
-        bot: Bot,
-        translations: dict,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        user: User | None,
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    bot: Bot,
+    translations: dict,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    user: User | None,
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     if user is None:
         await callback.answer(
@@ -439,10 +430,7 @@ async def process_confirm(
             schedule_mode=schedule_mode,
         )
     except (TimeConflict, WindowNotAvailable):
-        await callback.answer(
-            text=i18n.get("book_window_taken"),
-            show_alert=True
-        )
+        await callback.answer(text=i18n.get("book_window_taken"), show_alert=True)
         return
     except ServiceInactive:
         await callback.answer(
@@ -485,10 +473,10 @@ async def process_confirm(
     StateFilter(BookingSG),
 )
 async def process_cancel(
-        callback: CallbackQuery,
-        i18n: dict[str, str],
-        state: FSMContext,
-        user: User | None,
+    callback: CallbackQuery,
+    i18n: dict[str, str],
+    state: FSMContext,
+    user: User | None,
 ) -> None:
     await clear_state_keep_hub(state)
     await show_hub(
@@ -505,12 +493,12 @@ async def process_cancel(
     StateFilter(BookingSG),
 )
 async def process_back(
-        callback: CallbackQuery,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories,
-        bot_timezone: str,
-        schedule_mode: str,
+    callback: CallbackQuery,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories,
+    bot_timezone: str,
+    schedule_mode: str,
 ) -> None:
     current = await state.get_state()
     fsm_data = await state.get_data()
@@ -617,18 +605,18 @@ async def process_back(
 
 
 async def _hub_book(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        master_user_id: int | None = None,
-        pdn_consent_version: str = "v1",
-        pdn_operator_name: str = "",
-        pdn_operator_contacts: str = "",
-        pdn_policy_url: str = "",
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    master_user_id: int | None = None,
+    pdn_consent_version: str = "v1",
+    pdn_operator_name: str = "",
+    pdn_operator_contacts: str = "",
+    pdn_policy_url: str = "",
+    **_,
 ) -> None:
     if user.role != UserRole.CLIENT or repos is None or master_user_id is None:
         return

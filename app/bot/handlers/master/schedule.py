@@ -41,20 +41,17 @@ def _format_hm(value: time) -> str:
 
 
 def _weekdays_label(selected: set[int], i18n: dict[str, str]) -> str:
-    return ", ".join(
-        i18n.get(WEEKDAY_KEYS[day])
-        for day in sorted(selected)
-    )
+    return ", ".join(i18n.get(WEEKDAY_KEYS[day]) for day in sorted(selected))
 
 
 async def show_schedule_list(
-        *,
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        mode: ScheduleMode,
-        edit: bool,
+    *,
+    message: Message,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    mode: ScheduleMode,
+    edit: bool,
 ) -> None:
     rows = await repos.working_hours.list_by_master(
         master_user_id=user.user_id,
@@ -80,11 +77,11 @@ async def show_schedule_list(
     ScheduleNavCallback.filter(F.action == "close"),
 )
 async def process_schedule_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-        schedule_mode: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
+    schedule_mode: str,
 ) -> None:
     """Back from view → hub schedule section."""
     await return_from_list(
@@ -99,10 +96,10 @@ async def process_schedule_close(
 
 @schedule_router.callback_query(ScheduleNavCallback.filter(F.action == "edit"))
 async def process_schedule_edit(
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await show_schedule_list(
         message=callback.message,
@@ -117,10 +114,10 @@ async def process_schedule_edit(
 
 @schedule_router.callback_query(ScheduleNavCallback.filter(F.action == "view"))
 async def process_schedule_view(
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     """Back from edit → read-only view."""
     await show_schedule_list(
@@ -136,11 +133,11 @@ async def process_schedule_view(
 
 @schedule_router.callback_query(ScheduleDeleteCallback.filter())
 async def process_schedule_delete(
-        callback: CallbackQuery,
-        callback_data: ScheduleDeleteCallback,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: ScheduleDeleteCallback,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     row = await repos.working_hours.get(
         working_hours_id=callback_data.working_hours_id,
@@ -163,15 +160,13 @@ async def process_schedule_delete(
     await callback.answer()
 
 
-@schedule_router.callback_query(
-    ScheduleConfirmCallback.filter(F.action == "yes")
-)
+@schedule_router.callback_query(ScheduleConfirmCallback.filter(F.action == "yes"))
 async def process_schedule_delete_yes(
-        callback: CallbackQuery,
-        callback_data: ScheduleConfirmCallback,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: ScheduleConfirmCallback,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     deleted = await repos.working_hours.delete(
         working_hours_id=callback_data.working_hours_id,
@@ -194,14 +189,12 @@ async def process_schedule_delete_yes(
     )
 
 
-@schedule_router.callback_query(
-    ScheduleConfirmCallback.filter(F.action == "no")
-)
+@schedule_router.callback_query(ScheduleConfirmCallback.filter(F.action == "no"))
 async def process_schedule_delete_no(
-        callback: CallbackQuery,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await show_schedule_list(
         message=callback.message,
@@ -216,9 +209,9 @@ async def process_schedule_delete_no(
 
 @schedule_router.callback_query(ScheduleNavCallback.filter(F.action == "add"))
 async def process_schedule_add(
-        callback: CallbackQuery,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(ScheduleSG.starts_time)
@@ -231,9 +224,9 @@ async def process_schedule_add(
 
 @schedule_router.message(StateFilter(ScheduleSG.starts_time))
 async def process_schedule_starts(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     starts = parse_time(message.text or "")
     if starts is None:
@@ -252,9 +245,9 @@ async def process_schedule_starts(
 
 @schedule_router.message(StateFilter(ScheduleSG.ends_time))
 async def process_schedule_ends(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     ends = parse_time(message.text or "")
     if ends is None:
@@ -289,10 +282,10 @@ async def process_schedule_ends(
     StateFilter(ScheduleSG.weekdays),
 )
 async def process_schedule_weekday_toggle(
-        callback: CallbackQuery,
-        callback_data: ScheduleWeekdayCallback,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: ScheduleWeekdayCallback,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     selected = set(data.get("weekdays") or [])
@@ -320,11 +313,11 @@ async def process_schedule_weekday_toggle(
     StateFilter(ScheduleSG.weekdays),
 )
 async def process_schedule_save(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     selected = set(data.get("weekdays") or [])
@@ -368,9 +361,9 @@ async def process_schedule_save(
     StateFilter(ScheduleSG.weekdays),
 )
 async def process_schedule_back(
-        callback: CallbackQuery,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await state.set_state(ScheduleSG.ends_time)
     await callback.message.edit_text(
@@ -385,11 +378,11 @@ async def process_schedule_back(
     StateFilter(ScheduleSG),
 )
 async def process_schedule_cancel_cb(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
     await show_schedule_list(
@@ -404,13 +397,13 @@ async def process_schedule_cancel_cb(
 
 
 async def _hub_working_hours(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None:
         return

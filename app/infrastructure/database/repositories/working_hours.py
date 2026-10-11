@@ -14,12 +14,12 @@ class WorkingHoursRepository:
         self._conn = conn
 
     async def add(
-            self,
-            *,
-            master_user_id: int,
-            weekday: int,
-            starts_time: time,
-            ends_time: time,
+        self,
+        *,
+        master_user_id: int,
+        weekday: int,
+        starts_time: time,
+        ends_time: time,
     ) -> WorkingHours:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -62,9 +62,9 @@ class WorkingHoursRepository:
         return WorkingHours.from_db_row(row)
 
     async def get(
-            self,
-            *,
-            working_hours_id: int,
+        self,
+        *,
+        working_hours_id: int,
     ) -> WorkingHours | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -79,16 +79,16 @@ class WorkingHoursRepository:
                     FROM working_hours
                     WHERE id = %s;
                 """,
-                params=(working_hours_id, ),
+                params=(working_hours_id,),
             )
             row = await cursor.fetchone()
         return WorkingHours.from_db_row(row) if row else None
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            weekday: int | None = None,
+        self,
+        *,
+        master_user_id: int,
+        weekday: int | None = None,
     ) -> list[WorkingHours]:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -117,10 +117,10 @@ class WorkingHoursRepository:
         return [WorkingHours.from_db_row(row) for row in rows]
 
     async def delete(
-            self,
-            *,
-            working_hours_id: int,
-            master_user_id: int,
+        self,
+        *,
+        working_hours_id: int,
+        master_user_id: int,
     ) -> bool:
         """Delete only if the row belongs to this master. Returns True if deleted."""
         async with self._conn.cursor() as cursor:

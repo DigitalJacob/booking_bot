@@ -75,13 +75,13 @@ async def _cancel_on_unavailable(ctx: CancelResumeCtx) -> None:
 
 @reminder_router.callback_query(ReminderCallback.filter(F.action == "cancel"))
 async def process_reminder_cancel(
-        callback: CallbackQuery,
-        callback_data: ReminderCallback,
-        repos: Repositories,
-        user: User | None,
-        i18n: dict[str, str],
-        translations: dict,
-        bot_timezone: str,
+    callback: CallbackQuery,
+    callback_data: ReminderCallback,
+    repos: Repositories,
+    user: User | None,
+    i18n: dict[str, str],
+    translations: dict,
+    bot_timezone: str,
 ) -> None:
     kind = parse_reminder_kind(callback_data.kind)
     if kind is None:

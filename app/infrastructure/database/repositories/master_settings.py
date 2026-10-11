@@ -25,9 +25,9 @@ class MasterSettingsRepository:
         self._conn = conn
 
     async def get_by_master(
-            self,
-            *,
-            master_user_id: int,
+        self,
+        *,
+        master_user_id: int,
     ) -> MasterSettings | None:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             await cursor.execute(
@@ -39,16 +39,16 @@ class MasterSettingsRepository:
                         WHERE master_user_id = %s;
                     """,
                 ),
-                params=(master_user_id, ),
+                params=(master_user_id,),
             )
             row = await cursor.fetchone()
         return MasterSettings.from_db_row(row) if row else None
 
     async def ensure_defaults(
-            self,
-            *,
-            master_user_id: int,
-            timezone: str = "Europe/Moscow",
+        self,
+        *,
+        master_user_id: int,
+        timezone: str = "Europe/Moscow",
     ) -> MasterSettings:
         """Insert default settings if missing; return current row."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -88,10 +88,10 @@ class MasterSettingsRepository:
         return MasterSettings.from_db_row(row)
 
     async def update_gap_minutes(
-            self,
-            *,
-            master_user_id: int,
-            gap_minutes: int,
+        self,
+        *,
+        master_user_id: int,
+        gap_minutes: int,
     ) -> MasterSettings | None:
         """Update gap_minutes; returns None if the master has no settings row."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -123,10 +123,10 @@ class MasterSettingsRepository:
         return MasterSettings.from_db_row(row)
 
     async def update_min_lead_minutes(
-            self,
-            *,
-            master_user_id: int,
-            min_lead_minutes: int,
+        self,
+        *,
+        master_user_id: int,
+        min_lead_minutes: int,
     ) -> MasterSettings | None:
         """Update min_lead_minutes; returns None if no settings row."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -151,18 +151,17 @@ class MasterSettingsRepository:
         if row is None:
             return None
         logger.info(
-            "Master min_lead_minutes updated. master_user_id=%d, "
-            "min_lead_minutes=%d",
+            "Master min_lead_minutes updated. master_user_id=%d, min_lead_minutes=%d",
             master_user_id,
             min_lead_minutes,
         )
         return MasterSettings.from_db_row(row)
 
     async def update_slot_step_minutes(
-            self,
-            *,
-            master_user_id: int,
-            slot_step_minutes: int | None,
+        self,
+        *,
+        master_user_id: int,
+        slot_step_minutes: int | None,
     ) -> MasterSettings | None:
         """Update slot_step_minutes (None = service duration); None row if missing."""
         async with self._conn.cursor(row_factory=dict_row) as cursor:
@@ -187,8 +186,7 @@ class MasterSettingsRepository:
         if row is None:
             return None
         logger.info(
-            "Master slot_step_minutes updated. master_user_id=%d, "
-            "slot_step_minutes=%s",
+            "Master slot_step_minutes updated. master_user_id=%d, slot_step_minutes=%s",
             master_user_id,
             slot_step_minutes,
         )

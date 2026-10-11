@@ -22,11 +22,11 @@ NOW = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
 
 
 def make_service(
-        *,
-        service_id: int = 1,
-        master_user_id: int = MASTER_ID,
-        duration_minutes: int = 60,
-        is_active: bool = True,
+    *,
+    service_id: int = 1,
+    master_user_id: int = MASTER_ID,
+    duration_minutes: int = 60,
+    is_active: bool = True,
 ) -> Service:
     return Service(
         id=service_id,
@@ -42,14 +42,14 @@ def make_service(
 
 
 def make_appointment(
-        *,
-        appointment_id: int = 1,
-        client_user_id: int = CLIENT_ID,
-        master_user_id: int = MASTER_ID,
-        service_id: int = 1,
-        starts_at: datetime | None = None,
-        ends_at: datetime | None = None,
-        status: AppointmentStatus = AppointmentStatus.PENDING,
+    *,
+    appointment_id: int = 1,
+    client_user_id: int = CLIENT_ID,
+    master_user_id: int = MASTER_ID,
+    service_id: int = 1,
+    starts_at: datetime | None = None,
+    ends_at: datetime | None = None,
+    status: AppointmentStatus = AppointmentStatus.PENDING,
 ) -> Appointment:
     if starts_at is None:
         starts_at = NOW + timedelta(hours=2)
@@ -75,15 +75,15 @@ class FakeServicesRepository:
         return self._services.get(service_id)
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            active_only: bool = False,
+        self,
+        *,
+        master_user_id: int,
+        active_only: bool = False,
     ) -> list[Service]:
         return [
-            service for service in self._services.values()
-            if service.master_user_id == master_user_id
-            and (not active_only or service.is_active)
+            service
+            for service in self._services.values()
+            if service.master_user_id == master_user_id and (not active_only or service.is_active)
         ]
 
 
@@ -102,15 +102,15 @@ class FakeWorkingHoursRepository:
         self._rows = rows
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            weekday: int | None = None,
+        self,
+        *,
+        master_user_id: int,
+        weekday: int | None = None,
     ) -> list[WorkingHours]:
         result = [
-            row for row in self._rows
-            if row.master_user_id == master_user_id
-            and (weekday is None or row.weekday == weekday)
+            row
+            for row in self._rows
+            if row.master_user_id == master_user_id and (weekday is None or row.weekday == weekday)
         ]
         return sorted(result, key=lambda row: (row.weekday, row.starts_time))
 
@@ -120,11 +120,11 @@ class FakeWorkDatesRepository:
         self._rows = list(rows or [])
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_date: date | None = None,
-            to_date: date | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> list[WorkDate]:
         result = []
         for row in self._rows:
@@ -138,11 +138,11 @@ class FakeWorkDatesRepository:
         return sorted(result, key=lambda row: (row.work_date, row.starts_time))
 
     async def list_month(
-            self,
-            *,
-            master_user_id: int,
-            year: int,
-            month: int,
+        self,
+        *,
+        master_user_id: int,
+        year: int,
+        month: int,
     ) -> list[WorkDate]:
         first = date(year, month, 1)
         to_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
@@ -153,10 +153,10 @@ class FakeWorkDatesRepository:
         )
 
     async def delete_dates(
-            self,
-            *,
-            master_user_id: int,
-            work_dates: list[date],
+        self,
+        *,
+        master_user_id: int,
+        work_dates: list[date],
     ) -> int:
         days = sorted(set(work_dates))
         if not days:
@@ -164,21 +164,19 @@ class FakeWorkDatesRepository:
         before = len(self._rows)
         day_set = set(days)
         self._rows = [
-            row for row in self._rows
-            if not (
-                row.master_user_id == master_user_id
-                and row.work_date in day_set
-            )
+            row
+            for row in self._rows
+            if not (row.master_user_id == master_user_id and row.work_date in day_set)
         ]
         return before - len(self._rows)
 
     async def upsert_dates(
-            self,
-            *,
-            master_user_id: int,
-            work_dates: list[date],
-            starts_time: time,
-            ends_time: time,
+        self,
+        *,
+        master_user_id: int,
+        work_dates: list[date],
+        starts_time: time,
+        ends_time: time,
     ) -> list[WorkDate]:
         if ends_time <= starts_time:
             raise ValueError("ends_time must be after starts_time")
@@ -187,11 +185,9 @@ class FakeWorkDatesRepository:
             return []
         day_set = set(days)
         self._rows = [
-            row for row in self._rows
-            if not (
-                row.master_user_id == master_user_id
-                and row.work_date in day_set
-            )
+            row
+            for row in self._rows
+            if not (row.master_user_id == master_user_id and row.work_date in day_set)
         ]
         next_id = max((row.id for row in self._rows), default=0) + 1
         result: list[WorkDate] = []
@@ -210,14 +206,14 @@ class FakeWorkDatesRepository:
         return result
 
     async def replace_month(
-            self,
-            *,
-            master_user_id: int,
-            year: int,
-            month: int,
-            work_dates: list[date],
-            starts_time: time | None = None,
-            ends_time: time | None = None,
+        self,
+        *,
+        master_user_id: int,
+        year: int,
+        month: int,
+        work_dates: list[date],
+        starts_time: time | None = None,
+        ends_time: time | None = None,
     ) -> list[WorkDate]:
         if work_dates:
             if starts_time is None or ends_time is None:
@@ -228,15 +224,11 @@ class FakeWorkDatesRepository:
         to_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
         for day in work_dates:
             if day.year != year or day.month != month:
-                raise ValueError(
-                    f"work_date {day.isoformat()} is outside {year}-{month:02d}"
-                )
+                raise ValueError(f"work_date {day.isoformat()} is outside {year}-{month:02d}")
         self._rows = [
-            row for row in self._rows
-            if not (
-                row.master_user_id == master_user_id
-                and first <= row.work_date < to_date
-            )
+            row
+            for row in self._rows
+            if not (row.master_user_id == master_user_id and first <= row.work_date < to_date)
         ]
         next_id = max((row.id for row in self._rows), default=0) + 1
         for day in sorted(set(work_dates)):
@@ -263,11 +255,11 @@ class FakeTimeOffRepository:
         self._rows = rows
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[TimeOff]:
         result = []
         for row in self._rows:
@@ -283,21 +275,21 @@ class FakeTimeOffRepository:
 
 class FakeAppointmentsRepository:
     def __init__(
-            self,
-            appointments: list[Appointment],
+        self,
+        appointments: list[Appointment],
     ) -> None:
         self._appointments = {item.id: item for item in appointments}
         self._next_id = max(self._appointments, default=0) + 1
 
     async def add_appointment(
-            self,
-            *,
-            client_user_id: int,
-            master_user_id: int,
-            service_id: int,
-            starts_at: datetime,
-            ends_at: datetime,
-            status: AppointmentStatus = AppointmentStatus.PENDING,
+        self,
+        *,
+        client_user_id: int,
+        master_user_id: int,
+        service_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        status: AppointmentStatus = AppointmentStatus.PENDING,
     ) -> Appointment:
         for existing in self._appointments.values():
             if existing.master_user_id != master_user_id:
@@ -324,18 +316,18 @@ class FakeAppointmentsRepository:
         return appointment
 
     async def get_appointment(
-            self,
-            *,
-            appointment_id: int,
+        self,
+        *,
+        appointment_id: int,
     ) -> Appointment | None:
         return self._appointments.get(appointment_id)
 
     async def list_by_client(
-            self,
-            *,
-            client_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        client_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[Appointment]:
         result = []
         for appointment in self._appointments.values():
@@ -352,11 +344,11 @@ class FakeAppointmentsRepository:
         )
 
     async def list_by_master(
-            self,
-            *,
-            master_user_id: int,
-            from_dt: datetime | None = None,
-            to_dt: datetime | None = None,
+        self,
+        *,
+        master_user_id: int,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
     ) -> list[Appointment]:
         result = []
         for appointment in self._appointments.values():
@@ -370,10 +362,10 @@ class FakeAppointmentsRepository:
         return sorted(result, key=lambda item: item.starts_at)
 
     async def change_status(
-            self,
-            *,
-            appointment_id: int,
-            status: AppointmentStatus,
+        self,
+        *,
+        appointment_id: int,
+        status: AppointmentStatus,
     ) -> Appointment | None:
         appointment = self._appointments.get(appointment_id)
         if appointment is None:
@@ -396,13 +388,13 @@ class FakeRepositories:
 
 
 def make_repos(
-        *,
-        services: list[Service] | None = None,
-        appointments: list[Appointment] | None = None,
-        settings: MasterSettings | None = None,
-        working_hours: list[WorkingHours] | None = None,
-        work_dates: list[WorkDate] | None = None,
-        time_offs: list[TimeOff] | None = None,
+    *,
+    services: list[Service] | None = None,
+    appointments: list[Appointment] | None = None,
+    settings: MasterSettings | None = None,
+    working_hours: list[WorkingHours] | None = None,
+    work_dates: list[WorkDate] | None = None,
+    time_offs: list[TimeOff] | None = None,
 ) -> RepositoriesPort:
     return FakeRepositories(
         services=FakeServicesRepository(services or []),

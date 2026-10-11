@@ -21,11 +21,11 @@ CREATED = NOW
 
 
 def _settings(
-        *,
-        slot_step_minutes: int | None = None,
-        gap_minutes: int = 0,
-        min_lead_minutes: int = 0,
-        booking_horizon_days: int = 7,
+    *,
+    slot_step_minutes: int | None = None,
+    gap_minutes: int = 0,
+    min_lead_minutes: int = 0,
+    booking_horizon_days: int = 7,
 ) -> MasterSettings:
     return MasterSettings(
         master_user_id=MASTER_ID,
@@ -40,11 +40,11 @@ def _settings(
 
 
 def _working(
-        *,
-        weekday: int = 4,
-        starts: time = time(9, 0),
-        ends: time = time(12, 0),
-        row_id: int = 1,
+    *,
+    weekday: int = 4,
+    starts: time = time(9, 0),
+    ends: time = time(12, 0),
+    row_id: int = 1,
 ) -> WorkingHours:
     return WorkingHours(
         id=row_id,
@@ -57,11 +57,11 @@ def _working(
 
 
 def _work_date(
-        *,
-        work_date: date,
-        starts: time = time(9, 0),
-        ends: time = time(12, 0),
-        row_id: int = 1,
+    *,
+    work_date: date,
+    starts: time = time(9, 0),
+    ends: time = time(12, 0),
+    row_id: int = 1,
 ) -> WorkDate:
     return WorkDate(
         id=row_id,
@@ -74,11 +74,11 @@ def _work_date(
 
 
 def _appointment(
-        *,
-        starts_at: datetime,
-        ends_at: datetime,
-        status: AppointmentStatus = AppointmentStatus.PENDING,
-        appointment_id: int = 1,
+    *,
+    starts_at: datetime,
+    ends_at: datetime,
+    status: AppointmentStatus = AppointmentStatus.PENDING,
+    appointment_id: int = 1,
 ) -> Appointment:
     return Appointment(
         id=appointment_id,
@@ -93,10 +93,10 @@ def _appointment(
 
 
 def _time_off(
-        *,
-        starts_at: datetime,
-        ends_at: datetime,
-        row_id: int = 1,
+    *,
+    starts_at: datetime,
+    ends_at: datetime,
+    row_id: int = 1,
 ) -> TimeOff:
     return TimeOff(
         id=row_id,
@@ -109,12 +109,12 @@ def _time_off(
 
 
 def make_availability_repos(
-        *,
-        settings: MasterSettings | None = None,
-        working_hours: list[WorkingHours] | None = None,
-        work_dates: list[WorkDate] | None = None,
-        time_offs: list[TimeOff] | None = None,
-        appointments: list[Appointment] | None = None,
+    *,
+    settings: MasterSettings | None = None,
+    working_hours: list[WorkingHours] | None = None,
+    work_dates: list[WorkDate] | None = None,
+    time_offs: list[TimeOff] | None = None,
+    appointments: list[Appointment] | None = None,
 ) -> RepositoriesPort:
     return make_repos(
         settings=settings,
@@ -156,7 +156,7 @@ async def test_basic_grid_on_working_hours():
 async def test_appointment_blocks_window():
     """Existing 10:00-11:00 MSK booking removes that candidate."""
     busy_start = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)  # 10:00 MSK
-    busy_end = datetime(2026, 9, 10, 8, 0, tzinfo=UTC)    # 11:00 MSK
+    busy_end = datetime(2026, 9, 10, 8, 0, tzinfo=UTC)  # 11:00 MSK
     repos = make_availability_repos(
         settings=_settings(booking_horizon_days=1),
         working_hours=[_working()],
@@ -203,7 +203,7 @@ async def test_time_off_blocks_window():
 async def test_gap_after_appointment():
     """gap=15: booking ending 10:00 MSK → next start not before 10:15."""
     busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00
-    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)    # 10:00
+    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)  # 10:00
     repos = make_availability_repos(
         settings=_settings(
             slot_step_minutes=15,
@@ -231,7 +231,7 @@ async def test_gap_after_appointment():
 async def test_gap_advances_cursor_when_step_is_coarser():
     """Default step (= duration 60) + gap 15 → next start at 10:15, not 11:00."""
     busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00
-    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)    # 10:00
+    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)  # 10:00
     repos = make_availability_repos(
         settings=_settings(
             slot_step_minutes=None,

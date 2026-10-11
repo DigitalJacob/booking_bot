@@ -58,10 +58,14 @@ jobs:
       - name: Ruff
         run: ruff check app config migrations tests main.py
 
-      # 5) Types for app/domain only (see [tool.mypy] in pyproject.toml).
+      # 5) Formatting (same paths as ruff check).
+      - name: Ruff format
+        run: ruff format --check app config migrations tests main.py
+
+      # 6) Types for app/domain only (see [tool.mypy] in pyproject.toml).
       - name: Mypy
         run: mypy
 
-      # 6) Unit tests + Postgres integration (see BOOKING_BOT_INTEGRATION / services).
+      # 7) Unit tests + Postgres integration (see BOOKING_BOT_INTEGRATION / services).
       - name: Pytest
         run: pytest -q

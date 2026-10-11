@@ -16,14 +16,14 @@ from app.infrastructure.database.repositories import Repositories
 
 
 async def appointment_notice_parts(
-        *,
-        repos: Repositories,
-        appointment: Appointment,
-        translations: dict,
-        text_key: str,
-        bot_timezone: str,
-        recipient_user_id: int,
-        reason: str | None = None,
+    *,
+    repos: Repositories,
+    appointment: Appointment,
+    translations: dict,
+    text_key: str,
+    bot_timezone: str,
+    recipient_user_id: int,
+    reason: str | None = None,
 ) -> tuple[dict[str, str], str]:
     recipient = await repos.users.get_user_by_id(user_id=recipient_user_id)
     i18n = resolve_i18n(
@@ -45,19 +45,19 @@ async def appointment_notice_parts(
 
 
 async def notify_appointment(
-        *,
-        bot: Bot,
-        repos: Repositories,
-        appointment: Appointment,
-        recipient_user_id: int,
-        translations: dict,
-        text_key: str,
-        bot_timezone: str,
-        with_master_actions: bool = False,
-        with_dismiss: bool = False,
-        with_reminder_actions: bool = False,
-        reminder_kind: ReminderKind | None = None,
-        reason: str | None = None,
+    *,
+    bot: Bot,
+    repos: Repositories,
+    appointment: Appointment,
+    recipient_user_id: int,
+    translations: dict,
+    text_key: str,
+    bot_timezone: str,
+    with_master_actions: bool = False,
+    with_dismiss: bool = False,
+    with_reminder_actions: bool = False,
+    reminder_kind: ReminderKind | None = None,
+    reason: str | None = None,
 ) -> int | None:
     """
     Send an appointment status notification.
@@ -103,14 +103,14 @@ async def notify_appointment(
 
 
 async def supersede_master_action_push(
-        *,
-        bot: Bot,
-        repos: Repositories,
-        appointment: Appointment,
-        translations: dict,
-        text_key: str,
-        bot_timezone: str,
-        reason: str | None = None,
+    *,
+    bot: Bot,
+    repos: Repositories,
+    appointment: Appointment,
+    translations: dict,
+    text_key: str,
+    bot_timezone: str,
+    reason: str | None = None,
 ) -> bool:
     """
     Replace the master's confirm/cancel push with a status message + OK.

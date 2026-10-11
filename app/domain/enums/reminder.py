@@ -29,4 +29,3 @@ def parse_reminder_kind(raw: str | None) -> ReminderKind | None:
         return ReminderKind(raw)
     except ValueError:
         return None
-

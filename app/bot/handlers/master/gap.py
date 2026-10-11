@@ -34,10 +34,10 @@ _MAX_GAP_MINUTES = 180
 
 
 async def _ensure_settings(
-        *,
-        repos: Repositories,
-        user: User,
-        bot_timezone: str,
+    *,
+    repos: Repositories,
+    user: User,
+    bot_timezone: str,
 ) -> MasterSettings:
     settings = await repos.master_settings.get_by_master(
         master_user_id=user.user_id,
@@ -51,11 +51,11 @@ async def _ensure_settings(
 
 
 async def _show_gap_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    text: str,
+    i18n: dict[str, str],
 ) -> None:
     await show_hub_prompt(
         message=message,
@@ -66,15 +66,15 @@ async def _show_gap_prompt(
 
 
 async def show_gap_screen(
-        *,
-        message: Message,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
-        edit: bool,
-        state: FSMContext | None = None,
-        prefer_sticky: bool = False,
+    *,
+    message: Message,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    edit: bool,
+    state: FSMContext | None = None,
+    prefer_sticky: bool = False,
 ) -> None:
     settings = await _ensure_settings(
         repos=repos,
@@ -118,11 +118,11 @@ async def show_gap_screen(
 
 @gap_router.callback_query(GapNavCallback.filter(F.action == "close"))
 async def process_gap_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-        schedule_mode: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
+    schedule_mode: str,
 ) -> None:
     await return_from_list(
         message=callback.message,
@@ -136,9 +136,9 @@ async def process_gap_close(
 
 @gap_router.callback_query(GapNavCallback.filter(F.action == "edit"))
 async def process_gap_edit(
-        callback: CallbackQuery,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(GapSG.value)
@@ -156,12 +156,12 @@ async def process_gap_edit(
     StateFilter(GapSG),
 )
 async def process_gap_cancel(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await clear_state_keep_hub(state)
     await show_gap_screen(
@@ -179,12 +179,12 @@ async def process_gap_cancel(
 
 @gap_router.message(StateFilter(GapSG.value))
 async def process_gap_value(
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     raw = (message.text or "").strip()
     await delete_user_input(message)
@@ -230,14 +230,14 @@ async def process_gap_value(
 
 
 async def _hub_gap(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
         return

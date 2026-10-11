@@ -26,9 +26,9 @@ def get_profile_cancel_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
 
 
 def get_profile_consent_kb(
-        *,
-        i18n: dict[str, str],
-        policy_url: str = "",
+    *,
+    i18n: dict[str, str],
+    policy_url: str = "",
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = [
         [
@@ -73,9 +73,7 @@ def get_phone_kb(i18n: dict[str, str]) -> ReplyKeyboardMarkup:
                     request_contact=True,
                 )
             ],
-            [
-                KeyboardButton(text=i18n.get("profile_cancel_button"))
-            ],
+            [KeyboardButton(text=i18n.get("profile_cancel_button"))],
         ],
         resize_keyboard=True,
         one_time_keyboard=True,

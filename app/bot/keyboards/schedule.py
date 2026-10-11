@@ -32,8 +32,8 @@ class ScheduleConfirmCallback(CallbackData, prefix="schcfm"):
 
 
 def format_interval_line(
-        row: WorkingHours,
-        i18n: dict[str, str],
+    row: WorkingHours,
+    i18n: dict[str, str],
 ) -> str:
     weekday = i18n.get(WEEKDAY_KEYS[row.weekday])
     starts = row.starts_time.strftime("%H:%M")
@@ -79,9 +79,9 @@ def get_schedule_view_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
 
 
 def get_schedule_edit_kb(
-        *,
-        rows: list[WorkingHours],
-        i18n: dict[str, str],
+    *,
+    rows: list[WorkingHours],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     """Edit mode: delete rows, add interval, back to view."""
     buttons: list[list[InlineKeyboardButton]] = []
@@ -119,9 +119,9 @@ def get_schedule_edit_kb(
 
 
 def get_schedule_confirm_delete_kb(
-        *,
-        working_hours_id: int,
-        i18n: dict[str, str],
+    *,
+    working_hours_id: int,
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -146,9 +146,9 @@ def get_schedule_confirm_delete_kb(
 
 
 def get_weekdays_kb(
-        *,
-        selected: set[int],
-        i18n: dict[str, str],
+    *,
+    selected: set[int],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []

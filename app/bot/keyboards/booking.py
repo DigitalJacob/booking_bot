@@ -36,9 +36,9 @@ class WindowCallback(CallbackData, prefix="win", sep="|"):
 
 
 def _nav_row(
-        i18n: dict[str, str],
-        *,
-        with_back: bool,
+    i18n: dict[str, str],
+    *,
+    with_back: bool,
 ) -> list[InlineKeyboardButton]:
     buttons: list[InlineKeyboardButton] = []
     if with_back:
@@ -58,9 +58,9 @@ def _nav_row(
 
 
 def get_services_kb(
-        *,
-        services: list[Service],
-        i18n: dict[str, str],
+    *,
+    services: list[Service],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
     for service in services:
@@ -80,9 +80,9 @@ def get_services_kb(
 
 
 def get_months_kb(
-        *,
-        months: list[tuple[int, int]],
-        i18n: dict[str, str],
+    *,
+    months: list[tuple[int, int]],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
@@ -103,11 +103,11 @@ def get_months_kb(
 
 
 def get_day_calendar_kb(
-        *,
-        year: int,
-        month: int,
-        open_days: set[int],
-        i18n: dict[str, str],
+    *,
+    year: int,
+    month: int,
+    open_days: set[int],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     """Month grid; only ``open_days`` (day-of-month) are selectable."""
     buttons: list[list[InlineKeyboardButton]] = [
@@ -161,10 +161,10 @@ def get_confirm_kb(*, i18n: dict[str, str]) -> InlineKeyboardMarkup:
 
 
 def get_windows_kb(
-        *,
-        windows: list[TimeWindow],
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    windows: list[TimeWindow],
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []

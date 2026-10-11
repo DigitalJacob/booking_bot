@@ -11,8 +11,8 @@ from app.domain.time_range import as_utc
 
 
 def reminded_at_for(
-        appointment: Appointment,
-        kind: ReminderKind,
+    appointment: Appointment,
+    kind: ReminderKind,
 ) -> datetime | None:
     return cast(
         datetime | None,
@@ -21,11 +21,11 @@ def reminded_at_for(
 
 
 def is_hour_reminder_due(
-        *,
-        appointment: Appointment,
-        kind: ReminderKind,
-        now: datetime,
-        lead_minutes: int,
+    *,
+    appointment: Appointment,
+    kind: ReminderKind,
+    now: datetime,
+    lead_minutes: int,
 ) -> bool:
     if kind not in (ReminderKind.CLIENT_HOUR, ReminderKind.MASTER_HOUR):
         return False
@@ -44,13 +44,13 @@ def is_hour_reminder_due(
 
 
 def is_evening_reminder_due(
-        *,
-        appointment: Appointment,
-        kind: ReminderKind,
-        now: datetime,
-        timezone_name: str,
-        evening_hour_start: int,
-        evening_hour_end: int,
+    *,
+    appointment: Appointment,
+    kind: ReminderKind,
+    now: datetime,
+    timezone_name: str,
+    evening_hour_start: int,
+    evening_hour_end: int,
 ) -> bool:
     """
     Evening window is half-open [evening_hour_start, evening_hour_end)
@@ -75,14 +75,14 @@ def is_evening_reminder_due(
 
 
 def is_reminder_due(
-        *,
-        appointment: Appointment,
-        kind: ReminderKind,
-        now: datetime,
-        timezone_name: str,
-        lead_minutes: int,
-        evening_hour_start: int,
-        evening_hour_end: int,
+    *,
+    appointment: Appointment,
+    kind: ReminderKind,
+    now: datetime,
+    timezone_name: str,
+    lead_minutes: int,
+    evening_hour_start: int,
+    evening_hour_end: int,
 ) -> bool:
     if kind in (ReminderKind.CLIENT_HOUR, ReminderKind.MASTER_HOUR):
         return is_hour_reminder_due(
@@ -102,14 +102,14 @@ def is_reminder_due(
 
 
 def filter_due_reminders(
-        *,
-        appointments: list[Appointment],
-        kind: ReminderKind,
-        now: datetime,
-        timezone_name: str,
-        lead_minutes: int,
-        evening_hour_start: int,
-        evening_hour_end: int,
+    *,
+    appointments: list[Appointment],
+    kind: ReminderKind,
+    now: datetime,
+    timezone_name: str,
+    lead_minutes: int,
+    evening_hour_start: int,
+    evening_hour_end: int,
 ) -> list[Appointment]:
     return [
         appointment

@@ -71,9 +71,9 @@ def get_service_photo_kb(i18n: dict[str, str]) -> InlineKeyboardMarkup:
 
 
 def get_services_list_kb(
-        *,
-        services: list[Service],
-        i18n: dict[str, str],
+    *,
+    services: list[Service],
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
     for service in services:
@@ -103,9 +103,9 @@ def get_services_list_kb(
 
 
 def get_service_card_kb(
-        *,
-        service: Service,
-        i18n: dict[str, str],
+    *,
+    service: Service,
+    i18n: dict[str, str],
 ) -> InlineKeyboardMarkup:
     toggle_text = (
         i18n.get("services_deactivate_button")
@@ -158,6 +158,6 @@ def get_service_card_kb(
                         service_id=service.id,
                     ).pack(),
                 )
-            ]
+            ],
         ]
     )

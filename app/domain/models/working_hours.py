@@ -7,7 +7,7 @@ from typing import Any
 class WorkingHours:
     id: int
     master_user_id: int
-    weekday: int # ISO 1=Mon ... 7=Sun
+    weekday: int  # ISO 1=Mon ... 7=Sun
     starts_time: time
     ends_time: time
     created_at: datetime

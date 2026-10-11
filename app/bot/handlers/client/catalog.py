@@ -50,14 +50,14 @@ def _card_body(service: Service, i18n: dict[str, str]) -> str:
 
 
 async def show_catalog_list(
-        *,
-        message: Message,
-        repos: Repositories,
-        master_user_id: int,
-        i18n: dict[str, str],
-        edit: bool,
-        state: FSMContext | None = None,
-        prefer_sticky: bool = False,
+    *,
+    message: Message,
+    repos: Repositories,
+    master_user_id: int,
+    i18n: dict[str, str],
+    edit: bool,
+    state: FSMContext | None = None,
+    prefer_sticky: bool = False,
 ) -> None:
     services = await repos.services.list_by_master(
         master_user_id=master_user_id,
@@ -103,10 +103,10 @@ async def show_catalog_list(
 
 @catalog_router.callback_query(CatalogNavCallback.filter(F.action == "close"))
 async def process_catalog_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     await return_from_list(
         message=callback.message,
@@ -119,20 +119,16 @@ async def process_catalog_close(
 
 @catalog_router.callback_query(CatalogServiceCallback.filter())
 async def process_catalog_open(
-        callback: CallbackQuery,
-        callback_data: CatalogServiceCallback,
-        repos: Repositories,
-        master_user_id: int,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: CatalogServiceCallback,
+    repos: Repositories,
+    master_user_id: int,
+    i18n: dict[str, str],
 ) -> None:
     service = await repos.services.get_service(
         service_id=callback_data.service_id,
     )
-    if (
-            service is None
-            or service.master_user_id != master_user_id
-            or not service.is_active
-    ):
+    if service is None or service.master_user_id != master_user_id or not service.is_active:
         await callback.answer(
             text=i18n.get("catalog_not_found"),
             show_alert=True,
@@ -154,11 +150,11 @@ async def process_catalog_open(
 
 @catalog_router.callback_query(CatalogNavCallback.filter(F.action == "back_list"))
 async def process_catalog_back_list(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        master_user_id: int,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    master_user_id: int,
+    i18n: dict[str, str],
 ) -> None:
     with suppress(TelegramBadRequest):
         await callback.message.delete()
@@ -175,20 +171,16 @@ async def process_catalog_back_list(
 
 
 async def _hub_catalog(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        master_user_id: int | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    master_user_id: int | None = None,
+    **_,
 ) -> None:
-    if (
-            user.role != UserRole.CLIENT
-            or repos is None
-            or master_user_id is None
-    ):
+    if user.role != UserRole.CLIENT or repos is None or master_user_id is None:
         return
     await state.update_data(
         hub_screen="catalog",
