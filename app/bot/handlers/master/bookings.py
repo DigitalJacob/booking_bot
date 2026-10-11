@@ -31,6 +31,7 @@ from app.bot.utils.cancel_registry import (
 from app.bot.utils.cancel_registry import (
     register as register_cancel_source,
 )
+from app.bot.utils.dates import format_year_month, parse_year_month, shift_month
 from app.bot.utils.format import (
     client_contact,
     combine_local,
@@ -75,28 +76,6 @@ def _parse_iso_date(raw: str | None) -> date | None:
         return date.fromisoformat(raw)
     except ValueError:
         return None
-
-
-def _parse_year_month(raw: str | None) -> tuple[int, int] | None:
-    if not raw:
-        return None
-    try:
-        year_s, month_s = raw.split("-", 1)
-        year, month = int(year_s), int(month_s)
-    except ValueError:
-        return None
-    if not 1 <= month <= 12:
-        return None
-    return year, month
-
-
-def _format_year_month(year: int, month: int) -> str:
-    return f"{year:04d}-{month:02d}"
-
-
-def _shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
-    idx = year * 12 + (month - 1) + delta
-    return idx // 12, idx % 12 + 1
 
 
 def _bookings_back_to(schedule_mode: str) -> str:
@@ -282,7 +261,7 @@ async def show_master_bookings_month(
         edit: bool,
 ) -> None:
     data = await state.get_data()
-    parsed = _parse_year_month(data.get(_MONTH_KEY))
+    parsed = parse_year_month(data.get(_MONTH_KEY))
     year = parsed[0] if parsed else None
     month = parsed[1] if parsed else None
     year, month, active, is_current_month = await _load_month_active(
@@ -294,7 +273,7 @@ async def show_master_bookings_month(
     )
     await state.update_data(
         {
-            _MONTH_KEY: _format_year_month(year, month),
+            _MONTH_KEY: format_year_month(year, month),
             _WEEK_START_KEY: None,
             _DAY_KEY: None,
         }
@@ -461,7 +440,7 @@ async def show_master_bookings_day(
 ) -> None:
     updates: dict[str, str | None] = {_DAY_KEY: day.isoformat()}
     if schedule_mode == "monthly":
-        updates[_MONTH_KEY] = _format_year_month(day.year, day.month)
+        updates[_MONTH_KEY] = format_year_month(day.year, day.month)
     else:
         updates[_MONTH_KEY] = None
     await state.update_data(updates)
@@ -516,7 +495,7 @@ async def _set_month(
         _, _, year, month = local_month_bounds(bot_timezone)
     else:
         data = await state.get_data()
-        parsed = _parse_year_month(data.get(_MONTH_KEY))
+        parsed = parse_year_month(data.get(_MONTH_KEY))
         year = parsed[0] if parsed else None
         month = parsed[1] if parsed else None
         _, _, year, month = local_month_bounds(
@@ -524,10 +503,10 @@ async def _set_month(
             year=year,
             month=month,
         )
-        year, month = _shift_month(year, month, delta_months)
+        year, month = shift_month(year, month, delta_months)
     await state.update_data(
         {
-            _MONTH_KEY: _format_year_month(year, month),
+            _MONTH_KEY: format_year_month(year, month),
             _WEEK_START_KEY: None,
             _DAY_KEY: None,
         }
@@ -1311,7 +1290,7 @@ async def _hub_bookings(
             hub_back="root",
             list_return="root",
             **{
-                _MONTH_KEY: _format_year_month(year, month),
+                _MONTH_KEY: format_year_month(year, month),
                 _WEEK_START_KEY: None,
                 _DAY_KEY: None,
             },

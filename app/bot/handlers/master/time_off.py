@@ -26,7 +26,12 @@ from app.bot.keyboards.time_off import (
 )
 from app.bot.keyboards.work_days import month_label
 from app.bot.states.states import TimeOffSG
-from app.bot.utils.dates import parse_time
+from app.bot.utils.dates import (
+    format_year_month,
+    parse_time,
+    parse_year_month,
+    shift_month,
+)
 from app.bot.utils.format import (
     client_contact,
     combine_local,
@@ -68,28 +73,6 @@ def _intervals_overlap(
         other_end: datetime,
 ) -> bool:
     return start < other_end and end > other_start
-
-
-def _parse_year_month(raw: str | None) -> tuple[int, int] | None:
-    if not raw:
-        return None
-    try:
-        year_s, month_s = raw.split("-", 1)
-        year, month = int(year_s), int(month_s)
-    except ValueError:
-        return None
-    if not 1 <= month <= 12:
-        return None
-    return year, month
-
-
-def _format_year_month(year: int, month: int) -> str:
-    return f"{year:04d}-{month:02d}"
-
-
-def _shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
-    idx = year * 12 + (month - 1) + delta
-    return idx // 12, idx % 12 + 1
 
 
 def _list_from_dt(bot_timezone: str) -> datetime:
@@ -402,7 +385,7 @@ async def _show_break_day_calendar(
         bot_timezone: str,
 ) -> None:
     data = await state.get_data()
-    parsed = _parse_year_month(data.get(_MONTH_KEY))
+    parsed = parse_year_month(data.get(_MONTH_KEY))
     year = parsed[0] if parsed else None
     month = parsed[1] if parsed else None
     _, _, year, month = local_month_bounds(
@@ -414,7 +397,7 @@ async def _show_break_day_calendar(
     if (year, month) < (current_year, current_month):
         year, month = current_year, current_month
 
-    await state.update_data({_MONTH_KEY: _format_year_month(year, month)})
+    await state.update_data({_MONTH_KEY: format_year_month(year, month)})
     await state.set_state(TimeOffSG.choosing_day)
 
     today = _today_local(bot_timezone)
@@ -462,7 +445,7 @@ async def _set_break_month(
         year, month = current_year, current_month
     else:
         data = await state.get_data()
-        parsed = _parse_year_month(data.get(_MONTH_KEY))
+        parsed = parse_year_month(data.get(_MONTH_KEY))
         year = parsed[0] if parsed else None
         month = parsed[1] if parsed else None
         _, _, year, month = local_month_bounds(
@@ -470,10 +453,10 @@ async def _set_break_month(
             year=year,
             month=month,
         )
-        year, month = _shift_month(year, month, delta_months)
+        year, month = shift_month(year, month, delta_months)
         if (year, month) < (current_year, current_month):
             year, month = current_year, current_month
-    await state.update_data({_MONTH_KEY: _format_year_month(year, month)})
+    await state.update_data({_MONTH_KEY: format_year_month(year, month)})
 
 
 async def show_time_off_list(
