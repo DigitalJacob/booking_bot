@@ -1,12 +1,19 @@
 from datetime import date, datetime, time
 
-from aiogram import F, Router
+from aiogram import F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
+from app.bot.handlers.master.work_days.common import (
+    MAX_WARN_LINES,
+    MONTH_CHOICES,
+    day_sets,
+    format_day_list,
+    format_hm,
+)
+from app.bot.handlers.master.work_days.router import work_days_router
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.work_days import (
     WorkDaysDayCallback,
@@ -31,36 +38,12 @@ from app.domain.models import Appointment, User
 from app.domain.services.schedule_conflicts import ScheduleConflictsService
 from app.infrastructure.database.repositories import Repositories
 
-work_days_router = Router(name="master_work_days")
-work_days_router.message.filter(UserRoleFilter(UserRole.MASTER))
-work_days_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
-
-_MONTH_CHOICES = 12
-_MAX_WARN_LINES = 8
-
-
-def _format_hm(value: time) -> str:
-    return value.strftime("%H:%M")
-
-
-def _format_day_list(values: list[str] | set[str]) -> str:
-    days = sorted(date.fromisoformat(value) for value in values)
-    return ", ".join(day.strftime("%d.%m") for day in days)
-
-
-def _day_sets(data: dict) -> tuple[set[str], set[str], set[str], set[str]]:
-    current = set(data.get("wd_days") or [])
-    initial = set(data.get("wd_days_initial") or [])
-    removed = initial - current
-    added = current - initial
-    return current, initial, removed, added
-
 
 def _month_choices(bot_timezone: str) -> list[tuple[int, int]]:
     today = datetime.now(get_zone(bot_timezone)).date()
     year, month = today.year, today.month
     result: list[tuple[int, int]] = []
-    for _ in range(_MONTH_CHOICES):
+    for _ in range(MONTH_CHOICES):
         result.append((year, month))
         if month == 12:
             year, month = year + 1, 1
@@ -70,10 +53,10 @@ def _month_choices(bot_timezone: str) -> list[tuple[int, int]]:
 
 
 async def _marked_months(
-        *,
-        repos: Repositories,
-        master_user_id: int,
-        months: list[tuple[int, int]],
+    *,
+    repos: Repositories,
+    master_user_id: int,
+    months: list[tuple[int, int]],
 ) -> set[tuple[int, int]]:
     marked: set[tuple[int, int]] = set()
     for year, month in months:
@@ -88,13 +71,13 @@ async def _marked_months(
 
 
 async def show_work_days_months(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     months = _month_choices(bot_timezone)
     marked = await _marked_months(
@@ -116,10 +99,10 @@ async def show_work_days_months(
 
 
 async def _show_calendar(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     year = int(data["wd_year"])
@@ -142,10 +125,10 @@ async def _show_calendar(
 
 
 async def _show_starts_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await state.set_state(WorkDaysSG.starts_time)
     await show_hub_prompt(
@@ -157,10 +140,10 @@ async def _show_starts_prompt(
 
 
 async def _show_ends_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await state.set_state(WorkDaysSG.ends_time)
     await show_hub_prompt(
@@ -172,18 +155,18 @@ async def _show_ends_prompt(
 
 
 async def _show_confirm(
-        *,
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
-        mode: str | None = None,
+    *,
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
+    mode: str | None = None,
 ) -> None:
     """mode: clear | off | set. If None, infer from current selection."""
     data = await state.get_data()
     year = int(data["wd_year"])
     month = int(data["wd_month"])
     days = data.get("wd_days") or []
-    _, _, removed, added = _day_sets(data)
+    _, _, removed, added = day_sets(data)
     await state.set_state(WorkDaysSG.confirming)
 
     if mode is None:
@@ -200,15 +183,15 @@ async def _show_confirm(
         )
     elif mode == "off":
         text = i18n.get("work_days_confirm_off").format(
-            dates=_format_day_list(removed),
+            dates=format_day_list(removed),
         )
     else:
         starts = time.fromisoformat(data["wd_starts"])
         ends = time.fromisoformat(data["wd_ends"])
         text = i18n.get("work_days_confirm").format(
-            dates=_format_day_list(added),
-            starts=_format_hm(starts),
-            ends=_format_hm(ends),
+            dates=format_day_list(added),
+            starts=format_hm(starts),
+            ends=format_hm(ends),
         )
 
     await state.update_data(wd_confirm_mode=mode)
@@ -221,14 +204,14 @@ async def _show_confirm(
 
 
 async def _warn_bookings_text(
-        *,
-        repos: Repositories,
-        appointments: list[Appointment],
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    repos: Repositories,
+    appointments: list[Appointment],
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> str:
     lines: list[str] = []
-    for appointment in appointments[:_MAX_WARN_LINES]:
+    for appointment in appointments[:MAX_WARN_LINES]:
         client = await repos.users.get_user_by_id(
             user_id=appointment.client_user_id,
         )
@@ -239,20 +222,20 @@ async def _warn_bookings_text(
                 client=name,
             )
         )
-    extra = len(appointments) - _MAX_WARN_LINES
+    extra = len(appointments) - MAX_WARN_LINES
     if extra > 0:
         lines.append(i18n.get("work_days_warn_more").format(n=extra))
     return i18n.get("work_days_warn_header").format(list="\n".join(lines))
 
 
 async def _show_warn_bookings(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        appointments: list[Appointment],
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    appointments: list[Appointment],
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     text = await _warn_bookings_text(
         repos=repos,
@@ -270,18 +253,18 @@ async def _show_warn_bookings(
 
 
 async def _apply_work_days_save(
-        *,
-        message: Message,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    *,
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     data = await state.get_data()
     year = int(data["wd_year"])
     month = int(data["wd_month"])
-    _, _, removed, added = _day_sets(data)
+    _, _, removed, added = day_sets(data)
     removed_dates = [date.fromisoformat(value) for value in removed]
     added_dates = [date.fromisoformat(value) for value in added]
     confirm_mode = data.get("wd_confirm_mode") or (
@@ -304,7 +287,7 @@ async def _apply_work_days_save(
             work_dates=removed_dates,
         )
         saved_text = i18n.get("work_days_off_saved").format(
-            dates=_format_day_list(removed),
+            dates=format_day_list(removed),
         )
     else:
         if removed_dates:
@@ -321,9 +304,9 @@ async def _apply_work_days_save(
             ends_time=ends,
         )
         saved_text = i18n.get("work_days_saved").format(
-            dates=_format_day_list(added),
-            starts=_format_hm(starts),
-            ends=_format_hm(ends),
+            dates=format_day_list(added),
+            starts=format_hm(starts),
+            ends=format_hm(ends),
         )
 
     await clear_state_keep_hub(state)
@@ -355,11 +338,11 @@ async def process_work_days_pad(callback: CallbackQuery) -> None:
     WorkDaysNavCallback.filter(F.action == "close"),
 )
 async def process_work_days_close(
-        callback: CallbackQuery,
-        state: FSMContext,
-        user: User,
-        i18n: dict[str, str],
-        schedule_mode: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    i18n: dict[str, str],
+    schedule_mode: str,
 ) -> None:
     await clear_state_keep_hub(state)
     await return_from_list(
@@ -377,12 +360,12 @@ async def process_work_days_close(
     StateFilter(WorkDaysSG),
 )
 async def process_work_days_cancel(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await clear_state_keep_hub(state)
     await state.update_data(
@@ -406,13 +389,13 @@ async def process_work_days_cancel(
     StateFilter(WorkDaysSG.choosing_month),
 )
 async def process_work_days_month(
-        callback: CallbackQuery,
-        callback_data: WorkDaysMonthCallback,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    callback_data: WorkDaysMonthCallback,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     allowed = set(_month_choices(bot_timezone))
     if (callback_data.year, callback_data.month) not in allowed:
@@ -447,10 +430,10 @@ async def process_work_days_month(
     StateFilter(WorkDaysSG.choosing_days),
 )
 async def process_work_days_toggle(
-        callback: CallbackQuery,
-        callback_data: WorkDaysDayCallback,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    callback_data: WorkDaysDayCallback,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     year = int(data["wd_year"])
@@ -462,10 +445,7 @@ async def process_work_days_toggle(
         await callback.answer()
         return
 
-    selected = {
-        date.fromisoformat(value)
-        for value in data.get("wd_days") or []
-    }
+    selected = {date.fromisoformat(value) for value in data.get("wd_days") or []}
     if selected_date in selected:
         selected.remove(selected_date)
     else:
@@ -482,12 +462,12 @@ async def process_work_days_toggle(
     StateFilter(WorkDaysSG.choosing_days),
 )
 async def process_work_days_next(
-        callback: CallbackQuery,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
-    current, _initial, removed, added = _day_sets(data)
+    current, _initial, removed, added = day_sets(data)
 
     if not current:
         await _show_confirm(
@@ -531,11 +511,11 @@ async def process_work_days_next(
     StateFilter(WorkDaysSG.choosing_days),
 )
 async def process_work_days_summary(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
 ) -> None:
     data = await state.get_data()
     year = int(data["wd_year"])
@@ -557,8 +537,8 @@ async def process_work_days_summary(
             lines.append(
                 i18n.get("work_days_summary_item").format(
                     date=row.work_date.strftime("%d.%m"),
-                    starts=_format_hm(row.starts_time),
-                    ends=_format_hm(row.ends_time),
+                    starts=format_hm(row.starts_time),
+                    ends=format_hm(row.ends_time),
                 )
             )
         text = "\n".join(lines)
@@ -575,12 +555,12 @@ async def process_work_days_summary(
     StateFilter(WorkDaysSG.choosing_days),
 )
 async def process_work_days_back_to_months(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await clear_state_keep_hub(state)
     await state.update_data(
@@ -601,9 +581,9 @@ async def process_work_days_back_to_months(
 
 @work_days_router.message(StateFilter(WorkDaysSG.starts_time))
 async def process_work_days_starts(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     starts = parse_time(message.text or "")
     await delete_user_input(message)
@@ -621,9 +601,9 @@ async def process_work_days_starts(
 
 @work_days_router.message(StateFilter(WorkDaysSG.ends_time))
 async def process_work_days_ends(
-        message: Message,
-        state: FSMContext,
-        i18n: dict[str, str],
+    message: Message,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     ends = parse_time(message.text or "")
     await delete_user_input(message)
@@ -656,9 +636,9 @@ async def process_work_days_ends(
     StateFilter(WorkDaysSG.confirming, WorkDaysSG.warn_bookings),
 )
 async def process_work_days_confirm_no(
-        callback: CallbackQuery,
-        state: FSMContext,
-        i18n: dict[str, str],
+    callback: CallbackQuery,
+    state: FSMContext,
+    i18n: dict[str, str],
 ) -> None:
     await _show_calendar(message=callback.message, state=state, i18n=i18n)
     await callback.answer()
@@ -669,15 +649,15 @@ async def process_work_days_confirm_no(
     StateFilter(WorkDaysSG.confirming),
 )
 async def process_work_days_confirm_yes(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     data = await state.get_data()
-    _, _, removed, _ = _day_sets(data)
+    _, _, removed, _ = day_sets(data)
     removed_dates = {date.fromisoformat(value) for value in removed}
     conflicting = await ScheduleConflictsService(repos).active_on_local_days(
         master_user_id=user.user_id,
@@ -712,12 +692,12 @@ async def process_work_days_confirm_yes(
     StateFilter(WorkDaysSG.warn_bookings),
 )
 async def process_work_days_save_anyway(
-        callback: CallbackQuery,
-        state: FSMContext,
-        repos: Repositories,
-        user: User,
-        i18n: dict[str, str],
-        bot_timezone: str,
+    callback: CallbackQuery,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
 ) -> None:
     await _apply_work_days_save(
         message=callback.message,
@@ -731,14 +711,14 @@ async def process_work_days_save_anyway(
 
 
 async def _hub_work_days(
-        *,
-        message: Message,
-        user: User,
-        i18n: dict[str, str],
-        state: FSMContext,
-        repos: Repositories | None = None,
-        bot_timezone: str | None = None,
-        **_,
+    *,
+    message: Message,
+    user: User,
+    i18n: dict[str, str],
+    state: FSMContext,
+    repos: Repositories | None = None,
+    bot_timezone: str | None = None,
+    **_,
 ) -> None:
     if user.role != UserRole.MASTER or repos is None or bot_timezone is None:
         return
