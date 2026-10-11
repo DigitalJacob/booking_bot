@@ -9,6 +9,21 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.appointment_cancel import start_appointment_cancel
 from app.bot.handlers.common.hub import return_from_list
+from app.bot.handlers.master.bookings.common import (
+    DAY_KEY,
+    MONTH_KEY,
+    WEEK_START_KEY,
+    active_only,
+    back_to_from_state,
+    bookings_back_to,
+    counts_by_local_day,
+    day_label,
+    load_month_active,
+    load_week_active,
+    parse_iso_date,
+    truncate_button,
+    week_range_label,
+)
 from app.bot.keyboards.bookings import (
     MasterAppointmentCallback,
     MasterBookingsPadCallback,
@@ -20,7 +35,6 @@ from app.bot.keyboards.bookings import (
     is_slot_past,
 )
 from app.bot.keyboards.hub import get_hub_root_kb
-from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.bot.keyboards.work_days import month_label
 from app.bot.utils.cancel_registry import (
     SOURCE_MASTER_BOOKINGS,
@@ -63,109 +77,6 @@ bookings_router = Router(name="master_bookings")
 bookings_router.message.filter(UserRoleFilter(UserRole.MASTER))
 bookings_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
-_BUTTON_LABEL_MAX = 64
-_WEEK_START_KEY = "bookings_week_start"
-_MONTH_KEY = "bookings_month"  # YYYY-MM
-_DAY_KEY = "bookings_day"
-
-
-def _parse_iso_date(raw: str | None) -> date | None:
-    if not raw:
-        return None
-    try:
-        return date.fromisoformat(raw)
-    except ValueError:
-        return None
-
-
-def _bookings_back_to(schedule_mode: str) -> str:
-    return "month" if schedule_mode == "monthly" else "week"
-
-
-async def _back_to_from_state(state: FSMContext) -> str:
-    data = await state.get_data()
-    return "month" if data.get(_MONTH_KEY) else "week"
-
-
-def _week_range_label(week_start: date) -> str:
-    last = week_start + timedelta(days=6)
-    return f"{week_start.strftime('%d.%m')}–{last.strftime('%d.%m')}"
-
-
-def _day_label(*, day: date, i18n: dict[str, str]) -> str:
-    weekday = i18n.get(WEEKDAY_KEYS[day.isoweekday()])
-    return f"{weekday} {day.strftime('%d.%m')}"
-
-
-def _truncate_button(text: str) -> str:
-    if len(text) > _BUTTON_LABEL_MAX:
-        return text[: _BUTTON_LABEL_MAX - 1] + "…"
-    return text
-
-
-def _active_only(appointments: list[Appointment]) -> list[Appointment]:
-    return [
-        a for a in appointments
-        if a.status in (AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
-    ]
-
-
-def _counts_by_local_day(
-        *,
-        appointments: list[Appointment],
-        bot_timezone: str,
-) -> dict[date, int]:
-    counts: dict[date, int] = {}
-    for appointment in appointments:
-        day = to_local(appointment.starts_at, bot_timezone).date()
-        counts[day] = counts.get(day, 0) + 1
-    return counts
-
-
-async def _load_week_active(
-        *,
-        repos: Repositories,
-        user: User,
-        bot_timezone: str,
-        week_start: date | None,
-) -> tuple[date, list[Appointment], bool]:
-    from_dt, to_dt, week_start = local_week_bounds(
-        bot_timezone,
-        week_start=week_start,
-    )
-    appointments = await repos.appointments.list_by_master(
-        master_user_id=user.user_id,
-        from_dt=from_dt,
-        to_dt=to_dt,
-    )
-    active = _active_only(appointments)
-    _, _, current_week_start = local_week_bounds(bot_timezone)
-    return week_start, active, week_start == current_week_start
-
-
-async def _load_month_active(
-        *,
-        repos: Repositories,
-        user: User,
-        bot_timezone: str,
-        year: int | None,
-        month: int | None,
-) -> tuple[int, int, list[Appointment], bool]:
-    from_dt, to_dt, year, month = local_month_bounds(
-        bot_timezone,
-        year=year,
-        month=month,
-    )
-    appointments = await repos.appointments.list_by_master(
-        master_user_id=user.user_id,
-        from_dt=from_dt,
-        to_dt=to_dt,
-    )
-    active = _active_only(appointments)
-    _, _, current_year, current_month = local_month_bounds(bot_timezone)
-    is_current = (year, month) == (current_year, current_month)
-    return year, month, active, is_current
-
 
 async def show_master_bookings_week(
         *,
@@ -178,8 +89,8 @@ async def show_master_bookings_week(
         edit: bool,
 ) -> None:
     data = await state.get_data()
-    week_start = _parse_iso_date(data.get(_WEEK_START_KEY))
-    week_start, active, is_current_week = await _load_week_active(
+    week_start = parse_iso_date(data.get(WEEK_START_KEY))
+    week_start, active, is_current_week = await load_week_active(
         repos=repos,
         user=user,
         bot_timezone=bot_timezone,
@@ -187,13 +98,13 @@ async def show_master_bookings_week(
     )
     await state.update_data(
         {
-            _WEEK_START_KEY: week_start.isoformat(),
-            _MONTH_KEY: None,
-            _DAY_KEY: None,
+            WEEK_START_KEY: week_start.isoformat(),
+            MONTH_KEY: None,
+            DAY_KEY: None,
         }
     )
-    week_label = _week_range_label(week_start)
-    by_day = _counts_by_local_day(
+    week_label = week_range_label(week_start)
+    by_day = counts_by_local_day(
         appointments=active,
         bot_timezone=bot_timezone,
     )
@@ -206,7 +117,7 @@ async def show_master_bookings_week(
         day_buttons = []
         for day in sorted(by_day):
             count = by_day[day]
-            day_text = _day_label(day=day, i18n=i18n)
+            day_text = day_label(day=day, i18n=i18n)
             lines.append(
                 i18n_plural(
                     count,
@@ -218,7 +129,7 @@ async def show_master_bookings_week(
             day_buttons.append(
                 (
                     day,
-                    _truncate_button(
+                    truncate_button(
                         i18n.get("master_bookings_day_button").format(
                             day=day_text,
                         )
@@ -261,10 +172,10 @@ async def show_master_bookings_month(
         edit: bool,
 ) -> None:
     data = await state.get_data()
-    parsed = parse_year_month(data.get(_MONTH_KEY))
+    parsed = parse_year_month(data.get(MONTH_KEY))
     year = parsed[0] if parsed else None
     month = parsed[1] if parsed else None
-    year, month, active, is_current_month = await _load_month_active(
+    year, month, active, is_current_month = await load_month_active(
         repos=repos,
         user=user,
         bot_timezone=bot_timezone,
@@ -273,13 +184,13 @@ async def show_master_bookings_month(
     )
     await state.update_data(
         {
-            _MONTH_KEY: format_year_month(year, month),
-            _WEEK_START_KEY: None,
-            _DAY_KEY: None,
+            MONTH_KEY: format_year_month(year, month),
+            WEEK_START_KEY: None,
+            DAY_KEY: None,
         }
     )
     month_text = month_label(year, month, i18n)
-    by_day = _counts_by_local_day(
+    by_day = counts_by_local_day(
         appointments=active,
         bot_timezone=bot_timezone,
     )
@@ -291,7 +202,7 @@ async def show_master_bookings_month(
         lines: list[str] = []
         for day in sorted(by_day):
             count = by_day[day]
-            day_text = _day_label(day=day, i18n=i18n)
+            day_text = day_label(day=day, i18n=i18n)
             lines.append(
                 i18n_plural(
                     count,
@@ -376,8 +287,8 @@ async def build_master_bookings_day(
         from_dt=day_start,
         to_dt=day_end,
     )
-    active = _active_only(appointments)
-    day_text = _day_label(day=day, i18n=i18n)
+    active = active_only(appointments)
+    day_text = day_label(day=day, i18n=i18n)
 
     if not active:
         return (
@@ -399,7 +310,7 @@ async def build_master_bookings_day(
         title = service.title if service else "?"
         local = to_local(appointment.starts_at, bot_timezone)
         slot_time = local.strftime("%H:%M")
-        labels[appointment.id] = _truncate_button(
+        labels[appointment.id] = truncate_button(
             i18n.get("master_bookings_slot_button").format(
                 time=slot_time,
                 title=title,
@@ -438,11 +349,11 @@ async def show_master_bookings_day(
         edit: bool,
         schedule_mode: str = "weekly",
 ) -> None:
-    updates: dict[str, str | None] = {_DAY_KEY: day.isoformat()}
+    updates: dict[str, str | None] = {DAY_KEY: day.isoformat()}
     if schedule_mode == "monthly":
-        updates[_MONTH_KEY] = format_year_month(day.year, day.month)
+        updates[MONTH_KEY] = format_year_month(day.year, day.month)
     else:
-        updates[_MONTH_KEY] = None
+        updates[MONTH_KEY] = None
     await state.update_data(updates)
     text, kb = await build_master_bookings_day(
         repos=repos,
@@ -450,7 +361,7 @@ async def show_master_bookings_day(
         i18n=i18n,
         bot_timezone=bot_timezone,
         day=day,
-        back_to=_bookings_back_to(schedule_mode),
+        back_to=bookings_back_to(schedule_mode),
     )
     if edit:
         await message.edit_text(text=text, reply_markup=kb)
@@ -469,7 +380,7 @@ async def _set_week_start(
         _, _, week_start = local_week_bounds(bot_timezone)
     else:
         data = await state.get_data()
-        week_start = _parse_iso_date(data.get(_WEEK_START_KEY))
+        week_start = parse_iso_date(data.get(WEEK_START_KEY))
         _, _, week_start = local_week_bounds(
             bot_timezone,
             week_start=week_start,
@@ -477,9 +388,9 @@ async def _set_week_start(
         week_start = week_start + timedelta(weeks=delta_weeks)
     await state.update_data(
         {
-            _WEEK_START_KEY: week_start.isoformat(),
-            _MONTH_KEY: None,
-            _DAY_KEY: None,
+            WEEK_START_KEY: week_start.isoformat(),
+            MONTH_KEY: None,
+            DAY_KEY: None,
         }
     )
 
@@ -495,7 +406,7 @@ async def _set_month(
         _, _, year, month = local_month_bounds(bot_timezone)
     else:
         data = await state.get_data()
-        parsed = parse_year_month(data.get(_MONTH_KEY))
+        parsed = parse_year_month(data.get(MONTH_KEY))
         year = parsed[0] if parsed else None
         month = parsed[1] if parsed else None
         _, _, year, month = local_month_bounds(
@@ -506,9 +417,9 @@ async def _set_month(
         year, month = shift_month(year, month, delta_months)
     await state.update_data(
         {
-            _MONTH_KEY: format_year_month(year, month),
-            _WEEK_START_KEY: None,
-            _DAY_KEY: None,
+            MONTH_KEY: format_year_month(year, month),
+            WEEK_START_KEY: None,
+            DAY_KEY: None,
         }
     )
 
@@ -577,7 +488,7 @@ async def _show_booking_card(
         bot_timezone: str,
 ) -> None:
     day = to_local(appointment.starts_at, bot_timezone).date()
-    await state.update_data({_DAY_KEY: day.isoformat()})
+    await state.update_data({DAY_KEY: day.isoformat()})
     text, kb = await build_master_booking_card(
         appointment=appointment,
         repos=repos,
@@ -676,13 +587,13 @@ async def resume_master_after_cancel(
 
     if source == SOURCE_MASTER_BOOKINGS:
         day = to_local(appointment.starts_at, bot_timezone).date()
-        back_to = await _back_to_from_state(state)
+        back_to = await back_to_from_state(state)
         await state.update_data(
             {
                 "hub_screen": "bookings",
                 "hub_back": "root",
                 "list_return": "root",
-                _DAY_KEY: day.isoformat(),
+                DAY_KEY: day.isoformat(),
             }
         )
         text, kb = await build_master_bookings_day(
@@ -753,7 +664,7 @@ async def _finish_master_decision(
         and callback.message.message_id == sticky_id
     )
     if on_sticky:
-        day = _parse_iso_date(data.get(_DAY_KEY))
+        day = parse_iso_date(data.get(DAY_KEY))
         if day is not None:
             await show_master_bookings_day(
                 message=callback.message,
@@ -805,7 +716,7 @@ async def process_open_day(
         bot_timezone: str,
         schedule_mode: str,
 ) -> None:
-    day = _parse_iso_date(callback_data.day)
+    day = parse_iso_date(callback_data.day)
     if day is None:
         await callback.answer(
             text=i18n.get("master_action_failed"),
@@ -871,7 +782,7 @@ async def process_back(
         schedule_mode: str,
 ) -> None:
     data = await state.get_data()
-    day = _parse_iso_date(data.get(_DAY_KEY))
+    day = parse_iso_date(data.get(DAY_KEY))
     if day is None:
         await show_master_bookings_overview(
             message=callback.message,
@@ -1286,9 +1197,9 @@ async def _hub_bookings(
             hub_back="root",
             list_return="root",
             **{
-                _MONTH_KEY: format_year_month(year, month),
-                _WEEK_START_KEY: None,
-                _DAY_KEY: None,
+                MONTH_KEY: format_year_month(year, month),
+                WEEK_START_KEY: None,
+                DAY_KEY: None,
             },
         )
         await show_master_bookings_month(
@@ -1308,9 +1219,9 @@ async def _hub_bookings(
         hub_back="root",
         list_return="root",
         **{
-            _WEEK_START_KEY: week_start.isoformat(),
-            _MONTH_KEY: None,
-            _DAY_KEY: None,
+            WEEK_START_KEY: week_start.isoformat(),
+            MONTH_KEY: None,
+            DAY_KEY: None,
         },
     )
     await show_master_bookings_week(
@@ -1337,8 +1248,8 @@ async def _cancel_edit_day(ctx: CancelResumeCtx) -> None:
     if ctx.appointment is None or ctx.state is None:
         return
     day = to_local(ctx.appointment.starts_at, ctx.bot_timezone).date()
-    back_to = await _back_to_from_state(ctx.state)
-    await ctx.state.update_data({_DAY_KEY: day.isoformat()})
+    back_to = await back_to_from_state(ctx.state)
+    await ctx.state.update_data({DAY_KEY: day.isoformat()})
     text, kb = await build_master_bookings_day(
         repos=ctx.repos,
         user=ctx.user,
