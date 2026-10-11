@@ -5,10 +5,25 @@ from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
+from app.bot.handlers.master.time_off.common import (
+    MAX_WARN_LINES,
+    MONTH_KEY,
+    PENDING_ENDS_KEY,
+    PENDING_KIND_KEY,
+    PENDING_STARTS_KEY,
+    PENDING_WHEN_KEY,
+    format_day_range,
+    format_hours_when,
+    is_breaks_mode,
+    list_from_dt,
+    parse_date,
+    show_time_off_prompt,
+    today_local,
+)
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.time_off import (
     TimeOffConfirmCallback,
@@ -17,7 +32,6 @@ from app.bot.keyboards.time_off import (
     TimeOffNavCallback,
     TimeOffPadCallback,
     format_time_off_line,
-    get_time_off_cancel_kb,
     get_time_off_confirm_delete_kb,
     get_time_off_day_calendar_kb,
     get_time_off_edit_kb,
@@ -42,7 +56,6 @@ from app.bot.utils.format import (
 from app.bot.utils.hub_nav import (
     HUB_MESSAGE_ID_KEY,
     clear_state_keep_hub,
-    show_hub_prompt,
 )
 from app.bot.utils.hub_registry import register
 from app.bot.utils.telegram import delete_user_input, is_not_modified
@@ -54,70 +67,6 @@ from app.infrastructure.database.repositories import Repositories
 time_off_router = Router(name="master_time_off")
 time_off_router.message.filter(UserRoleFilter(UserRole.MASTER))
 time_off_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
-
-_MONTH_KEY = "toff_month"  # YYYY-MM
-_MAX_WARN_LINES = 8
-_PENDING_STARTS_KEY = "toff_starts_at"
-_PENDING_ENDS_KEY = "toff_ends_at"
-_PENDING_WHEN_KEY = "toff_when"
-_PENDING_KIND_KEY = "toff_kind"  # hours | days
-
-
-def _is_breaks_mode(schedule_mode: str) -> bool:
-    return schedule_mode == "monthly"
-
-
-def _list_from_dt(bot_timezone: str) -> datetime:
-    zone = get_zone(bot_timezone)
-    now_local = datetime.now(zone)
-    return now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-
-
-def _today_local(bot_timezone: str) -> date:
-    return _list_from_dt(bot_timezone).date()
-
-
-def _parse_date(value: str) -> date | None:
-    value = value.strip()
-    for fmt in ("%d.%m.%Y", "%d.%m.%y"):
-        try:
-            return datetime.strptime(value, fmt).date()
-        except ValueError:
-            continue
-    return None
-
-
-def _format_day_range(starts: date, ends: date) -> str:
-    start_d = starts.strftime("%d.%m.%Y")
-    end_d = ends.strftime("%d.%m.%Y")
-    if start_d == end_d:
-        return start_d
-    return f"{start_d}-{end_d}"
-
-
-def _format_hours_when(day: date, starts: time, ends: time) -> str:
-    return (
-        f"{day.strftime('%d.%m.%Y')} "
-        f"{starts.strftime('%H:%M')}–{ends.strftime('%H:%M')}"
-    )
-
-
-async def _show_time_off_prompt(
-        *,
-        message: Message,
-        state: FSMContext,
-        text: str,
-        i18n: dict[str, str],
-        reply_markup: InlineKeyboardMarkup | None = None,
-) -> None:
-    """Show FSM prompt on the tapped hub message / sticky when possible."""
-    kb = reply_markup if reply_markup is not None else get_time_off_cancel_kb(i18n)
-    await show_hub_prompt(
-        message=message,
-        state=state,
-        text=text,
-        reply_markup=kb,
-    )
 
 
 async def _finish_time_off_add(
@@ -145,7 +94,7 @@ async def _finish_time_off_add(
     )
     ok_key = (
         "time_off_breaks_add_ok"
-        if _is_breaks_mode(schedule_mode)
+        if is_breaks_mode(schedule_mode)
         else "time_off_add_ok"
     )
     await message.answer(
@@ -162,7 +111,7 @@ async def _warn_bookings_text(
         bot_timezone: str,
 ) -> str:
     lines: list[str] = []
-    for appointment in appointments[:_MAX_WARN_LINES]:
+    for appointment in appointments[:MAX_WARN_LINES]:
         client = await repos.users.get_user_by_id(
             user_id=appointment.client_user_id,
         )
@@ -173,7 +122,7 @@ async def _warn_bookings_text(
                 client=name,
             )
         )
-    extra = len(appointments) - _MAX_WARN_LINES
+    extra = len(appointments) - MAX_WARN_LINES
     if extra > 0:
         lines.append(i18n.get("time_off_warn_more").format(n=extra))
     return i18n.get("time_off_warn_header").format(list="\n".join(lines))
@@ -194,10 +143,10 @@ async def _show_warn_bookings(
 ) -> None:
     await state.update_data(
         {
-            _PENDING_STARTS_KEY: starts_at.isoformat(),
-            _PENDING_ENDS_KEY: ends_at.isoformat(),
-            _PENDING_WHEN_KEY: when,
-            _PENDING_KIND_KEY: kind,
+            PENDING_STARTS_KEY: starts_at.isoformat(),
+            PENDING_ENDS_KEY: ends_at.isoformat(),
+            PENDING_WHEN_KEY: when,
+            PENDING_KIND_KEY: kind,
         }
     )
     text = await _warn_bookings_text(
@@ -207,7 +156,7 @@ async def _show_warn_bookings(
         bot_timezone=bot_timezone,
     )
     await state.set_state(TimeOffSG.warn_bookings)
-    await _show_time_off_prompt(
+    await show_time_off_prompt(
         message=message,
         state=state,
         text=text,
@@ -227,9 +176,9 @@ async def _apply_pending_time_off(
         schedule_mode: str,
 ) -> None:
     data = await state.get_data()
-    starts_raw = data.get(_PENDING_STARTS_KEY)
-    ends_raw = data.get(_PENDING_ENDS_KEY)
-    when = data.get(_PENDING_WHEN_KEY)
+    starts_raw = data.get(PENDING_STARTS_KEY)
+    ends_raw = data.get(PENDING_ENDS_KEY)
+    when = data.get(PENDING_WHEN_KEY)
     if not starts_raw or not ends_raw or not when:
         await clear_state_keep_hub(state)
         await show_time_off_list(
@@ -326,8 +275,8 @@ async def _start_hours_add(
 ) -> None:
     """Weekly: typed DD.MM.YYYY for hours-in-one-day."""
     await state.set_state(TimeOffSG.hours_day)
-    example = _today_local(bot_timezone).strftime("%d.%m.%Y")
-    await _show_time_off_prompt(
+    example = today_local(bot_timezone).strftime("%d.%m.%Y")
+    await show_time_off_prompt(
         message=message,
         state=state,
         text=i18n.get("time_off_enter_hours_day").format(example=example),
@@ -345,7 +294,7 @@ async def _show_break_day_calendar(
         bot_timezone: str,
 ) -> None:
     data = await state.get_data()
-    parsed = parse_year_month(data.get(_MONTH_KEY))
+    parsed = parse_year_month(data.get(MONTH_KEY))
     year = parsed[0] if parsed else None
     month = parsed[1] if parsed else None
     _, _, year, month = local_month_bounds(
@@ -357,10 +306,10 @@ async def _show_break_day_calendar(
     if (year, month) < (current_year, current_month):
         year, month = current_year, current_month
 
-    await state.update_data({_MONTH_KEY: format_year_month(year, month)})
+    await state.update_data({MONTH_KEY: format_year_month(year, month)})
     await state.set_state(TimeOffSG.choosing_day)
 
-    today = _today_local(bot_timezone)
+    today = today_local(bot_timezone)
     work_rows = await repos.work_dates.list_month(
         master_user_id=user.user_id,
         year=year,
@@ -384,7 +333,7 @@ async def _show_break_day_calendar(
         i18n=i18n,
         is_current_month=(year, month) == (current_year, current_month),
     )
-    await _show_time_off_prompt(
+    await show_time_off_prompt(
         message=message,
         state=state,
         text=text,
@@ -405,7 +354,7 @@ async def _set_break_month(
         year, month = current_year, current_month
     else:
         data = await state.get_data()
-        parsed = parse_year_month(data.get(_MONTH_KEY))
+        parsed = parse_year_month(data.get(MONTH_KEY))
         year = parsed[0] if parsed else None
         month = parsed[1] if parsed else None
         _, _, year, month = local_month_bounds(
@@ -416,7 +365,7 @@ async def _set_break_month(
         year, month = shift_month(year, month, delta_months)
         if (year, month) < (current_year, current_month):
             year, month = current_year, current_month
-    await state.update_data({_MONTH_KEY: format_year_month(year, month)})
+    await state.update_data({MONTH_KEY: format_year_month(year, month)})
 
 
 async def show_time_off_list(
@@ -433,9 +382,9 @@ async def show_time_off_list(
 ) -> None:
     rows = await repos.time_off.list_by_master(
         master_user_id=user.user_id,
-        from_dt=_list_from_dt(bot_timezone),
+        from_dt=list_from_dt(bot_timezone),
     )
-    if _is_breaks_mode(schedule_mode):
+    if is_breaks_mode(schedule_mode):
         header_key = "time_off_breaks_header"
         empty_key = "time_off_breaks_empty"
     else:
@@ -530,7 +479,7 @@ async def process_time_off_delete(
     item = format_time_off_line(row, i18n, bot_timezone).lstrip("• ").strip()
     confirm_key = (
         "time_off_breaks_confirm_delete"
-        if _is_breaks_mode(schedule_mode)
+        if is_breaks_mode(schedule_mode)
         else "time_off_confirm_delete"
     )
     await callback.message.edit_text(
@@ -567,7 +516,7 @@ async def process_time_off_delete_yes(
         return
     deleted_key = (
         "time_off_breaks_deleted"
-        if _is_breaks_mode(schedule_mode)
+        if is_breaks_mode(schedule_mode)
         else "time_off_deleted"
     )
     await callback.answer(text=i18n.get(deleted_key))
@@ -616,7 +565,7 @@ async def process_time_off_add(
         schedule_mode: str,
 ) -> None:
     await clear_state_keep_hub(state)
-    if _is_breaks_mode(schedule_mode):
+    if is_breaks_mode(schedule_mode):
         # Monthly: pick an open work day on the calendar, then hours.
         await _show_break_day_calendar(
             message=callback.message,
@@ -630,7 +579,7 @@ async def process_time_off_add(
         return
 
     await state.set_state(TimeOffSG.choosing_kind)
-    await _show_time_off_prompt(
+    await show_time_off_prompt(
         message=callback.message,
         state=state,
         text=i18n.get("time_off_choose_kind"),
@@ -651,8 +600,8 @@ async def process_time_off_kind_days(
         bot_timezone: str,
 ) -> None:
     await state.set_state(TimeOffSG.starts_date)
-    example = _today_local(bot_timezone).strftime("%d.%m.%Y")
-    await _show_time_off_prompt(
+    example = today_local(bot_timezone).strftime("%d.%m.%Y")
+    await show_time_off_prompt(
         message=callback.message,
         state=state,
         text=i18n.get("time_off_enter_starts").format(example=example),
@@ -786,7 +735,7 @@ async def process_break_day(
         )
         return
 
-    today = _today_local(bot_timezone)
+    today = today_local(bot_timezone)
     if day < today:
         await callback.answer(
             text=i18n.get("time_off_invalid_past"),
@@ -809,7 +758,7 @@ async def process_break_day(
 
     await state.update_data(hours_day=day.isoformat())
     await state.set_state(TimeOffSG.starts_time)
-    await _show_time_off_prompt(
+    await show_time_off_prompt(
         message=callback.message,
         state=state,
         text=i18n.get("time_off_enter_hours_starts"),
@@ -858,7 +807,7 @@ async def process_time_off_starts(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    starts = _parse_date(message.text or "")
+    starts = parse_date(message.text or "")
     await delete_user_input(message)
     if starts is None:
         await message.answer(text=i18n.get("time_off_invalid_date"))
@@ -866,8 +815,8 @@ async def process_time_off_starts(
 
     await state.update_data(starts_date=starts.isoformat())
     await state.set_state(TimeOffSG.ends_date)
-    example = max(starts, _today_local(bot_timezone)).strftime("%d.%m.%Y")
-    await _show_time_off_prompt(
+    example = max(starts, today_local(bot_timezone)).strftime("%d.%m.%Y")
+    await show_time_off_prompt(
         message=message,
         state=state,
         text=i18n.get("time_off_enter_ends").format(example=example),
@@ -885,7 +834,7 @@ async def process_time_off_ends(
         bot_timezone: str,
         schedule_mode: str,
 ) -> None:
-    ends = _parse_date(message.text or "")
+    ends = parse_date(message.text or "")
     await delete_user_input(message)
     if ends is None:
         await message.answer(text=i18n.get("time_off_invalid_date"))
@@ -897,7 +846,7 @@ async def process_time_off_ends(
         await message.answer(text=i18n.get("time_off_invalid_range"))
         return
 
-    if ends < _today_local(bot_timezone):
+    if ends < today_local(bot_timezone):
         await message.answer(text=i18n.get("time_off_invalid_past"))
         return
 
@@ -914,7 +863,7 @@ async def process_time_off_ends(
         schedule_mode=schedule_mode,
         starts_at=starts_at,
         ends_at=ends_at,
-        when=_format_day_range(starts, ends),
+        when=format_day_range(starts, ends),
         kind="days",
     )
 
@@ -926,19 +875,19 @@ async def process_time_off_hours_day(
         i18n: dict[str, str],
         bot_timezone: str,
 ) -> None:
-    day = _parse_date(message.text or "")
+    day = parse_date(message.text or "")
     await delete_user_input(message)
     if day is None:
         await message.answer(text=i18n.get("time_off_invalid_date"))
         return
 
-    if day < _today_local(bot_timezone):
+    if day < today_local(bot_timezone):
         await message.answer(text=i18n.get("time_off_invalid_past"))
         return
 
     await state.update_data(hours_day=day.isoformat())
     await state.set_state(TimeOffSG.starts_time)
-    await _show_time_off_prompt(
+    await show_time_off_prompt(
         message=message,
         state=state,
         text=i18n.get("time_off_enter_hours_starts"),
@@ -960,7 +909,7 @@ async def process_time_off_hours_starts(
 
     await state.update_data(starts_time=starts.isoformat())
     await state.set_state(TimeOffSG.ends_time)
-    await _show_time_off_prompt(
+    await show_time_off_prompt(
         message=message,
         state=state,
         text=i18n.get("time_off_enter_hours_ends"),
@@ -1008,7 +957,7 @@ async def process_time_off_hours_ends(
         schedule_mode=schedule_mode,
         starts_at=starts_at,
         ends_at=ends_at,
-        when=_format_hours_when(day, starts, ends),
+        when=format_hours_when(day, starts, ends),
         kind="hours",
     )
 
@@ -1049,10 +998,10 @@ async def process_time_off_warn_back(
         bot_timezone: str,
 ) -> None:
     data = await state.get_data()
-    kind = data.get(_PENDING_KIND_KEY)
+    kind = data.get(PENDING_KIND_KEY)
     if kind == "hours":
         await state.set_state(TimeOffSG.ends_time)
-        await _show_time_off_prompt(
+        await show_time_off_prompt(
             message=callback.message,
             state=state,
             text=i18n.get("time_off_enter_hours_ends"),
@@ -1060,12 +1009,12 @@ async def process_time_off_warn_back(
         )
     else:
         await state.set_state(TimeOffSG.ends_date)
-        example = _today_local(bot_timezone).strftime("%d.%m.%Y")
+        example = today_local(bot_timezone).strftime("%d.%m.%Y")
         starts_raw = data.get("starts_date")
         if starts_raw:
             starts = date.fromisoformat(str(starts_raw))
-            example = max(starts, _today_local(bot_timezone)).strftime("%d.%m.%Y")
-        await _show_time_off_prompt(
+            example = max(starts, today_local(bot_timezone)).strftime("%d.%m.%Y")
+        await show_time_off_prompt(
             message=callback.message,
             state=state,
             text=i18n.get("time_off_enter_ends").format(example=example),
