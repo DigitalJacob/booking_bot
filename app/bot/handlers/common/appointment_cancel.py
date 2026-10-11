@@ -16,6 +16,18 @@ from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.reminders import get_reminder_kb
 from app.bot.reminders import REMINDER_TEXT_KEY_BY_KIND
 from app.bot.states.states import AppointmentCancelSG
+from app.bot.utils.cancel_registry import (
+    MASTER_SOURCES as _MASTER_SOURCES,
+)
+from app.bot.utils.cancel_registry import (
+    PUSH_SOURCES as _PUSH_SOURCES,
+)
+from app.bot.utils.cancel_registry import (
+    SOURCE_MASTER_BOOKINGS,
+    SOURCE_MASTER_PUSH,
+    SOURCE_MY_BOOKINGS,
+    SOURCE_REMINDER,
+)
 from app.bot.utils.format import to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.notify import (
@@ -35,13 +47,15 @@ from app.infrastructure.database.repositories import Repositories
 
 appointment_cancel_router = Router(name="appointment_cancel")
 
-SOURCE_REMINDER = "reminder"
-SOURCE_MY_BOOKINGS = "my_bookings"
-SOURCE_MASTER_PUSH = "master_push"
-SOURCE_MASTER_BOOKINGS = "master_bookings"
+# Re-export for existing callers (cr2 will import from cancel_registry directly).
+__all__ = [
+    "SOURCE_MASTER_BOOKINGS",
+    "SOURCE_MASTER_PUSH",
+    "SOURCE_MY_BOOKINGS",
+    "SOURCE_REMINDER",
+    "appointment_cancel_router",
+]
 
-_PUSH_SOURCES = frozenset({SOURCE_REMINDER, SOURCE_MASTER_PUSH})
-_MASTER_SOURCES = frozenset({SOURCE_MASTER_PUSH, SOURCE_MASTER_BOOKINGS})
 _BOOKINGS_NAV_KEYS = ("bookings_week_start", "bookings_month", "bookings_day")
 
 _REASON_MAX_LEN = 200
