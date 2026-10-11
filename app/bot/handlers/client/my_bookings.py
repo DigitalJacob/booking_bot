@@ -1,4 +1,7 @@
+from contextlib import suppress
+
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
@@ -10,7 +13,14 @@ from app.bot.keyboards.my_bookings import (
     get_my_bookings_list_kb,
 )
 from app.bot.keyboards.schedule import WEEKDAY_KEYS
-from app.bot.utils.cancel_registry import SOURCE_MY_BOOKINGS
+from app.bot.utils.cancel_registry import (
+    SOURCE_MY_BOOKINGS,
+    CancelResumeCtx,
+    CancelSourceHooks,
+)
+from app.bot.utils.cancel_registry import (
+    register as register_cancel_source,
+)
 from app.bot.utils.format import format_dt, status_label, to_local
 from app.bot.utils.hub_registry import register
 from app.domain.enums import AppointmentStatus, UserRole
@@ -316,3 +326,48 @@ async def _hub_my_bookings(
 
 
 register("my_bookings", _hub_my_bookings)
+
+
+async def _cancel_edit_list(ctx: CancelResumeCtx) -> None:
+    text, kb = await build_my_bookings_list(
+        repos=ctx.repos,
+        user=ctx.user,
+        i18n=ctx.i18n,
+        bot_timezone=ctx.bot_timezone,
+    )
+    with suppress(TelegramBadRequest):
+        await ctx.bot.edit_message_text(
+            chat_id=ctx.chat_id,
+            message_id=ctx.message_id,
+            text=text,
+            reply_markup=kb,
+        )
+
+
+async def _cancel_on_abort(ctx: CancelResumeCtx) -> None:
+    if ctx.appointment is None:
+        await _cancel_edit_list(ctx)
+        return
+    text, kb = await build_my_booking_card(
+        appointment=ctx.appointment,
+        repos=ctx.repos,
+        i18n=ctx.i18n,
+        bot_timezone=ctx.bot_timezone,
+    )
+    with suppress(TelegramBadRequest):
+        await ctx.bot.edit_message_text(
+            chat_id=ctx.chat_id,
+            message_id=ctx.message_id,
+            text=text,
+            reply_markup=kb,
+        )
+
+
+register_cancel_source(
+    SOURCE_MY_BOOKINGS,
+    CancelSourceHooks(
+        on_abort=_cancel_on_abort,
+        on_success=_cancel_edit_list,
+        on_unavailable=_cancel_edit_list,
+    ),
+)
