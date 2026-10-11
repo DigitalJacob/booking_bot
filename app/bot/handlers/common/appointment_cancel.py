@@ -47,15 +47,6 @@ from app.infrastructure.database.repositories import Repositories
 
 appointment_cancel_router = Router(name="appointment_cancel")
 
-# Re-export for existing callers (cr2 will import from cancel_registry directly).
-__all__ = [
-    "SOURCE_MASTER_BOOKINGS",
-    "SOURCE_MASTER_PUSH",
-    "SOURCE_MY_BOOKINGS",
-    "SOURCE_REMINDER",
-    "appointment_cancel_router",
-]
-
 _BOOKINGS_NAV_KEYS = ("bookings_week_start", "bookings_month", "bookings_day")
 
 _REASON_MAX_LEN = 200

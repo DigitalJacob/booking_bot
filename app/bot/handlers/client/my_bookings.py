@@ -2,10 +2,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
-from app.bot.handlers.common.appointment_cancel import (
-    SOURCE_MY_BOOKINGS,
-    start_appointment_cancel,
-)
+from app.bot.handlers.common.appointment_cancel import start_appointment_cancel
 from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.my_bookings import (
     ClientAppointmentCallback,
@@ -13,6 +10,7 @@ from app.bot.keyboards.my_bookings import (
     get_my_bookings_list_kb,
 )
 from app.bot.keyboards.schedule import WEEKDAY_KEYS
+from app.bot.utils.cancel_registry import SOURCE_MY_BOOKINGS
 from app.bot.utils.format import format_dt, status_label, to_local
 from app.bot.utils.hub_registry import register
 from app.domain.enums import AppointmentStatus, UserRole

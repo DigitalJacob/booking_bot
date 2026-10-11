@@ -1,11 +1,9 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from app.bot.handlers.common.appointment_cancel import (
-    SOURCE_REMINDER,
-    start_appointment_cancel,
-)
+from app.bot.handlers.common.appointment_cancel import start_appointment_cancel
 from app.bot.keyboards.reminders import ReminderCallback
+from app.bot.utils.cancel_registry import SOURCE_REMINDER
 from app.domain.enums import AppointmentStatus, ReminderKind
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories

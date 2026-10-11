@@ -7,11 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
 from app.bot.filters.filters import UserRoleFilter
-from app.bot.handlers.common.appointment_cancel import (
-    SOURCE_MASTER_BOOKINGS,
-    SOURCE_MASTER_PUSH,
-    start_appointment_cancel,
-)
+from app.bot.handlers.common.appointment_cancel import start_appointment_cancel
 from app.bot.handlers.common.hub import return_from_list
 from app.bot.keyboards.bookings import (
     MasterAppointmentCallback,
@@ -26,6 +22,10 @@ from app.bot.keyboards.bookings import (
 from app.bot.keyboards.hub import get_hub_root_kb
 from app.bot.keyboards.schedule import WEEKDAY_KEYS
 from app.bot.keyboards.work_days import month_label
+from app.bot.utils.cancel_registry import (
+    SOURCE_MASTER_BOOKINGS,
+    SOURCE_MASTER_PUSH,
+)
 from app.bot.utils.format import (
     client_contact,
     combine_local,
