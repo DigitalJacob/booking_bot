@@ -50,20 +50,6 @@ _KIND_KEY = "cancel_reminder_kind"
 _PROMPT_ID_KEY = "cancel_prompt_message_id"
 _STATUSES_KEY = "cancel_allowed_statuses"
 
-_hooks_loaded = False
-
-
-def _ensure_cancel_hooks() -> None:
-    """Import role modules so cancel resume hooks are registered."""
-    global _hooks_loaded
-    if _hooks_loaded:
-        return
-    from app.bot.handlers.client import my_bookings as _my_bookings  # noqa: F401
-    from app.bot.handlers.common import reminders as _reminders  # noqa: F401
-    from app.bot.handlers.master import bookings as _bookings  # noqa: F401
-
-    _hooks_loaded = True
-
 
 def _parse_kind(raw: str) -> ReminderKind | None:
     if not raw:
@@ -188,7 +174,6 @@ async def _dispatch_resume(
         phase: CancelPhase,
         ctx: CancelResumeCtx,
 ) -> None:
-    _ensure_cancel_hooks()
     await dispatch(source, phase, ctx)
 
 
