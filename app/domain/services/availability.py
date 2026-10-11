@@ -4,21 +4,7 @@ from zoneinfo import ZoneInfo
 from app.domain.enums import AppointmentStatus
 from app.domain.models import MasterSettings, TimeWindow
 from app.domain.ports import RepositoriesPort
-
-
-def _as_utc(dt: datetime) -> datetime:
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=UTC)
-    return dt.astimezone(UTC)
-
-
-def _overlaps(
-        start: datetime,
-        end: datetime,
-        other_start: datetime,
-        other_end: datetime,
-) -> bool:
-    return start < other_end and end > other_start
+from app.domain.time_range import as_utc, intervals_overlap
 
 
 class AvailabilityService:
@@ -41,7 +27,7 @@ class AvailabilityService:
                 f"got: {schedule_mode!r}"
             )
 
-        now = _as_utc(now or datetime.now(UTC))
+        now = as_utc(now or datetime.now(UTC))
         settings = await self._repos.master_settings.get_by_master(
             master_user_id=master_user_id,
         )
@@ -87,7 +73,7 @@ class AvailabilityService:
         )
         busy: list[tuple[datetime, datetime]] = []
         for block in time_offs:
-            busy.append((_as_utc(block.starts_at), _as_utc(block.ends_at)))
+            busy.append((as_utc(block.starts_at), as_utc(block.ends_at)))
         gap = timedelta(minutes=settings.gap_minutes)
         for appointment in appointments:
             if appointment.status not in (
@@ -96,8 +82,8 @@ class AvailabilityService:
             ):
                 continue
             busy.append((
-                _as_utc(appointment.starts_at),
-                _as_utc(appointment.ends_at) + gap,
+                as_utc(appointment.starts_at),
+                as_utc(appointment.ends_at) + gap,
             ))
 
         step_minutes = settings.slot_step_minutes or duration_minutes
@@ -122,8 +108,8 @@ class AvailabilityService:
                 cursor = day_start
                 while cursor + duration <= day_end:
                     end = cursor + duration
-                    start_utc = _as_utc(cursor)
-                    end_utc = _as_utc(end)
+                    start_utc = as_utc(cursor)
+                    end_utc = as_utc(end)
 
                     if start_utc < earliest:
                         cursor += step
@@ -132,7 +118,7 @@ class AvailabilityService:
                     blocking_ends = [
                         b1
                         for b0, b1 in busy
-                        if _overlaps(start_utc, end_utc, b0, b1)
+                        if intervals_overlap(start_utc, end_utc, b0, b1)
                     ]
                     if blocking_ends:
                         # Jump to the end of the blocking busy (includes gap).
@@ -169,7 +155,7 @@ class AvailabilityService:
                 f"got: {schedule_mode!r}"
             )
 
-        now = _as_utc(now or datetime.now(UTC))
+        now = as_utc(now or datetime.now(UTC))
         settings = await self._repos.master_settings.get_by_master(
             master_user_id=master_user_id,
         )

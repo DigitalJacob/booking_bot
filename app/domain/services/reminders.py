@@ -1,12 +1,13 @@
 """Pure rules for when a confirmed appointment is due for a reminder push."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import cast
 from zoneinfo import ZoneInfo
 
 from app.domain.enums.appointment import AppointmentStatus
 from app.domain.enums.reminder import ReminderKind, reminded_at_attr
 from app.domain.models.appointment import Appointment
+from app.domain.time_range import as_utc
 
 
 def reminded_at_for(
@@ -17,12 +18,6 @@ def reminded_at_for(
         datetime | None,
         getattr(appointment, reminded_at_attr(kind)),
     )
-
-
-def _as_utc(dt: datetime) -> datetime:
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=UTC)
-    return dt.astimezone(UTC)
 
 
 def is_hour_reminder_due(
@@ -41,8 +36,8 @@ def is_hour_reminder_due(
     if lead_minutes <= 0:
         return False
 
-    now_utc = _as_utc(now)
-    starts = _as_utc(appointment.starts_at)
+    now_utc = as_utc(now)
+    starts = as_utc(appointment.starts_at)
     if now_utc >= starts:
         return False
     return now_utc >= starts - timedelta(minutes=lead_minutes)
@@ -71,11 +66,11 @@ def is_evening_reminder_due(
         return False
 
     tz = ZoneInfo(timezone_name)
-    local_now = _as_utc(now).astimezone(tz)
+    local_now = as_utc(now).astimezone(tz)
     if not (evening_hour_start <= local_now.hour < evening_hour_end):
         return False
 
-    starts_local = _as_utc(appointment.starts_at).astimezone(tz)
+    starts_local = as_utc(appointment.starts_at).astimezone(tz)
     return starts_local.date() == (local_now.date() + timedelta(days=1))
 
 
