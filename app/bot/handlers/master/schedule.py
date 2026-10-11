@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import time
 from typing import Literal
 
 from aiogram import F, Router
@@ -22,6 +22,7 @@ from app.bot.keyboards.schedule import (
     get_weekdays_kb,
 )
 from app.bot.states.states import ScheduleSG
+from app.bot.utils.dates import parse_time
 from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
@@ -33,16 +34,6 @@ schedule_router.message.filter(UserRoleFilter(UserRole.MASTER))
 schedule_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 ScheduleMode = Literal["view", "edit"]
-
-
-def _parse_time(value: str) -> time | None:
-    value = value.strip()
-    for fmt in ("%H:%M", "%H.%M"):
-        try:
-            return datetime.strptime(value, fmt).time()
-        except ValueError:
-            continue
-    return None
 
 
 def _format_hm(value: time) -> str:
@@ -244,7 +235,7 @@ async def process_schedule_starts(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    starts = _parse_time(message.text or "")
+    starts = parse_time(message.text or "")
     if starts is None:
         await message.answer(
             text=i18n.get("schedule_invalid_time"),
@@ -265,7 +256,7 @@ async def process_schedule_ends(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    ends = _parse_time(message.text or "")
+    ends = parse_time(message.text or "")
     if ends is None:
         await message.answer(
             text=i18n.get("schedule_invalid_time"),

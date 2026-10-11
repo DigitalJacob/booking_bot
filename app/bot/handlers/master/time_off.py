@@ -26,6 +26,7 @@ from app.bot.keyboards.time_off import (
 )
 from app.bot.keyboards.work_days import month_label
 from app.bot.states.states import TimeOffSG
+from app.bot.utils.dates import parse_time
 from app.bot.utils.format import (
     client_contact,
     combine_local,
@@ -106,16 +107,6 @@ def _parse_date(value: str) -> date | None:
     for fmt in ("%d.%m.%Y", "%d.%m.%y"):
         try:
             return datetime.strptime(value, fmt).date()
-        except ValueError:
-            continue
-    return None
-
-
-def _parse_time(value: str) -> time | None:
-    value = value.strip()
-    for fmt in ("%H:%M", "%H.%M"):
-        try:
-            return datetime.strptime(value, fmt).time()
         except ValueError:
             continue
     return None
@@ -1018,7 +1009,7 @@ async def process_time_off_hours_starts(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    starts = _parse_time(message.text or "")
+    starts = parse_time(message.text or "")
     await delete_user_input(message)
     if starts is None:
         await message.answer(text=i18n.get("time_off_invalid_time"))
@@ -1044,7 +1035,7 @@ async def process_time_off_hours_ends(
         bot_timezone: str,
         schedule_mode: str,
 ) -> None:
-    ends = _parse_time(message.text or "")
+    ends = parse_time(message.text or "")
     await delete_user_input(message)
     if ends is None:
         await message.answer(text=i18n.get("time_off_invalid_time"))

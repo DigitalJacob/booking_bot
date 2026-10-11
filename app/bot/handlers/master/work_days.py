@@ -21,6 +21,7 @@ from app.bot.keyboards.work_days import (
     month_label,
 )
 from app.bot.states.states import WorkDaysSG
+from app.bot.utils.dates import parse_time
 from app.bot.utils.format import client_contact, format_dt, get_zone, to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.hub_registry import register
@@ -35,16 +36,6 @@ work_days_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
 
 _MONTH_CHOICES = 12
 _MAX_WARN_LINES = 8
-
-
-def _parse_time(value: str) -> time | None:
-    value = value.strip()
-    for fmt in ("%H:%M", "%H.%M"):
-        try:
-            return datetime.strptime(value, fmt).time()
-        except ValueError:
-            continue
-    return None
 
 
 def _format_hm(value: time) -> str:
@@ -646,7 +637,7 @@ async def process_work_days_starts(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    starts = _parse_time(message.text or "")
+    starts = parse_time(message.text or "")
     await delete_user_input(message)
     if starts is None:
         await show_hub_prompt(
@@ -666,7 +657,7 @@ async def process_work_days_ends(
         state: FSMContext,
         i18n: dict[str, str],
 ) -> None:
-    ends = _parse_time(message.text or "")
+    ends = parse_time(message.text or "")
     await delete_user_input(message)
     if ends is None:
         await show_hub_prompt(
