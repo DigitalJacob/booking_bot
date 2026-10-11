@@ -267,7 +267,9 @@ async def process_time_off_add(
     await clear_state_keep_hub(state)
     if is_breaks_mode(schedule_mode):
         # Monthly: pick an open work day on the calendar, then hours.
-        from app.bot.handlers.master.time_off.handlers import show_break_day_calendar
+        from app.bot.handlers.master.time_off.breaks_calendar import (
+            show_break_day_calendar,
+        )
 
         await show_break_day_calendar(
             message=callback.message,
