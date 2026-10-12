@@ -299,7 +299,15 @@ docker compose down            # stop everything (data is kept)
 ```
 
 pgAdmin is available at `http://localhost:${PGADMIN_PORT}` with the credentials from
-`.env`. Connect to host `postgres`, port `5432`.
+`.env`. Connect to host `postgres`, port `5432`. The published port is bound to
+`127.0.0.1` only (not exposed on the public internet). From another machine use an
+SSH tunnel, for example:
+
+```bash
+ssh -L ${PGADMIN_PORT}:127.0.0.1:${PGADMIN_PORT} user@your-host
+```
+
+then open the same `http://localhost:${PGADMIN_PORT}` URL locally.
 
 ### Running locally without Docker
 
