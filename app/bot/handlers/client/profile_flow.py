@@ -35,11 +35,6 @@ async def _delete_chat_message(
         )
 
 
-async def delete_user_input(message: Message) -> None:
-    """Delete the client's chat message after its content was read."""
-    await _delete_chat_message(message=message, message_id=message.message_id)
-
-
 async def _drop_reply_keyboard(message: Message) -> None:
     """Remove reply keyboard without leaving a visible notice in chat."""
     stub = await message.answer(text=".", reply_markup=remove_kb())

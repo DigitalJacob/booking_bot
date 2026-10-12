@@ -9,7 +9,6 @@ from app.bot.handlers.client.booking_flow import resume_booking_after_profile
 from app.bot.handlers.client.profile_flow import (
     begin_profile_fields,
     cleanup_profile_messages,
-    delete_user_input,
     finish_profile_flow,
     show_profile_prompt,
     start_profile_flow,
@@ -19,6 +18,7 @@ from app.bot.keyboards.profile import ProfileNavCallback, remove_kb
 from app.bot.states.states import ProfileSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.hub_registry import register
+from app.bot.utils.telegram import delete_user_input
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
