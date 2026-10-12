@@ -1,3 +1,5 @@
+"""Confirm, cancel, back, and text catch-all for client booking."""
+
 from datetime import date, datetime
 
 from aiogram import Bot, F
