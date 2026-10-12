@@ -7,6 +7,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from app.bot.handlers.master.time_off.breaks_calendar import show_break_day_calendar
 from app.bot.handlers.master.time_off.common import (
     MAX_WARN_LINES,
     PENDING_ENDS_KEY,
@@ -267,10 +268,6 @@ async def process_time_off_add(
     await clear_state_keep_hub(state)
     if is_breaks_mode(schedule_mode):
         # Monthly: pick an open work day on the calendar, then hours.
-        from app.bot.handlers.master.time_off.breaks_calendar import (
-            show_break_day_calendar,
-        )
-
         await show_break_day_calendar(
             message=callback.message,
             state=state,
