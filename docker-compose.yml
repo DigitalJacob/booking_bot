@@ -57,7 +57,9 @@ services:
     volumes:
       - ./.pgadmin_data:/var/lib/pgadmin
     ports:
-      - "${PGADMIN_PORT}:80"
+      # Bind to loopback only — not reachable from the public internet.
+      # Remote access: ssh -L ${PGADMIN_PORT}:127.0.0.1:${PGADMIN_PORT} user@host
+      - "127.0.0.1:${PGADMIN_PORT}:80"
     restart: unless-stopped
     depends_on:
       postgres:
