@@ -49,8 +49,8 @@ outer layers know about inner ones, never the reverse.
 ```
 app/
 ├── domain/           # Business logic. No aiogram, no SQL, no I/O.
-│   ├── models/       # Immutable dataclasses: User, Service, Appointment
-│   ├── enums/        # UserRole, AppointmentStatus
+│   ├── models/       # Immutable dataclasses: User, Service, Appointment, …
+│   ├── enums/        # UserRole, AppointmentStatus, ReminderKind, …
 │   ├── exceptions.py # TimeConflict, WindowNotAvailable, ForbiddenBookingAction, ...
 │   ├── ports.py      # typing.Protocol contracts for persistence (RepositoriesPort)
 │   └── services/     # Booking, Availability, ScheduleConflicts, reminders
@@ -59,7 +59,7 @@ app/
 │   └── database/     # Connection pool and repositories (raw SQL only)
 │
 └── bot/              # Telegram presentation layer.
-    ├── handlers/     # By role; larger master flows are packages (bookings, time_off, work_days)
+    ├── handlers/     # By role; packages: bookings, services, time_off, work_days, booking, appointment_cancel, admin/users
     ├── keyboards/    # Inline keyboards and typed CallbackData
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
@@ -466,6 +466,7 @@ no database, Redis or bot token is needed.
 ```bash
 pip install -r requirements-dev.txt
 ruff check app config migrations tests main.py
+ruff format --check app config migrations tests main.py
 mypy
 pytest
 ```
@@ -519,7 +520,7 @@ booking_bot/
 ├── app/
 │   ├── bot/                # Telegram layer
 │   │   ├── filters/        # Role and locale filters
-│   │   ├── handlers/       # admin / client / master packages / common (shared cancel)
+│   │   ├── handlers/       # admin users / client booking / master packages / common cancel
 │   │   ├── i18n/           # Locale resolution
 │   │   ├── keyboards/      # Inline keyboards and typed CallbackData
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
