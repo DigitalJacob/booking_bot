@@ -340,12 +340,12 @@ All settings come from `.env`. Start from `.env.example`.
 | `PDN_POLICY_URL`                                                      | Optional `http(s)://…` link for **Full terms** (hidden when empty)                                                            |
 | `REMINDER_LEAD_MINUTES`                                               | Hour-ahead reminder: send when `starts_at` is within this many minutes (default `60`)                                         |
 | `REMINDER_EVENING_HOUR_START` / `REMINDER_EVENING_HOUR_END`           | Evening reminder: half-open local hour window `[START, END)` on the day before (default `20`/`22`)                            |
-| `LOG_LEVEL`                                                           | `DEBUG` for development, `INFO` for production                                                                                |
+| `LOG_LEVEL`                                                           | `DEBUG` for local development; use `INFO` (or `WARNING`) in production                                                        |
 | `LOG_FORMAT`                                                          | Python logging format string                                                                                                  |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                                                          |
 | `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                                                            |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                                                              |
-| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Redis credentials                                                                                                             |
+| `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Password required; username usually empty (Compose `--requirepass` → user `default`)                                          |
 | `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                                                |
 | `PROXY_*`                                                             | Optional proxy, disabled by default — see below                                                                               |
 
