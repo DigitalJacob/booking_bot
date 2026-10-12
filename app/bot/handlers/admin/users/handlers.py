@@ -1,131 +1,38 @@
 import logging
 from contextlib import suppress
 
-from aiogram import Bot, F, Router
+from aiogram import Bot, F
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import BotCommandScopeChat, CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.types import BotCommandScopeChat, CallbackQuery, Message
 
 from app.bot.bot_commands import get_main_menu_commands
-from app.bot.filters.filters import UserRoleFilter
+from app.bot.handlers.admin.users.common import (
+    cancel_admin_flow,
+    finish_admin_flow,
+    lookup_user_ref,
+    show_admin_prompt,
+    user_card,
+)
+from app.bot.handlers.admin.users.router import admin_users_router
 from app.bot.i18n.translator import resolve_i18n
 from app.bot.keyboards.admin import (
     AdminNavCallback,
     AdminRoleCallback,
-    get_admin_cancel_kb,
     get_admin_role_kb,
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import AdminModSG
-from app.bot.utils.format import format_dt
-from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
+from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.hub_registry import register
-from app.bot.utils.telegram import delete_user_input, is_not_modified
+from app.bot.utils.telegram import delete_user_input
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
 logger = logging.getLogger(__name__)
-
-admin_users_router = Router(name="admin_users")
-admin_users_router.message.filter(UserRoleFilter(UserRole.ADMIN))
-admin_users_router.callback_query.filter(UserRoleFilter(UserRole.ADMIN))
-
-
-async def _show_admin_prompt(
-    *,
-    message: Message,
-    state: FSMContext,
-    text: str,
-    i18n: dict[str, str],
-    reply_markup: InlineKeyboardMarkup | None = None,
-) -> None:
-    """Show FSM prompt on the sticky hub message when possible."""
-    data = await state.get_data()
-    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
-    kb = reply_markup if reply_markup is not None else get_admin_cancel_kb(i18n)
-
-    if sticky_id is not None:
-        try:
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=sticky_id,
-                text=text,
-                reply_markup=kb,
-            )
-            return
-        except TelegramBadRequest as exc:
-            if is_not_modified(exc):
-                return
-
-    await message.answer(text=text, reply_markup=kb)
-
-
-async def _finish_admin_flow(
-    *,
-    message: Message,
-    state: FSMContext,
-    user: User,
-    i18n: dict[str, str],
-    result_text: str,
-) -> None:
-    """Restore sticky hub, then send a dismissible result notice."""
-    await clear_state_keep_hub(state)
-    await show_hub(
-        message=message,
-        user=user,
-        i18n=i18n,
-        state=state,
-    )
-    await message.answer(
-        text=result_text,
-        reply_markup=get_hub_dismiss_kb(i18n),
-    )
-
-
-async def _cancel_admin_flow(
-    *,
-    message: Message,
-    state: FSMContext,
-    user: User,
-    i18n: dict[str, str],
-) -> None:
-    await clear_state_keep_hub(state)
-    await show_hub(
-        message=message,
-        user=user,
-        i18n=i18n,
-        state=state,
-    )
-
-
-async def lookup_user_ref(
-    *,
-    repos: Repositories,
-    raw: str,
-) -> User | None:
-    raw = raw.strip()
-    if not raw:
-        return None
-    if raw.isdigit():
-        return await repos.users.get_user_by_id(user_id=int(raw))
-    return await repos.users.get_user_by_username(username=raw)
-
-
-def _user_card(target: User, i18n: dict[str, str], bot_timezone: str) -> str:
-    return i18n.get("admin_user_card").format(
-        user_id=target.user_id,
-        username=f"@{target.username}" if target.username else i18n.get("admin_no_username"),
-        first_name=target.first_name or "-",
-        last_name=target.last_name or "-",
-        phone=target.phone or "-",
-        role=target.role,
-        language=target.language,
-        banned=i18n.get("admin_yes") if target.banned else i18n.get("admin_no"),
-        created_at=format_dt(target.created_at, bot_timezone),
-    )
 
 
 async def _apply_ban(
@@ -242,17 +149,12 @@ async def start_admin_mod_flow(
     await clear_state_keep_hub(state)
     await state.set_state(AdminModSG.target)
     await state.update_data(admin_action=action)
-    await _show_admin_prompt(
+    await show_admin_prompt(
         message=message,
         state=state,
         text=i18n.get("admin_hub_ask_target"),
         i18n=i18n,
     )
-
-
-# ---------------------------------------------------------------------------
-# Guided FSM from hub
-# ---------------------------------------------------------------------------
 
 
 @admin_users_router.callback_query(
@@ -266,7 +168,7 @@ async def process_admin_mod_cancel_cb(
     i18n: dict[str, str],
 ) -> None:
     await callback.answer()
-    await _cancel_admin_flow(
+    await cancel_admin_flow(
         message=callback.message,
         state=state,
         user=user,
@@ -289,7 +191,7 @@ async def process_admin_mod_target(
     await delete_user_input(message)
 
     if not raw:
-        await _show_admin_prompt(
+        await show_admin_prompt(
             message=message,
             state=state,
             text=i18n.get("admin_hub_ask_target"),
@@ -299,7 +201,7 @@ async def process_admin_mod_target(
 
     target = await lookup_user_ref(repos=repos, raw=raw)
     if target is None:
-        await _show_admin_prompt(
+        await show_admin_prompt(
             message=message,
             state=state,
             text=i18n.get("admin_user_not_found").format(target=raw),
@@ -311,12 +213,12 @@ async def process_admin_mod_target(
     action = data.get("admin_action")
 
     if action == "user":
-        await _finish_admin_flow(
+        await finish_admin_flow(
             message=message,
             state=state,
             user=user,
             i18n=i18n,
-            result_text=_user_card(target, i18n, bot_timezone),
+            result_text=user_card(target, i18n, bot_timezone),
         )
         return
 
@@ -328,7 +230,7 @@ async def process_admin_mod_target(
             i18n=i18n,
         )
         if ok:
-            await _finish_admin_flow(
+            await finish_admin_flow(
                 message=message,
                 state=state,
                 user=user,
@@ -336,7 +238,7 @@ async def process_admin_mod_target(
                 result_text=text,
             )
         else:
-            await _show_admin_prompt(
+            await show_admin_prompt(
                 message=message,
                 state=state,
                 text=text,
@@ -352,7 +254,7 @@ async def process_admin_mod_target(
             i18n=i18n,
         )
         if ok:
-            await _finish_admin_flow(
+            await finish_admin_flow(
                 message=message,
                 state=state,
                 user=user,
@@ -360,7 +262,7 @@ async def process_admin_mod_target(
                 result_text=text,
             )
         else:
-            await _show_admin_prompt(
+            await show_admin_prompt(
                 message=message,
                 state=state,
                 text=text,
@@ -371,7 +273,7 @@ async def process_admin_mod_target(
     if action == "set_role":
         await state.update_data(target_user_id=target.user_id)
         await state.set_state(AdminModSG.role)
-        await _show_admin_prompt(
+        await show_admin_prompt(
             message=message,
             state=state,
             text=i18n.get("admin_hub_ask_role").format(
@@ -382,7 +284,7 @@ async def process_admin_mod_target(
         )
         return
 
-    await _cancel_admin_flow(
+    await cancel_admin_flow(
         message=message,
         state=state,
         user=user,
@@ -420,7 +322,7 @@ async def process_admin_mod_role(
     target_user_id = data.get("target_user_id")
     if target_user_id is None:
         await callback.answer()
-        await _cancel_admin_flow(
+        await cancel_admin_flow(
             message=callback.message,
             state=state,
             user=user,
@@ -431,7 +333,7 @@ async def process_admin_mod_role(
     target = await repos.users.get_user_by_id(user_id=int(target_user_id))
     if target is None:
         await state.set_state(AdminModSG.target)
-        await _show_admin_prompt(
+        await show_admin_prompt(
             message=callback.message,
             state=state,
             text=i18n.get("admin_user_not_found").format(target=target_user_id),
@@ -451,7 +353,7 @@ async def process_admin_mod_role(
         bot_timezone=bot_timezone,
     )
     if ok:
-        await _finish_admin_flow(
+        await finish_admin_flow(
             message=callback.message,
             state=state,
             user=user,
