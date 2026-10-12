@@ -24,7 +24,6 @@ def format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
     return _format_price(price, i18n, empty_key="services_price_empty")
 
 
-
 def format_service_line(service: Service, i18n: dict[str, str]) -> str:
     status = (
         i18n.get("services_status_active")
