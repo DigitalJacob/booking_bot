@@ -1,5 +1,4 @@
 from contextlib import suppress
-from decimal import Decimal
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -13,6 +12,7 @@ from app.bot.keyboards.catalog import (
     get_catalog_card_kb,
     get_catalog_list_kb,
 )
+from app.bot.utils.format import format_price
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY
 from app.bot.utils.hub_registry import register
 from app.bot.utils.telegram import is_not_modified
@@ -25,12 +25,6 @@ catalog_router = Router(name="client_catalog")
 _CAPTION_MAX = 1024
 
 
-def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
-    if price is None:
-        return i18n.get("catalog_price_empty")
-    return f"{price:.2f}"
-
-
 def _card_body(service: Service, i18n: dict[str, str]) -> str:
     lines = [
         service.title,
@@ -38,7 +32,7 @@ def _card_body(service: Service, i18n: dict[str, str]) -> str:
             duration=service.duration_minutes,
         ),
         i18n.get("catalog_card_price").format(
-            price=_format_price(service.price, i18n),
+            price=format_price(service.price, i18n, empty_key="catalog_price_empty"),
         ),
     ]
     if service.description:

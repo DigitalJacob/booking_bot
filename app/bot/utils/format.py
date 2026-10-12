@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from app.domain.enums import AppointmentStatus
@@ -59,6 +60,18 @@ def format_time(
     fallback: str = "?",
 ) -> str:
     return format_dt(dt, tz_name, fmt="%H:%M", fallback=fallback)
+
+
+def format_price(
+    price: Decimal | None,
+    i18n: dict[str, str],
+    *,
+    empty_key: str,
+) -> str:
+    """Format a service price; use ``empty_key`` when price is unset."""
+    if price is None:
+        return i18n.get(empty_key)
+    return f"{price:.2f}"
 
 
 def local_week_bounds(

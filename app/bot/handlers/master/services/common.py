@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.bot.keyboards.services import get_service_card_kb
+from app.bot.utils.format import format_price as _format_price
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, show_hub_prompt
 from app.bot.utils.telegram import is_not_modified
 from app.domain.models import Service, User
@@ -20,9 +21,8 @@ CAPTION_MAX = 1024
 
 
 def format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
-    if price is None:
-        return i18n.get("services_price_empty")
-    return f"{price:.2f}"
+    return _format_price(price, i18n, empty_key="services_price_empty")
+
 
 
 def format_service_line(service: Service, i18n: dict[str, str]) -> str:

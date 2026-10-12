@@ -16,13 +16,12 @@ from app.bot.keyboards.booking import (
 )
 from app.bot.keyboards.work_days import month_label
 from app.bot.utils.format import format_dt, to_local
+from app.bot.utils.format import format_price as _format_price
 from app.domain.models import Service, TimeWindow
 
 
 def format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
-    if price is None:
-        return i18n.get("book_price_empty")
-    return f"{price:.2f}"
+    return _format_price(price, i18n, empty_key="book_price_empty")
 
 
 def unique_days(windows: list[TimeWindow], bot_timezone: str) -> list[date]:
