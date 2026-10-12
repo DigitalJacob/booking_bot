@@ -1,11 +1,22 @@
 from datetime import date, datetime
-from decimal import Decimal
 
-from aiogram import Bot, F, Router
+from aiogram import Bot, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from app.bot.handlers.client.booking.common import (
+    bookable_months,
+    days_in_month,
+    show_confirm,
+    show_days,
+    show_months,
+    show_services,
+    show_windows,
+    unique_days,
+    windows_on_day,
+)
+from app.bot.handlers.client.booking.router import booking_router
 from app.bot.handlers.client.booking_flow import start_booking_flow
 from app.bot.keyboards.booking import (
     BookingNavCallback,
@@ -14,16 +25,9 @@ from app.bot.keyboards.booking import (
     MonthCallback,
     ServiceCallback,
     WindowCallback,
-    get_confirm_kb,
-    get_day_calendar_kb,
-    get_months_kb,
-    get_services_kb,
-    get_windows_kb,
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
-from app.bot.keyboards.work_days import month_label
 from app.bot.states.states import BookingSG
-from app.bot.utils.format import format_dt, to_local
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub
 from app.bot.utils.hub_registry import register
 from app.bot.utils.notify import notify_appointment
@@ -34,127 +38,9 @@ from app.domain.exceptions import (
     TimeConflict,
     WindowNotAvailable,
 )
-from app.domain.models import Service, TimeWindow, User
+from app.domain.models import User
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
-
-booking_router = Router(name="client_booking")
-
-
-def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
-    if price is None:
-        return i18n.get("book_price_empty")
-    return f"{price:.2f}"
-
-
-def _unique_days(windows: list[TimeWindow], bot_timezone: str) -> list[date]:
-    return sorted({to_local(window.starts_at, bot_timezone).date() for window in windows})
-
-
-def _windows_on_day(
-    windows: list[TimeWindow],
-    day: date,
-    bot_timezone: str,
-) -> list[TimeWindow]:
-    return [window for window in windows if to_local(window.starts_at, bot_timezone).date() == day]
-
-
-def _days_in_month(days: list[date], year: int, month: int) -> list[date]:
-    return [day for day in days if day.year == year and day.month == month]
-
-
-def _bookable_months(
-    open_months: list[tuple[int, int]],
-    days: list[date],
-) -> list[tuple[int, int]]:
-    """Open schedule months that still have at least one free slot day."""
-    day_months = {(day.year, day.month) for day in days}
-    return [month for month in open_months if month in day_months]
-
-
-async def _show_services(
-    *,
-    message: Message,
-    services: list[Service],
-    i18n: dict[str, str],
-    edit: bool,
-) -> None:
-    text = i18n.get("book_choose_service")
-    kb = get_services_kb(services=services, i18n=i18n)
-    if edit:
-        await message.edit_text(text=text, reply_markup=kb)
-    else:
-        await message.answer(text=text, reply_markup=kb)
-
-
-async def _show_months(
-    *,
-    message: Message,
-    months: list[tuple[int, int]],
-    i18n: dict[str, str],
-) -> None:
-    await message.edit_text(
-        text=i18n.get("book_choose_month"),
-        reply_markup=get_months_kb(months=months, i18n=i18n),
-    )
-
-
-async def _show_days(
-    *,
-    message: Message,
-    year: int,
-    month: int,
-    days: list[date],
-    i18n: dict[str, str],
-) -> None:
-    await message.edit_text(
-        text=i18n.get("book_choose_day").format(
-            month=month_label(year, month, i18n),
-        ),
-        reply_markup=get_day_calendar_kb(
-            year=year,
-            month=month,
-            open_days={day.day for day in days},
-            i18n=i18n,
-        ),
-    )
-
-
-async def _show_windows(
-    *,
-    message: Message,
-    windows: list[TimeWindow],
-    i18n: dict[str, str],
-    bot_timezone: str,
-) -> None:
-    await message.edit_text(
-        text=i18n.get("book_choose_window"),
-        reply_markup=get_windows_kb(
-            windows=windows,
-            i18n=i18n,
-            bot_timezone=bot_timezone,
-        ),
-    )
-
-
-async def _show_confirm(
-    *,
-    message: Message,
-    service: Service,
-    starts_at: datetime,
-    i18n: dict[str, str],
-    bot_timezone: str,
-) -> None:
-    text = i18n.get("book_confirm").format(
-        title=service.title,
-        when=format_dt(starts_at, bot_timezone),
-        duration=service.duration_minutes,
-        price=_format_price(service.price, i18n),
-    )
-    await message.edit_text(
-        text=text,
-        reply_markup=get_confirm_kb(i18n=i18n),
-    )
 
 
 @booking_router.message(StateFilter(BookingSG), F.text)
@@ -199,8 +85,8 @@ async def process_service_choice(
         duration_minutes=service.duration_minutes,
         schedule_mode=schedule_mode,
     )
-    days = _unique_days(windows, bot_timezone)
-    months = _bookable_months(open_months, days)
+    days = unique_days(windows, bot_timezone)
+    months = bookable_months(open_months, days)
     if not months:
         await callback.answer()
         await callback.message.edit_text(text=i18n.get("book_no_windows"))
@@ -214,7 +100,7 @@ async def process_service_choice(
         book_month=None,
     )
     await state.set_state(BookingSG.choosing_month)
-    await _show_months(message=callback.message, months=months, i18n=i18n)
+    await show_months(message=callback.message, months=months, i18n=i18n)
     await callback.answer()
 
 
@@ -245,8 +131,8 @@ async def process_month_choice(
         duration_minutes=service_duration,
         schedule_mode=schedule_mode,
     )
-    days = _days_in_month(
-        _unique_days(windows, bot_timezone),
+    days = days_in_month(
+        unique_days(windows, bot_timezone),
         callback_data.year,
         callback_data.month,
     )
@@ -262,7 +148,7 @@ async def process_month_choice(
         book_month=callback_data.month,
     )
     await state.set_state(BookingSG.choosing_day)
-    await _show_days(
+    await show_days(
         message=callback.message,
         year=callback_data.year,
         month=callback_data.month,
@@ -305,7 +191,7 @@ async def process_day_choice(
         return
 
     booking = BookingService(repos)
-    windows = _windows_on_day(
+    windows = windows_on_day(
         await booking.list_available_windows(
             master_user_id=master_user_id,
             duration_minutes=service_duration,
@@ -323,7 +209,7 @@ async def process_day_choice(
 
     await state.update_data(day=day.isoformat())
     await state.set_state(BookingSG.choosing_window)
-    await _show_windows(
+    await show_windows(
         message=callback.message,
         windows=windows,
         i18n=i18n,
@@ -360,7 +246,7 @@ async def process_window_choice(
         return
 
     booking = BookingService(repos)
-    windows = _windows_on_day(
+    windows = windows_on_day(
         await booking.list_available_windows(
             master_user_id=master_user_id,
             duration_minutes=service.duration_minutes,
@@ -387,7 +273,7 @@ async def process_window_choice(
 
     await state.update_data(starts_at=match.starts_at.isoformat())
     await state.set_state(BookingSG.confirming)
-    await _show_confirm(
+    await show_confirm(
         message=callback.message,
         service=service,
         starts_at=match.starts_at,
@@ -516,7 +402,7 @@ async def process_back(
             book_year=None,
             book_month=None,
         )
-        await _show_services(
+        await show_services(
             message=callback.message,
             services=services,
             i18n=i18n,
@@ -535,9 +421,9 @@ async def process_back(
             duration_minutes=fsm_data["service_duration"],
             schedule_mode=schedule_mode,
         )
-        months = _bookable_months(
+        months = bookable_months(
             open_months,
-            _unique_days(windows, bot_timezone),
+            unique_days(windows, bot_timezone),
         )
         await state.set_state(BookingSG.choosing_month)
         await state.update_data(day=None, starts_at=None, book_year=None, book_month=None)
@@ -545,7 +431,7 @@ async def process_back(
             await callback.message.edit_text(text=i18n.get("book_no_windows"))
             await clear_state_keep_hub(state)
         else:
-            await _show_months(message=callback.message, months=months, i18n=i18n)
+            await show_months(message=callback.message, months=months, i18n=i18n)
         await callback.answer()
         return
 
@@ -557,16 +443,16 @@ async def process_back(
             duration_minutes=fsm_data["service_duration"],
             schedule_mode=schedule_mode,
         )
-        days = _unique_days(windows, bot_timezone)
+        days = unique_days(windows, bot_timezone)
         if year is not None and month is not None:
-            days = _days_in_month(days, int(year), int(month))
+            days = days_in_month(days, int(year), int(month))
         await state.set_state(BookingSG.choosing_day)
         await state.update_data(day=None, starts_at=None)
         if not days or year is None or month is None:
             await callback.message.edit_text(text=i18n.get("book_no_windows"))
             await clear_state_keep_hub(state)
         else:
-            await _show_days(
+            await show_days(
                 message=callback.message,
                 year=int(year),
                 month=int(month),
@@ -578,7 +464,7 @@ async def process_back(
 
     if current == BookingSG.confirming.state:
         day = date.fromisoformat(fsm_data["day"])
-        windows = _windows_on_day(
+        windows = windows_on_day(
             await booking.list_available_windows(
                 master_user_id=master_user_id,
                 duration_minutes=fsm_data["service_duration"],
@@ -592,7 +478,7 @@ async def process_back(
         if not windows:
             await callback.answer(text=i18n.get("book_no_windows"), show_alert=True)
             return
-        await _show_windows(
+        await show_windows(
             message=callback.message,
             windows=windows,
             i18n=i18n,
