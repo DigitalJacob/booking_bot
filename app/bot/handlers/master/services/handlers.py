@@ -1,19 +1,32 @@
 from contextlib import suppress
-from decimal import Decimal, InvalidOperation
+from decimal import InvalidOperation
 
-from aiogram import F, Router
+from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.filters.filters import UserRoleFilter
 from app.bot.handlers.common.hub import return_from_list
+from app.bot.handlers.master.services.common import (
+    DESCRIPTION_MAX,
+    card_description,
+    card_photo,
+    dismiss_aux_message,
+    dismiss_photo_preview,
+    format_price,
+    format_service_line,
+    load_owned_service,
+    parse_price,
+    prompt_on_sticky,
+    refresh_service_card,
+    send_service_card,
+)
+from app.bot.handlers.master.services.router import services_router
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.services import (
     MasterServiceCallback,
     MasterServiceNavCallback,
-    get_service_card_kb,
     get_service_description_kb,
     get_service_fsm_cancel_kb,
     get_service_photo_kb,
@@ -36,85 +49,6 @@ from app.domain.enums import UserRole
 from app.domain.models import Service, User
 from app.infrastructure.database.repositories import Repositories
 
-services_router = Router(name="master_services")
-services_router.message.filter(UserRoleFilter(UserRole.MASTER))
-services_router.callback_query.filter(UserRoleFilter(UserRole.MASTER))
-
-_DESCRIPTION_MAX = 1000
-_CAPTION_MAX = 1024
-
-
-def _format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
-    if price is None:
-        return i18n.get("services_price_empty")
-    return f"{price:.2f}"
-
-
-def _format_service_line(service: Service, i18n: dict[str, str]) -> str:
-    status = (
-        i18n.get("services_status_active")
-        if service.is_active
-        else i18n.get("services_status_inactive")
-    )
-    return i18n.get("services_list_item").format(
-        title=service.title,
-        duration=service.duration_minutes,
-        price=_format_price(service.price, i18n),
-        status=status,
-    )
-
-
-def _parse_price(value: str) -> Decimal | None:
-    value = value.strip()
-    if value in ("", "-", "—"):
-        return None
-    normalized = value.replace(",", ".")
-    return Decimal(normalized)
-
-
-def _card_description(service: Service, i18n: dict[str, str]) -> str:
-    if service.description:
-        return service.description
-    return i18n.get("services_description_empty")
-
-
-def _card_photo(service: Service, i18n: dict[str, str]) -> str:
-    if service.photo_file_id:
-        return i18n.get("services_photo_yes")
-    return i18n.get("services_photo_no")
-
-
-def _truncate_caption(text: str) -> str:
-    if len(text) <= _CAPTION_MAX:
-        return text
-    return text[: _CAPTION_MAX - 3] + "..."
-
-
-def _service_card_text(service: Service, i18n: dict[str, str]) -> str:
-    status = (
-        i18n.get("services_status_active")
-        if service.is_active
-        else i18n.get("services_status_inactive")
-    )
-    if service.photo_file_id:
-        text = i18n.get("services_card_media").format(
-            title=service.title,
-            duration=service.duration_minutes,
-            price=_format_price(service.price, i18n),
-            status=status,
-            description=_card_description(service, i18n),
-        )
-    else:
-        text = i18n.get("services_card").format(
-            title=service.title,
-            duration=service.duration_minutes,
-            price=_format_price(service.price, i18n),
-            status=status,
-            description=_card_description(service, i18n),
-            photo=_card_photo(service, i18n),
-        )
-    return _truncate_caption(text)
-
 
 async def show_services_list(
     *,
@@ -131,7 +65,7 @@ async def show_services_list(
         active_only=False,
     )
     if services:
-        body = "\n".join(_format_service_line(s, i18n) for s in services)
+        body = "\n".join(format_service_line(s, i18n) for s in services)
         text = i18n.get("services_list_header") + "\n\n" + body
     else:
         text = i18n.get("services_empty")
@@ -172,121 +106,6 @@ async def show_services_list(
         await message.answer(text=text, reply_markup=kb)
 
 
-async def _dismiss_photo_preview(
-    message: Message,
-    state: FSMContext,
-) -> None:
-    data = await state.get_data()
-    preview_id = data.get("service_photo_preview_id")
-    if preview_id is None:
-        return
-    with suppress(TelegramBadRequest):
-        await message.bot.delete_message(
-            chat_id=message.chat.id,
-            message_id=int(preview_id),
-        )
-    await state.update_data(service_photo_preview_id=None)
-
-
-async def _dismiss_aux_message(
-    message: Message,
-    state: FSMContext,
-) -> None:
-    """Delete a card/preview that is not the sticky hub message."""
-    await _dismiss_photo_preview(message, state)
-    data = await state.get_data()
-    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
-    if sticky_id is not None and message.message_id != int(sticky_id):
-        with suppress(TelegramBadRequest):
-            await message.delete()
-
-
-async def _send_service_card(
-    *,
-    message: Message,
-    service: Service,
-    i18n: dict[str, str],
-) -> None:
-    """Open service card as a new message (with photo when set)."""
-    text = _service_card_text(service, i18n)
-    kb = get_service_card_kb(service=service, i18n=i18n)
-    if service.photo_file_id:
-        await message.answer_photo(
-            photo=service.photo_file_id,
-            caption=text,
-            reply_markup=kb,
-        )
-    else:
-        await message.answer(text=text, reply_markup=kb)
-
-
-async def _refresh_service_card(
-    *,
-    message: Message,
-    service: Service,
-    i18n: dict[str, str],
-) -> None:
-    """Update an existing card message after toggle / clear."""
-    text = _service_card_text(service, i18n)
-    kb = get_service_card_kb(service=service, i18n=i18n)
-    if message.photo:
-        if service.photo_file_id:
-            try:
-                await message.edit_caption(caption=text, reply_markup=kb)
-                return
-            except TelegramBadRequest as exc:
-                if is_not_modified(exc):
-                    return
-        with suppress(TelegramBadRequest):
-            await message.delete()
-        await _send_service_card(message=message, service=service, i18n=i18n)
-        return
-
-    if service.photo_file_id:
-        with suppress(TelegramBadRequest):
-            await message.delete()
-        await _send_service_card(message=message, service=service, i18n=i18n)
-        return
-
-    try:
-        await message.edit_text(text=text, reply_markup=kb)
-    except TelegramBadRequest as exc:
-        if is_not_modified(exc):
-            return
-        await _send_service_card(message=message, service=service, i18n=i18n)
-
-
-async def _prompt_on_sticky(
-    *,
-    message: Message,
-    state: FSMContext,
-    text: str,
-    reply_markup,
-) -> None:
-    """Show an FSM prompt on the sticky hub; drop a non-sticky card first."""
-    await _dismiss_aux_message(message, state)
-    data = await state.get_data()
-    sticky_id = data.get(HUB_MESSAGE_ID_KEY)
-    if sticky_id is not None and message.message_id != int(sticky_id):
-        try:
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=int(sticky_id),
-                text=text,
-                reply_markup=reply_markup,
-            )
-            return
-        except TelegramBadRequest as exc:
-            if is_not_modified(exc):
-                return
-    await show_hub_prompt(
-        message=message,
-        state=state,
-        text=text,
-        reply_markup=reply_markup,
-    )
-
-
 async def _finish_media_edit(
     *,
     message: Message,
@@ -307,20 +126,8 @@ async def _finish_media_edit(
         state=state,
         prefer_sticky=True,
     )
-    await _send_service_card(message=message, service=service, i18n=i18n)
+    await send_service_card(message=message, service=service, i18n=i18n)
     await message.answer(text=notice, reply_markup=get_hub_dismiss_kb(i18n))
-
-
-async def _load_owned_service(
-    *,
-    repos: Repositories,
-    user: User,
-    service_id: int,
-) -> Service | None:
-    service = await repos.services.get_service(service_id=service_id)
-    if service is None or service.master_user_id != user.user_id:
-        return None
-    return service
 
 
 @services_router.callback_query(MasterServiceCallback.filter())
@@ -331,7 +138,7 @@ async def process_service_open(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    service = await _load_owned_service(
+    service = await load_owned_service(
         repos=repos,
         user=user,
         service_id=callback_data.service_id,
@@ -342,7 +149,7 @@ async def process_service_open(
             show_alert=True,
         )
         return
-    await _send_service_card(
+    await send_service_card(
         message=callback.message,
         service=service,
         i18n=i18n,
@@ -358,7 +165,7 @@ async def process_services_back(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    await _dismiss_aux_message(callback.message, state)
+    await dismiss_aux_message(callback.message, state)
     await show_services_list(
         message=callback.message,
         repos=repos,
@@ -397,7 +204,7 @@ async def process_service_toggle(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    service = await _load_owned_service(
+    service = await load_owned_service(
         repos=repos,
         user=user,
         service_id=callback_data.service_id,
@@ -428,7 +235,7 @@ async def process_service_toggle(
             else i18n.get("services_deactivated")
         ),
     )
-    await _refresh_service_card(
+    await refresh_service_card(
         message=callback.message,
         service=updated,
         i18n=i18n,
@@ -485,7 +292,7 @@ async def process_service_media_fsm_cancel(
 ) -> None:
     data = await state.get_data()
     service_id = data.get("service_id")
-    await _dismiss_aux_message(callback.message, state)
+    await dismiss_aux_message(callback.message, state)
     await clear_state_keep_hub(state)
     await show_services_list(
         message=callback.message,
@@ -497,13 +304,13 @@ async def process_service_media_fsm_cancel(
         prefer_sticky=True,
     )
     if service_id is not None:
-        service = await _load_owned_service(
+        service = await load_owned_service(
             repos=repos,
             user=user,
             service_id=int(service_id),
         )
         if service is not None:
-            await _send_service_card(
+            await send_service_card(
                 message=callback.message,
                 service=service,
                 i18n=i18n,
@@ -572,7 +379,7 @@ async def process_add_service_price(
     i18n: dict[str, str],
 ) -> None:
     try:
-        price = _parse_price(message.text or "")
+        price = parse_price(message.text or "")
     except InvalidOperation:
         await message.answer(
             text=i18n.get("add_service_invalid_price"),
@@ -593,7 +400,7 @@ async def process_add_service_price(
         text=i18n.get("add_service_ok").format(
             title=service.title,
             duration=service.duration_minutes,
-            price=_format_price(service.price, i18n),
+            price=format_price(service.price, i18n),
         ),
     )
     await show_services_list(
@@ -614,7 +421,7 @@ async def process_service_edit(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    service = await _load_owned_service(
+    service = await load_owned_service(
         repos=repos,
         user=user,
         service_id=callback_data.service_id,
@@ -626,7 +433,7 @@ async def process_service_edit(
     await clear_state_keep_hub(state)
     await state.update_data(service_id=service.id)
     await state.set_state(EditServiceSG.title)
-    await _prompt_on_sticky(
+    await prompt_on_sticky(
         message=callback.message,
         state=state,
         text=i18n.get("edit_service_enter_title").format(title=service.title),
@@ -654,7 +461,7 @@ async def process_edit_service_title(
     await state.update_data(title=title)
 
     data = await state.get_data()
-    service = await _load_owned_service(
+    service = await load_owned_service(
         repos=repos,
         user=user,
         service_id=data["service_id"],
@@ -700,7 +507,7 @@ async def process_edit_service_duration(
     await state.update_data(duration_minutes=duration_minutes)
 
     data = await state.get_data()
-    service = await _load_owned_service(
+    service = await load_owned_service(
         repos=repos,
         user=user,
         service_id=data["service_id"],
@@ -713,7 +520,7 @@ async def process_edit_service_duration(
     await state.set_state(EditServiceSG.price)
     await message.answer(
         text=i18n.get("edit_service_enter_price").format(
-            price=_format_price(service.price, i18n),
+            price=format_price(service.price, i18n),
         ),
         reply_markup=get_service_fsm_cancel_kb(i18n),
     )
@@ -728,7 +535,7 @@ async def process_edit_service_price(
     i18n: dict[str, str],
 ) -> None:
     try:
-        price = _parse_price(message.text or "")
+        price = parse_price(message.text or "")
     except InvalidOperation:
         await message.answer(
             text=i18n.get("add_service_invalid_price"),
@@ -754,7 +561,7 @@ async def process_edit_service_price(
         text=i18n.get("edit_service_ok").format(
             title=service.title,
             duration=service.duration_minutes,
-            price=_format_price(service.price, i18n),
+            price=format_price(service.price, i18n),
         ),
     )
     await show_services_list(
@@ -777,7 +584,7 @@ async def process_service_description(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    service = await _load_owned_service(
+    service = await load_owned_service(
         repos=repos,
         user=user,
         service_id=callback_data.service_id,
@@ -789,12 +596,12 @@ async def process_service_description(
     await clear_state_keep_hub(state)
     await state.update_data(service_id=service.id)
     await state.set_state(ServiceDescriptionSG.value)
-    await _prompt_on_sticky(
+    await prompt_on_sticky(
         message=callback.message,
         state=state,
         text=i18n.get("services_enter_description").format(
-            max=_DESCRIPTION_MAX,
-            description=_card_description(service, i18n),
+            max=DESCRIPTION_MAX,
+            description=card_description(service, i18n),
         ),
         reply_markup=get_service_description_kb(i18n),
     )
@@ -844,12 +651,12 @@ async def process_service_description_value(
 ) -> None:
     text = (message.text or "").strip()
     await delete_user_input(message)
-    if not text or len(text) > _DESCRIPTION_MAX:
+    if not text or len(text) > DESCRIPTION_MAX:
         await show_hub_prompt(
             message=message,
             state=state,
             text=i18n.get("services_invalid_description").format(
-                max=_DESCRIPTION_MAX,
+                max=DESCRIPTION_MAX,
             ),
             reply_markup=get_service_description_kb(i18n),
         )
@@ -891,7 +698,7 @@ async def process_service_photo(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    service = await _load_owned_service(
+    service = await load_owned_service(
         repos=repos,
         user=user,
         service_id=callback_data.service_id,
@@ -903,10 +710,10 @@ async def process_service_photo(
     await clear_state_keep_hub(state)
     await state.update_data(service_id=service.id)
     await state.set_state(ServicePhotoSG.value)
-    await _dismiss_aux_message(callback.message, state)
+    await dismiss_aux_message(callback.message, state)
 
     prompt = i18n.get("services_enter_photo").format(
-        photo=_card_photo(service, i18n),
+        photo=card_photo(service, i18n),
     )
     kb = get_service_photo_kb(i18n)
     if service.photo_file_id:
@@ -918,7 +725,7 @@ async def process_service_photo(
         )
         await state.update_data(service_photo_preview_id=sent.message_id)
     else:
-        await _prompt_on_sticky(
+        await prompt_on_sticky(
             message=callback.message,
             state=state,
             text=prompt,
@@ -944,7 +751,7 @@ async def process_service_clear_photo(
         master_user_id=user.user_id,
         photo_file_id=None,
     )
-    await _dismiss_aux_message(callback.message, state)
+    await dismiss_aux_message(callback.message, state)
     await clear_state_keep_hub(state)
     if service is None:
         await callback.answer(text=i18n.get("services_not_found"), show_alert=True)
@@ -977,7 +784,7 @@ async def process_service_photo_value(
         photo_file_id=photo_file_id,
     )
     await delete_user_input(message)
-    await _dismiss_photo_preview(message, state)
+    await dismiss_photo_preview(message, state)
     await clear_state_keep_hub(state)
     if service is None:
         await message.answer(
