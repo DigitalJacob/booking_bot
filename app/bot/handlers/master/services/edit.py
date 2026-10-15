@@ -15,12 +15,14 @@ from app.bot.handlers.master.services.common import (
 )
 from app.bot.handlers.master.services.list import show_services_list
 from app.bot.handlers.master.services.router import services_router
+from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.services import (
     MasterServiceNavCallback,
     get_service_fsm_cancel_kb,
 )
 from app.bot.states.states import EditServiceSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.telegram import delete_user_input
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
@@ -64,8 +66,11 @@ async def process_edit_service_title(
     i18n: dict[str, str],
 ) -> None:
     title = (message.text or "").strip()
+    await delete_user_input(message)
     if not title or len(title) > 100:
-        await message.answer(
+        await prompt_on_sticky(
+            message=message,
+            state=state,
             text=i18n.get("add_service_invalid_title"),
             reply_markup=get_service_fsm_cancel_kb(i18n),
         )
@@ -80,12 +85,19 @@ async def process_edit_service_title(
         service_id=data["service_id"],
     )
     if service is None:
-        await message.answer(text=i18n.get("services_not_found"))
         await clear_state_keep_hub(state)
+        await prompt_on_sticky(
+            message=message,
+            state=state,
+            text=i18n.get("services_not_found"),
+            reply_markup=get_hub_dismiss_kb(i18n),
+        )
         return
 
     await state.set_state(EditServiceSG.duration)
-    await message.answer(
+    await prompt_on_sticky(
+        message=message,
+        state=state,
         text=i18n.get("edit_service_enter_duration").format(
             duration=service.duration_minutes,
         ),
@@ -102,22 +114,17 @@ async def process_edit_service_duration(
     i18n: dict[str, str],
 ) -> None:
     text = (message.text or "").strip()
-    if not text.isdigit():
-        await message.answer(
+    await delete_user_input(message)
+    if not text.isdigit() or int(text) <= 0:
+        await prompt_on_sticky(
+            message=message,
+            state=state,
             text=i18n.get("add_service_invalid_duration"),
             reply_markup=get_service_fsm_cancel_kb(i18n),
         )
         return
 
-    duration_minutes = int(text)
-    if duration_minutes <= 0:
-        await message.answer(
-            text=i18n.get("add_service_invalid_duration"),
-            reply_markup=get_service_fsm_cancel_kb(i18n),
-        )
-        return
-
-    await state.update_data(duration_minutes=duration_minutes)
+    await state.update_data(duration_minutes=int(text))
 
     data = await state.get_data()
     service = await load_owned_service(
@@ -126,12 +133,19 @@ async def process_edit_service_duration(
         service_id=data["service_id"],
     )
     if service is None:
-        await message.answer(text=i18n.get("services_not_found"))
         await clear_state_keep_hub(state)
+        await prompt_on_sticky(
+            message=message,
+            state=state,
+            text=i18n.get("services_not_found"),
+            reply_markup=get_hub_dismiss_kb(i18n),
+        )
         return
 
     await state.set_state(EditServiceSG.price)
-    await message.answer(
+    await prompt_on_sticky(
+        message=message,
+        state=state,
         text=i18n.get("edit_service_enter_price").format(
             price=format_price(service.price, i18n),
         ),
@@ -147,10 +161,14 @@ async def process_edit_service_price(
     user: User,
     i18n: dict[str, str],
 ) -> None:
+    raw = message.text or ""
+    await delete_user_input(message)
     try:
-        price = parse_price(message.text or "")
+        price = parse_price(raw)
     except InvalidOperation:
-        await message.answer(
+        await prompt_on_sticky(
+            message=message,
+            state=state,
             text=i18n.get("add_service_invalid_price"),
             reply_markup=get_service_fsm_cancel_kb(i18n),
         )
@@ -165,22 +183,30 @@ async def process_edit_service_price(
         price=price,
     )
     if service is None:
-        await message.answer(text=i18n.get("services_not_found"))
         await clear_state_keep_hub(state)
+        await prompt_on_sticky(
+            message=message,
+            state=state,
+            text=i18n.get("services_not_found"),
+            reply_markup=get_hub_dismiss_kb(i18n),
+        )
         return
 
     await clear_state_keep_hub(state)
-    await message.answer(
-        text=i18n.get("edit_service_ok").format(
-            title=service.title,
-            duration=service.duration_minutes,
-            price=format_price(service.price, i18n),
-        ),
-    )
     await show_services_list(
         message=message,
         repos=repos,
         user=user,
         i18n=i18n,
         edit=False,
+        state=state,
+        prefer_sticky=True,
+    )
+    await message.answer(
+        text=i18n.get("edit_service_ok").format(
+            title=service.title,
+            duration=service.duration_minutes,
+            price=format_price(service.price, i18n),
+        ),
+        reply_markup=get_hub_dismiss_kb(i18n),
     )

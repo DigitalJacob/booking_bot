@@ -7,15 +7,21 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.handlers.master.services.common import format_price, parse_price
+from app.bot.handlers.master.services.common import (
+    format_price,
+    parse_price,
+    prompt_on_sticky,
+)
 from app.bot.handlers.master.services.list import show_services_list
 from app.bot.handlers.master.services.router import services_router
+from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.services import (
     MasterServiceNavCallback,
     get_service_fsm_cancel_kb,
 )
 from app.bot.states.states import AddServiceSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.telegram import delete_user_input
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
@@ -28,7 +34,9 @@ async def process_services_add_button(
 ) -> None:
     await clear_state_keep_hub(state)
     await state.set_state(AddServiceSG.title)
-    await callback.message.edit_text(
+    await prompt_on_sticky(
+        message=callback.message,
+        state=state,
         text=i18n.get("add_service_enter_title"),
         reply_markup=get_service_fsm_cancel_kb(i18n),
     )
@@ -42,8 +50,11 @@ async def process_add_service_title(
     i18n: dict[str, str],
 ) -> None:
     title = (message.text or "").strip()
+    await delete_user_input(message)
     if not title or len(title) > 100:
-        await message.answer(
+        await prompt_on_sticky(
+            message=message,
+            state=state,
             text=i18n.get("add_service_invalid_title"),
             reply_markup=get_service_fsm_cancel_kb(i18n),
         )
@@ -51,7 +62,9 @@ async def process_add_service_title(
 
     await state.update_data(title=title)
     await state.set_state(AddServiceSG.duration)
-    await message.answer(
+    await prompt_on_sticky(
+        message=message,
+        state=state,
         text=i18n.get("add_service_enter_duration"),
         reply_markup=get_service_fsm_cancel_kb(i18n),
     )
@@ -64,24 +77,21 @@ async def process_add_service_duration(
     i18n: dict[str, str],
 ) -> None:
     text = (message.text or "").strip()
-    if not text.isdigit():
-        await message.answer(
+    await delete_user_input(message)
+    if not text.isdigit() or int(text) <= 0:
+        await prompt_on_sticky(
+            message=message,
+            state=state,
             text=i18n.get("add_service_invalid_duration"),
             reply_markup=get_service_fsm_cancel_kb(i18n),
         )
         return
 
-    duration_minutes = int(text)
-    if duration_minutes <= 0:
-        await message.answer(
-            text=i18n.get("add_service_invalid_duration"),
-            reply_markup=get_service_fsm_cancel_kb(i18n),
-        )
-        return
-
-    await state.update_data(duration_minutes=duration_minutes)
+    await state.update_data(duration_minutes=int(text))
     await state.set_state(AddServiceSG.price)
-    await message.answer(
+    await prompt_on_sticky(
+        message=message,
+        state=state,
         text=i18n.get("add_service_enter_price"),
         reply_markup=get_service_fsm_cancel_kb(i18n),
     )
@@ -95,10 +105,14 @@ async def process_add_service_price(
     user: User,
     i18n: dict[str, str],
 ) -> None:
+    raw = message.text or ""
+    await delete_user_input(message)
     try:
-        price = parse_price(message.text or "")
+        price = parse_price(raw)
     except InvalidOperation:
-        await message.answer(
+        await prompt_on_sticky(
+            message=message,
+            state=state,
             text=i18n.get("add_service_invalid_price"),
             reply_markup=get_service_fsm_cancel_kb(i18n),
         )
@@ -113,17 +127,20 @@ async def process_add_service_price(
     )
 
     await clear_state_keep_hub(state)
-    await message.answer(
-        text=i18n.get("add_service_ok").format(
-            title=service.title,
-            duration=service.duration_minutes,
-            price=format_price(service.price, i18n),
-        ),
-    )
     await show_services_list(
         message=message,
         repos=repos,
         user=user,
         i18n=i18n,
         edit=False,
+        state=state,
+        prefer_sticky=True,
+    )
+    await message.answer(
+        text=i18n.get("add_service_ok").format(
+            title=service.title,
+            duration=service.duration_minutes,
+            price=format_price(service.price, i18n),
+        ),
+        reply_markup=get_hub_dismiss_kb(i18n),
     )
