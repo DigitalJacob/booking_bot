@@ -278,6 +278,38 @@ async def test_min_lead_filters_early_slots():
 
 
 @pytest.mark.asyncio
+async def test_ignore_min_lead_keeps_near_slots():
+    """min_lead=120 from 08:00 MSK blocks 09:00 for clients; master sees it."""
+    repos = make_availability_repos(
+        settings=_settings(min_lead_minutes=120, booking_horizon_days=1),
+        working_hours=[_working()],
+    )
+    service = AvailabilityService(repos)
+
+    client_windows = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        now=NOW,
+    )
+    master_windows = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        now=NOW,
+        ignore_min_lead=True,
+    )
+
+    assert _starts(client_windows) == [
+        datetime(2026, 9, 10, 7, 0, tzinfo=UTC),  # 10:00 MSK
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),  # 11:00 MSK
+    ]
+    assert _starts(master_windows) == [
+        datetime(2026, 9, 10, 6, 0, tzinfo=UTC),  # 09:00 MSK
+        datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
+        datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_cancelled_appointment_does_not_block():
     busy_start = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
     busy_end = datetime(2026, 9, 10, 8, 0, tzinfo=UTC)

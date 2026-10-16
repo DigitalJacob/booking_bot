@@ -18,6 +18,7 @@ class AvailabilityService:
         duration_minutes: int,
         schedule_mode: str = "weekly",
         now: datetime | None = None,
+        ignore_min_lead: bool = False,
     ) -> list[TimeWindow]:
         if duration_minutes <= 0:
             raise ValueError("Duration_minutes must be positive")
@@ -33,7 +34,8 @@ class AvailabilityService:
 
         zone = ZoneInfo(settings.timezone)
         now_local = now.astimezone(zone)
-        earliest = now + timedelta(minutes=settings.min_lead_minutes)
+        lead_minutes = 0 if ignore_min_lead else settings.min_lead_minutes
+        earliest = now + timedelta(minutes=lead_minutes)
 
         start_day = now_local.date()
         end_day = start_day + timedelta(days=settings.booking_horizon_days)
