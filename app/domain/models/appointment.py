@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from app.domain.enums import AppointmentStatus
@@ -16,6 +17,7 @@ class Appointment:
     status: AppointmentStatus
     created_at: datetime
     master_notify_message_id: int | None = None
+    price_snapshot: Decimal | None = None
     client_evening_reminded_at: datetime | None = None
     client_hour_reminded_at: datetime | None = None
     master_evening_reminded_at: datetime | None = None
@@ -33,6 +35,7 @@ class Appointment:
             status=AppointmentStatus(row["status"]),
             created_at=row["created_at"],
             master_notify_message_id=row.get("master_notify_message_id"),
+            price_snapshot=row.get("price_snapshot"),
             client_evening_reminded_at=row.get("client_evening_reminded_at"),
             client_hour_reminded_at=row.get("client_hour_reminded_at"),
             master_evening_reminded_at=row.get("master_evening_reminded_at"),

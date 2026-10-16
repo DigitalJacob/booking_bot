@@ -97,6 +97,7 @@ class BookingService:
             starts_at=match.starts_at,
             ends_at=match.ends_at,
             status=AppointmentStatus.PENDING,
+            price_snapshot=service.price,
         )
 
         logger.info(

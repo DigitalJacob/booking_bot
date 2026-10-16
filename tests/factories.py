@@ -27,13 +27,14 @@ def make_service(
     master_user_id: int = MASTER_ID,
     duration_minutes: int = 60,
     is_active: bool = True,
+    price: Decimal | None = Decimal("1500"),
 ) -> Service:
     return Service(
         id=service_id,
         master_user_id=master_user_id,
         title=f"Service {service_id}",
         duration_minutes=duration_minutes,
-        price=Decimal("1500"),
+        price=price,
         is_active=is_active,
         description=None,
         photo_file_id=None,
@@ -50,6 +51,7 @@ def make_appointment(
     starts_at: datetime | None = None,
     ends_at: datetime | None = None,
     status: AppointmentStatus = AppointmentStatus.PENDING,
+    price_snapshot: Decimal | None = None,
 ) -> Appointment:
     if starts_at is None:
         starts_at = NOW + timedelta(hours=2)
@@ -64,6 +66,7 @@ def make_appointment(
         ends_at=ends_at,
         status=status,
         created_at=NOW,
+        price_snapshot=price_snapshot,
     )
 
 
@@ -290,6 +293,7 @@ class FakeAppointmentsRepository:
         starts_at: datetime,
         ends_at: datetime,
         status: AppointmentStatus = AppointmentStatus.PENDING,
+        price_snapshot: Decimal | None = None,
     ) -> Appointment:
         for existing in self._appointments.values():
             if existing.master_user_id != master_user_id:
@@ -310,6 +314,7 @@ class FakeAppointmentsRepository:
             starts_at=starts_at,
             ends_at=ends_at,
             status=status,
+            price_snapshot=price_snapshot,
         )
         self._appointments[appointment.id] = appointment
         self._next_id += 1

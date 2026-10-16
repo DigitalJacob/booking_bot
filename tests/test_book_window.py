@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, time
+from decimal import Decimal
 
 import pytest
 from app.domain.enums import AppointmentStatus
@@ -75,6 +76,38 @@ async def test_book_window_creates_pending_appointment():
     assert appointment.status == AppointmentStatus.PENDING
     assert appointment.starts_at == starts
     assert appointment.ends_at == datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_book_window_stores_service_price_snapshot():
+    booking = BookingService(
+        _repos_with_schedule(services=[make_service(price=Decimal("2500.50"))]),
+    )
+
+    appointment = await booking.book_window(
+        client_user_id=CLIENT_ID,
+        service_id=1,
+        starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        now=NOW,
+    )
+
+    assert appointment.price_snapshot == Decimal("2500.50")
+
+
+@pytest.mark.asyncio
+async def test_book_window_stores_empty_snapshot_for_unpriced_service():
+    booking = BookingService(
+        _repos_with_schedule(services=[make_service(price=None)]),
+    )
+
+    appointment = await booking.book_window(
+        client_user_id=CLIENT_ID,
+        service_id=1,
+        starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        now=NOW,
+    )
+
+    assert appointment.price_snapshot is None
 
 
 @pytest.mark.asyncio

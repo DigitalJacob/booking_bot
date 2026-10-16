@@ -1,6 +1,7 @@
 """Repository ports used by domain services (no SQL / driver imports)."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Protocol
 
 from app.domain.enums import AppointmentStatus
@@ -35,6 +36,7 @@ class AppointmentsRepoPort(Protocol):
         starts_at: datetime,
         ends_at: datetime,
         status: AppointmentStatus = AppointmentStatus.PENDING,
+        price_snapshot: Decimal | None = None,
     ) -> Appointment: ...
 
     async def get_appointment(
