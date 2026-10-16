@@ -1,8 +1,10 @@
 from datetime import UTC, datetime, time
+from decimal import Decimal
 
 import pytest
 from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
+    ForbiddenBookingAction,
     ServiceInactive,
     ServiceNotFound,
     WindowNotAvailable,
@@ -75,6 +77,38 @@ async def test_book_window_creates_pending_appointment():
     assert appointment.status == AppointmentStatus.PENDING
     assert appointment.starts_at == starts
     assert appointment.ends_at == datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_book_window_stores_service_price_snapshot():
+    booking = BookingService(
+        _repos_with_schedule(services=[make_service(price=Decimal("2500.50"))]),
+    )
+
+    appointment = await booking.book_window(
+        client_user_id=CLIENT_ID,
+        service_id=1,
+        starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        now=NOW,
+    )
+
+    assert appointment.price_snapshot == Decimal("2500.50")
+
+
+@pytest.mark.asyncio
+async def test_book_window_stores_empty_snapshot_for_unpriced_service():
+    booking = BookingService(
+        _repos_with_schedule(services=[make_service(price=None)]),
+    )
+
+    appointment = await booking.book_window(
+        client_user_id=CLIENT_ID,
+        service_id=1,
+        starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        now=NOW,
+    )
+
+    assert appointment.price_snapshot is None
 
 
 @pytest.mark.asyncio
@@ -157,3 +191,104 @@ async def test_list_available_windows_returns_grid():
         datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
         datetime(2026, 9, 10, 8, 0, tzinfo=UTC),
     ]
+
+
+@pytest.mark.asyncio
+async def test_book_for_client_creates_confirmed_appointment():
+    booking = BookingService(_repos_with_schedule())
+    starts = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)
+
+    appointment = await booking.book_for_client(
+        master_user_id=MASTER_ID,
+        client_user_id=CLIENT_ID,
+        service_id=1,
+        starts_at=starts,
+        now=NOW,
+    )
+
+    assert appointment.status == AppointmentStatus.CONFIRMED
+    assert appointment.client_user_id == CLIENT_ID
+    assert appointment.master_user_id == MASTER_ID
+    assert appointment.starts_at == starts
+    assert appointment.price_snapshot == Decimal("1500")
+
+
+@pytest.mark.asyncio
+async def test_book_for_client_rejects_other_masters_service():
+    booking = BookingService(
+        _repos_with_schedule(
+            services=[make_service(master_user_id=OTHER_ID)],
+        ),
+    )
+
+    with pytest.raises(ForbiddenBookingAction):
+        await booking.book_for_client(
+            master_user_id=MASTER_ID,
+            client_user_id=CLIENT_ID,
+            service_id=1,
+            starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+            now=NOW,
+        )
+
+
+@pytest.mark.asyncio
+async def test_book_for_client_rejects_when_already_taken():
+    taken_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)
+    booking = BookingService(
+        _repos_with_schedule(
+            appointments=[
+                make_appointment(
+                    starts_at=taken_start,
+                    ends_at=datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
+                ),
+            ],
+        ),
+    )
+
+    with pytest.raises(WindowNotAvailable):
+        await booking.book_for_client(
+            master_user_id=MASTER_ID,
+            client_user_id=OTHER_ID,
+            service_id=1,
+            starts_at=taken_start,
+            now=NOW,
+        )
+
+
+@pytest.mark.asyncio
+async def test_book_for_client_ignores_min_lead_but_keeps_horizon():
+    """Client cannot book the first slot under min_lead; master can.
+
+    Horizon still applies: a start outside booking_horizon_days is rejected.
+    """
+    starts_near = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00 MSK
+    repos = _repos_with_schedule(
+        settings=_settings(min_lead_minutes=120, booking_horizon_days=1),
+    )
+    booking = BookingService(repos)
+
+    with pytest.raises(WindowNotAvailable):
+        await booking.book_window(
+            client_user_id=CLIENT_ID,
+            service_id=1,
+            starts_at=starts_near,
+            now=NOW,
+        )
+
+    appointment = await booking.book_for_client(
+        master_user_id=MASTER_ID,
+        client_user_id=CLIENT_ID,
+        service_id=1,
+        starts_at=starts_near,
+        now=NOW,
+    )
+    assert appointment.status == AppointmentStatus.CONFIRMED
+
+    with pytest.raises(WindowNotAvailable):
+        await booking.book_for_client(
+            master_user_id=MASTER_ID,
+            client_user_id=OTHER_ID,
+            service_id=1,
+            starts_at=datetime(2026, 9, 12, 6, 0, tzinfo=UTC),
+            now=NOW,
+        )

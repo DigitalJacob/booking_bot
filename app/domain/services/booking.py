@@ -34,12 +34,14 @@ class BookingService:
         duration_minutes: int,
         schedule_mode: str = "weekly",
         now: datetime | None = None,
+        ignore_min_lead: bool = False,
     ) -> list[TimeWindow]:
         return await AvailabilityService(self._repos).list_windows(
             master_user_id=master_user_id,
             duration_minutes=duration_minutes,
             schedule_mode=schedule_mode,
             now=now,
+            ignore_min_lead=ignore_min_lead,
         )
 
     async def list_open_months(
@@ -64,6 +66,60 @@ class BookingService:
         schedule_mode: str = "weekly",
         now: datetime | None = None,
     ) -> Appointment:
+        service = await self._load_active_service(service_id=service_id)
+        return await self._reserve_window(
+            client_user_id=client_user_id,
+            service=service,
+            starts_at=starts_at,
+            status=AppointmentStatus.PENDING,
+            schedule_mode=schedule_mode,
+            now=now,
+            ignore_min_lead=False,
+        )
+
+    async def book_for_client(
+        self,
+        *,
+        master_user_id: int,
+        client_user_id: int,
+        service_id: int,
+        starts_at: datetime,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
+    ) -> Appointment:
+        """Master books a Telegram client: confirmed, min_lead ignored, horizon kept."""
+        service = await self._load_active_service(service_id=service_id)
+        if service.master_user_id != master_user_id:
+            raise ForbiddenBookingAction
+        return await self._reserve_window(
+            client_user_id=client_user_id,
+            service=service,
+            starts_at=starts_at,
+            status=AppointmentStatus.CONFIRMED,
+            schedule_mode=schedule_mode,
+            now=now,
+            ignore_min_lead=True,
+        )
+
+    async def _load_active_service(self, *, service_id: int) -> Service:
+        service = await self._repos.services.get_service(service_id=service_id)
+        if service is None:
+            raise ServiceNotFound
+        if not service.is_active:
+            raise ServiceInactive
+        return service
+
+    async def _reserve_window(
+        self,
+        *,
+        client_user_id: int,
+        service: Service,
+        starts_at: datetime,
+        status: AppointmentStatus,
+        schedule_mode: str,
+        now: datetime | None,
+        ignore_min_lead: bool,
+    ) -> Appointment:
         if now is None:
             now = datetime.now(UTC)
         if starts_at.tzinfo is None:
@@ -71,17 +127,12 @@ class BookingService:
         else:
             starts_at = starts_at.astimezone(UTC)
 
-        service = await self._repos.services.get_service(service_id=service_id)
-        if service is None:
-            raise ServiceNotFound
-        if not service.is_active:
-            raise ServiceInactive
-
         windows = await self.list_available_windows(
             master_user_id=service.master_user_id,
             duration_minutes=service.duration_minutes,
             schedule_mode=schedule_mode,
             now=now,
+            ignore_min_lead=ignore_min_lead,
         )
         match = next(
             (window for window in windows if window.starts_at.astimezone(UTC) == starts_at),
@@ -93,17 +144,19 @@ class BookingService:
         appointment = await self._repos.appointments.add_appointment(
             client_user_id=client_user_id,
             master_user_id=service.master_user_id,
-            service_id=service_id,
+            service_id=service.id,
             starts_at=match.starts_at,
             ends_at=match.ends_at,
-            status=AppointmentStatus.PENDING,
+            status=status,
+            price_snapshot=service.price,
         )
 
         logger.info(
-            "Booked appointment %d via window: client=%d, master=%d, starts_at=%s",
+            "Booked appointment %d via window: client=%d, master=%d, status=%s, starts_at=%s",
             appointment.id,
             client_user_id,
             service.master_user_id,
+            status,
             match.starts_at,
         )
         return appointment

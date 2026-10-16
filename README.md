@@ -387,7 +387,7 @@ on startup.
 |--------------------|-------------------------------------------------------------------------------------------------------------------------|
 | `users`            | Telegram id, username, language, role, ban flag, contact profile, PDN consent (`pdn_consent_at`, `pdn_consent_version`) |
 | `services`         | Master's offerings: title, duration, price, description, photo file id, active flag                                     |
-| `appointments`     | Client, service, status, time range (`starts_at` / `ends_at`), reminder sent-at columns                                 |
+| `appointments`     | Client, service, status, time range (`starts_at` / `ends_at`), price snapshot, reminder sent-at columns                 |
 | `master_settings`  | Per-master timezone, grid step, gap, lead time and booking horizon                                                      |
 | `working_hours`    | Weekly mode: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                                                 |
 | `work_dates`       | Monthly mode: concrete open dates with local `starts_time` / `ends_time` (unique per master+day)                        |
@@ -402,6 +402,9 @@ photo file id) are set from the master's service card and shown in the client
 **Services** catalog. Booking still uses title / duration / price only.
 
 `appointments.status` is one of `pending`, `confirmed`, `cancelled`.
+
+`appointments.price_snapshot` keeps the service price at booking time (`migration 014`),
+so later price edits do not change past visits. Rows created before it stay `NULL`.
 
 Appointments store `starts_at` / `ends_at`. Active appointments for the same master
 cannot overlap in time: a GiST `EXCLUDE` on `tstzrange(starts_at, ends_at, '[)')`

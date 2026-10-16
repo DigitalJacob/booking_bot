@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from psycopg import AsyncConnection
 from psycopg.errors import ExclusionViolation, UniqueViolation
@@ -22,6 +23,7 @@ _APPOINTMENT_COLUMNS = """
     status,
     created_at,
     master_notify_message_id,
+    price_snapshot,
     client_evening_reminded_at,
     client_hour_reminded_at,
     master_evening_reminded_at,
@@ -42,6 +44,7 @@ class AppointmentsRepository:
         starts_at: datetime,
         ends_at: datetime,
         status: AppointmentStatus = AppointmentStatus.PENDING,
+        price_snapshot: Decimal | None = None,
     ) -> Appointment:
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             try:
@@ -53,7 +56,8 @@ class AppointmentsRepository:
                             service_id,
                             starts_at,
                             ends_at,
-                            status
+                            status,
+                            price_snapshot
                         )
                         VALUES(
                             %(client_user_id)s,
@@ -61,7 +65,8 @@ class AppointmentsRepository:
                             %(service_id)s,
                             %(starts_at)s,
                             %(ends_at)s,
-                            %(status)s
+                            %(status)s,
+                            %(price_snapshot)s
                         )
                         RETURNING
                             {_APPOINTMENT_COLUMNS};
@@ -73,6 +78,7 @@ class AppointmentsRepository:
                         "starts_at": starts_at,
                         "ends_at": ends_at,
                         "status": status,
+                        "price_snapshot": price_snapshot,
                     },
                 )
             except (UniqueViolation, ExclusionViolation) as e:

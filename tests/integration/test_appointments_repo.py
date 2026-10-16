@@ -90,6 +90,40 @@ async def test_non_overlapping_appointments_ok(repos: Repositories) -> None:
 
 
 @pytest.mark.asyncio
+async def test_price_snapshot_round_trips(repos: Repositories) -> None:
+    service = await _seed_service(repos)
+
+    created = await repos.appointments.add_appointment(
+        client_user_id=CLIENT_ID,
+        master_user_id=MASTER_ID,
+        service_id=service.id,
+        starts_at=START,
+        ends_at=END,
+        price_snapshot=Decimal("2000.00"),
+    )
+    loaded = await repos.appointments.get_appointment(appointment_id=created.id)
+
+    assert created.price_snapshot == Decimal("2000.00")
+    assert loaded is not None
+    assert loaded.price_snapshot == Decimal("2000.00")
+
+
+@pytest.mark.asyncio
+async def test_price_snapshot_defaults_to_null(repos: Repositories) -> None:
+    service = await _seed_service(repos)
+
+    created = await repos.appointments.add_appointment(
+        client_user_id=CLIENT_ID,
+        master_user_id=MASTER_ID,
+        service_id=service.id,
+        starts_at=START,
+        ends_at=END,
+    )
+
+    assert created.price_snapshot is None
+
+
+@pytest.mark.asyncio
 async def test_cancelled_slot_can_be_rebooked(repos: Repositories) -> None:
     service = await _seed_service(repos)
 
