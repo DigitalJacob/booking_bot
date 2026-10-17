@@ -76,7 +76,7 @@ They depend on `RepositoriesPort` — a `typing.Protocol` facade of the persiste
 the domain actually needs. Handlers build a concrete SQL `Repositories` object and pass
 it in; tests pass an in-memory `FakeRepositories` that satisfies the same shape. No
 inheritance required — structural typing keeps the layers decoupled while the suite still
-runs in well under a second without a database, Redis or a Telegram token.
+runs in about a second without a database, Redis or a Telegram token.
 
 Overlap checks when the master clears work days or adds time off live in
 `ScheduleConflictsService`; handlers only show the warning UI and apply the change.
@@ -127,16 +127,17 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Bookings** — sticky list shaped by `SCHEDULE_MODE`: **weekly** is week → day →
   card (← / → weeks); **monthly** is month calendar (days with appointments marked
   `•`) → day → card (← / → months); same card actions in both modes
-- **Book a client** — search by phone, `@username`, or Telegram id (active
-  non-banned clients only), or **New client** (name → phone); then the same
-  service → month → day → time funnel as client **Book**, but the visit is saved
-  as **confirmed** immediately. Client `min_lead` is ignored for the master;
-  `booking_horizon_days` still applies. Booking an existing bot user notifies that
-  client; the master does not get a new-booking push for their own booking. A
-  walk-in is stored in `manual_clients` (no Telegram) — no client push and no
-  client reminders; the master still gets reminders with the walk-in's name and
-  phone. Phones are compared by digits only and should use **international
-  format** (e.g. `+79991234567`); a leading `8…` is not treated as `+7…`
+- **Book a client** — search by phone, `@username`, Telegram id (active
+  non-banned clients only), or name / phone substring among this master's
+  walk-ins; or **New client** (name → phone); then the same service → month →
+  day → time funnel as client **Book**, but the visit is saved as **confirmed**
+  immediately. Client `min_lead` is ignored for the master; `booking_horizon_days`
+  still applies. Booking an existing bot user notifies that client; the master
+  does not get a new-booking push for their own booking. A walk-in is stored in
+  `manual_clients` (no Telegram) — no client push and no client reminders; the
+  master still gets reminders with the walk-in's name and phone. Phones are
+  compared by digits only and should use **international format** (e.g.
+  `+79991234567`); a leading `8…` is not treated as `+7…`
 - **Client name and phone on every card and notification** — from the Telegram
   profile or from `manual_clients`, so the master can actually call the person
 - **Confirm / decline / cancel** — **Confirm** stays one tap on the card or
@@ -513,23 +514,28 @@ pytest
 Without Postgres integration enabled, integration tests are skipped automatically:
 
 ```
-57 passed, 8 skipped
+82 passed, 26 skipped
 ```
 
-The unit suite covers `BookingService`, `AvailabilityService`,
-`ScheduleConflictsService`, shared `time_range` helpers, and reminder due-rules:
-window booking (including monthly open days and open-month listing), confirm and
-cancel transitions with permission checks, client appointment listing filters,
-active appointment overlap / local-day conflict checks (half-open intervals), and
-evening / hour reminder eligibility (confirmed only, lead window, half-open evening
-hours, already-sent skip).
+The unit suite covers `BookingService` (client `book_window` and master
+`book_for_client`, including price snapshots and manual clients),
+`AvailabilityService`, `ScheduleConflictsService`, shared `time_range` helpers,
+reminder due-rules and recipient skips for walk-ins, phone normalization,
+master book-client search hits, and `appointment_client_contact`: window booking
+(including monthly open days and open-month listing), confirm and cancel with
+permission checks, client appointment listing filters, active appointment overlap
+/ local-day conflict checks (half-open intervals), and evening / hour reminder
+eligibility (confirmed only, lead window, half-open evening hours, already-sent
+skip).
 
 ### Integration (repositories + Postgres)
 
-`tests/integration/` exercises real SQL repositories against PostgreSQL 17: migrations,
-the appointments exclusion constraint (`TimeConflict` on overlap), `work_dates` upsert /
-date-range listing, and `time_off` overlap filtering. Tables are truncated between tests;
-`schema_migrations` is left alone.
+`tests/integration/` exercises real SQL repositories against PostgreSQL 17:
+migrations, the appointments exclusion constraint (`TimeConflict` on overlap),
+`work_dates` upsert / date-range listing, `time_off` overlap filtering,
+`manual_clients` schema checks (client XOR, phone uniqueness) and repository
+CRUD/search, and `users` lookup by phone digits. Tables are truncated between
+tests; `schema_migrations` is left alone.
 
 **Do not point these tests at a production or day-to-day bot database** — use a dedicated
 DB (for example `booking_bot_test`). Integration tests are off by default; they run only
@@ -559,16 +565,16 @@ booking_bot/
 ├── app/
 │   ├── bot/                # Telegram layer
 │   │   ├── filters/        # Role and locale filters
-│   │   ├── handlers/       # admin users / client booking / master packages / common cancel
+│   │   ├── handlers/       # admin users / client booking / master book_client + packages / common cancel
 │   │   ├── i18n/           # Locale resolution
 │   │   ├── keyboards/      # Inline keyboards and typed CallbackData
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
 │   │   ├── states/         # FSM state groups
-│   │   ├── utils/          # Notifications, hub/cancel registries, sticky hub, formatting
+│   │   ├── utils/          # Notifications, hub/cancel registries, sticky hub, phone, formatting
 │   │   ├── reminders.py    # Background appointment-reminder worker
 │   │   ├── bot_commands.py # Telegram ☰ menu (/start, /menu)
 │   │   └── bot.py          # Dispatcher setup and startup
-│   ├── domain/             # Models, ports, enums, exceptions, domain services
+│   ├── domain/             # Models (incl. ManualClient), ports, enums, exceptions, services
 │   └── infrastructure/     # Connection pool and SQL repositories
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
@@ -578,6 +584,7 @@ booking_bot/
 ├── docker-compose.yml
 ├── Dockerfile
 ├── main.py
+├── pyproject.toml          # ruff / mypy / pytest config
 ├── requirements.txt
 └── requirements-dev.txt
 ```
