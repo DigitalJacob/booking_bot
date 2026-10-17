@@ -31,7 +31,7 @@ REMINDER_TEXT_KEY_BY_KIND: dict[ReminderKind, str] = {
 def _recipient_user_id(
     appointment: Appointment,
     kind: ReminderKind,
-) -> int:
+) -> int | None:
     if kind in (ReminderKind.CLIENT_EVENING, ReminderKind.CLIENT_HOUR):
         return appointment.client_user_id
     return appointment.master_user_id
@@ -102,11 +102,15 @@ async def _deliver_one(
         if reminded_at_for(fresh, kind) is not None:
             return
 
+        recipient_user_id = _recipient_user_id(fresh, kind)
+        if recipient_user_id is None:
+            return
+
         message_id = await notify_appointment(
             bot=bot,
             repos=repos,
             appointment=fresh,
-            recipient_user_id=_recipient_user_id(fresh, kind),
+            recipient_user_id=recipient_user_id,
             translations=translations,
             text_key=text_key,
             bot_timezone=bot_timezone,

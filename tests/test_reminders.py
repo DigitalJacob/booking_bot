@@ -19,6 +19,8 @@ def _appt(
     *,
     starts_at: datetime,
     status: AppointmentStatus = AppointmentStatus.CONFIRMED,
+    client_user_id: int | None = 200,
+    manual_client_id: int | None = None,
     client_evening_reminded_at: datetime | None = None,
     client_hour_reminded_at: datetime | None = None,
     master_evening_reminded_at: datetime | None = None,
@@ -27,13 +29,14 @@ def _appt(
 ) -> Appointment:
     return Appointment(
         id=appointment_id,
-        client_user_id=200,
+        client_user_id=client_user_id,
         master_user_id=100,
         service_id=1,
         starts_at=starts_at,
         ends_at=starts_at + timedelta(minutes=60),
         status=status,
         created_at=CREATED,
+        manual_client_id=manual_client_id,
         client_evening_reminded_at=client_evening_reminded_at,
         client_hour_reminded_at=client_hour_reminded_at,
         master_evening_reminded_at=master_evening_reminded_at,
@@ -282,6 +285,59 @@ class TestFilterDueReminders:
             appointment=appt,
             kind=ReminderKind.CLIENT_HOUR,
             now=now,
+            timezone_name=TZ,
+            lead_minutes=60,
+            evening_hour_start=20,
+            evening_hour_end=22,
+        )
+
+    def test_skips_client_reminders_for_manual_client(self) -> None:
+        starts_evening = _local(2026, 10, 6, 11, 0).astimezone(UTC)
+        now_evening = _local(2026, 10, 5, 20, 30).astimezone(UTC)
+        starts_hour = _local(2026, 10, 5, 15, 0).astimezone(UTC)
+        now_hour = starts_hour - timedelta(minutes=30)
+        appt = _appt(
+            starts_at=starts_evening,
+            client_user_id=None,
+            manual_client_id=7,
+        )
+        assert not is_reminder_due(
+            appointment=appt,
+            kind=ReminderKind.CLIENT_EVENING,
+            now=now_evening,
+            timezone_name=TZ,
+            lead_minutes=60,
+            evening_hour_start=20,
+            evening_hour_end=22,
+        )
+        assert is_reminder_due(
+            appointment=appt,
+            kind=ReminderKind.MASTER_EVENING,
+            now=now_evening,
+            timezone_name=TZ,
+            lead_minutes=60,
+            evening_hour_start=20,
+            evening_hour_end=22,
+        )
+
+        hour_appt = _appt(
+            starts_at=starts_hour,
+            client_user_id=None,
+            manual_client_id=7,
+        )
+        assert not is_reminder_due(
+            appointment=hour_appt,
+            kind=ReminderKind.CLIENT_HOUR,
+            now=now_hour,
+            timezone_name=TZ,
+            lead_minutes=60,
+            evening_hour_start=20,
+            evening_hour_end=22,
+        )
+        assert is_reminder_due(
+            appointment=hour_appt,
+            kind=ReminderKind.MASTER_HOUR,
+            now=now_hour,
             timezone_name=TZ,
             lead_minutes=60,
             evening_hour_start=20,

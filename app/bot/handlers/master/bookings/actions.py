@@ -410,16 +410,17 @@ async def process_confirm(
         )
         return
 
-    await notify_appointment(
-        bot=bot,
-        repos=repos,
-        appointment=appointment,
-        recipient_user_id=appointment.client_user_id,
-        translations=translations,
-        text_key="client_booking_confirmed",
-        bot_timezone=bot_timezone,
-        with_dismiss=True,
-    )
+    if appointment.client_user_id is not None:
+        await notify_appointment(
+            bot=bot,
+            repos=repos,
+            appointment=appointment,
+            recipient_user_id=appointment.client_user_id,
+            translations=translations,
+            text_key="client_booking_confirmed",
+            bot_timezone=bot_timezone,
+            with_dismiss=True,
+        )
     await _finish_master_decision(
         callback=callback,
         user=user,
