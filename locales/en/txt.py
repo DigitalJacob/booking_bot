@@ -13,6 +13,8 @@ EN: dict[str, str] = {
         "You are a specialist. Use the main menu buttons:\n\n"
         "• Bookings — week or month calendar → day → card "
         "(confirm / cancel)\n"
+        "• Book a client — find or create a client, then pick a slot "
+        "(saved as confirmed)\n"
         "• Services — catalogue and add\n"
         "• Schedule — working hours or work days; "
         "time off (weekly) or breaks inside an open day (monthly)\n"

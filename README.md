@@ -14,11 +14,13 @@ short contact profile once, pick a service, see only the times that actually fit
 and book in a few taps. The master manages services, schedule (weekly hours or
 monthly open days, chosen at deploy), time off or intraday breaks, sees the client's name and phone
 on every card, and confirms or declines either from the **Bookings** screen or
-straight from the new-booking notification. Cancelling (or declining a pending
-request) asks for confirmation and an optional short reason from reminders,
-**My bookings**, and the master's card or push. Both sides get notified on every
-status change, plus evening-before and hour-ahead reminders for confirmed
-appointments.
+straight from the new-booking notification. The master can also **book a client**
+themselves — an existing bot user or a walk-in without Telegram — into a confirmed
+slot. Cancelling (or declining a pending request) asks for confirmation and an
+optional short reason from reminders, **My bookings**, and the master's card or
+push. Both sides get notified on status changes for bot clients; walk-in visits
+skip client pushes and client reminders. Evening-before and hour-ahead reminders
+still go to the master for confirmed appointments.
 
 Navigation is a sticky inline hub: `/start` refreshes it in place, `/menu` posts a
 fresh hub message (useful after clearing the chat). Built on a layered architecture
@@ -59,7 +61,7 @@ app/
 │   └── database/     # Connection pool and repositories (raw SQL only)
 │
 └── bot/              # Telegram presentation layer.
-    ├── handlers/     # By role; packages: bookings, services, time_off, work_days, booking, appointment_cancel, admin/users
+    ├── handlers/     # By role; packages: bookings, services, time_off, work_days, booking, book_client, appointment_cancel, admin/users
     ├── keyboards/    # Inline keyboards and typed CallbackData
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
@@ -125,15 +127,26 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Bookings** — sticky list shaped by `SCHEDULE_MODE`: **weekly** is week → day →
   card (← / → weeks); **monthly** is month calendar (days with appointments marked
   `•`) → day → card (← / → months); same card actions in both modes
-- **Client name and phone on every card and notification** — not just a Telegram id,
-  so the master can actually call the person
+- **Book a client** — search by phone, `@username`, or Telegram id (active
+  non-banned clients only), or **New client** (name → phone); then the same
+  service → month → day → time funnel as client **Book**, but the visit is saved
+  as **confirmed** immediately. Client `min_lead` is ignored for the master;
+  `booking_horizon_days` still applies. Booking an existing bot user notifies that
+  client; the master does not get a new-booking push for their own booking. A
+  walk-in is stored in `manual_clients` (no Telegram) — no client push and no
+  client reminders; the master still gets reminders with the walk-in's name and
+  phone. Phones are compared by digits only and should use **international
+  format** (e.g. `+79991234567`); a leading `8…` is not treated as `+7…`
+- **Client name and phone on every card and notification** — from the Telegram
+  profile or from `manual_clients`, so the master can actually call the person
 - **Confirm / decline / cancel** — **Confirm** stays one tap on the card or
   new-booking push; **Cancel** (confirmed) or decline (pending) uses confirm +
-  optional reason, then notifies the client; past slots are read-only, and a stale
-  button is rejected server-side
-- **Appointment reminders** — same evening-before and hour-ahead pushes as the client
-  (with the client's name and phone); cancel from the reminder uses the same shared
-  flow and notifies the client, optionally with a reason
+  optional reason, then notifies the client when they have a Telegram account;
+  past slots are read-only, and a stale button is rejected server-side
+- **Appointment reminders** — evening-before and hour-ahead pushes with the
+  client's name and phone; client-side kinds are skipped for walk-ins. Cancel from
+  the reminder uses the same shared flow and notifies the bot client when present,
+  optionally with a reason
 - **Services** — catalogue with title, duration, price, description and photo; add,
   edit (including description/photo from the card) and soft deactivate
 - **Schedule → Working hours** *(when `SCHEDULE_MODE=weekly`)* — view / edit
@@ -178,8 +191,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Profile gate** — **Book** requires personal-data consent (current version) and a
   complete contact profile first, then resumes the booking flow on the sticky hub;
   everything else stays available without them
-- **Inline Cancel** — multistep flows (booking, profile, services, schedule, time off,
-  gap, min lead, slot step, admin) abort with a button, not a slash command
+- **Inline Cancel** — multistep flows (booking, book-a-client, profile, services,
+  schedule, time off, gap, min lead, slot step, admin) abort with a button, not a
+  slash command
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
   admin lookups by username keep working
 - **Concurrency safety** — a database exclusion constraint, not an application check,
@@ -206,6 +220,7 @@ is inline buttons on the sticky hub message.
 | **My bookings**                            | client   | Upcoming appointments (open / cancel with confirm + reason)              |
 | **Profile → Show / Edit**                  | client   | View or update name and phone (consent first if missing / outdated)      |
 | **Bookings**                               | master   | Week or month calendar → day → card (matches `SCHEDULE_MODE`)            |
+| **Book a client**                          | master   | Find / create client → service → month → day → time (confirmed)          |
 | **Services**                               | master   | List, add, edit, description/photo, deactivate                           |
 | **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                             |
 | **Schedule → Work days**                   | master   | Monthly: open days calendar; full day off = untoggle                     |
@@ -224,11 +239,11 @@ is inline buttons on the sticky hub message.
 
 Three roles, all stored in the database — nothing is hardcoded in the source.
 
-| Role      | Gets                                                                                                                                     |
-|-----------|------------------------------------------------------------------------------------------------------------------------------------------|
-| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.                                          |
-| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off or breaks, and Bookings (week list or month calendar to match). |
-| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                                                          |
+| Role      | Gets                                                                                                                                       |
+|-----------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.                                            |
+| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off or breaks, Bookings, and **Book a client** (bot user or walk-in). |
+| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                                                            |
 
 ### First run: bootstrapping the master
 
@@ -406,10 +421,16 @@ photo file id) are set from the master's service card and shown in the client
 
 `appointments.price_snapshot` keeps the service price at booking time (`migration 014`),
 so later price edits do not change past visits. Rows created before it stay `NULL`.
+Client self-booking and master **Book a client** both store the current service price
+there.
 
 Exactly one of `appointments.client_user_id` or `appointments.manual_client_id` is set
-(`CHECK` from `migration 015`). Existing bot bookings keep a Telegram client; walk-in
-bookings use `manual_clients` (unique phone digits per master).
+(`CHECK` from `migration 015` — never both, never neither). Existing bot bookings keep
+a Telegram client; walk-in bookings from **Book a client** use `manual_clients`
+(unique `phone_digits` per master; the same digits may exist for different masters).
+Lookup and uniqueness use digits only (`regexp_replace` / `phone_digits`); enter phones
+in **international format** (e.g. `+79991234567`). A national `8…` form is **not**
+normalized to `+7…` — the bot stays country-agnostic.
 
 Appointments store `starts_at` / `ends_at`. Active appointments for the same master
 cannot overlap in time: a GiST `EXCLUDE` on `tstzrange(starts_at, ends_at, '[)')`
@@ -419,7 +440,9 @@ Reminder delivery marks
 `client_evening_reminded_at` / `client_hour_reminded_at` /
 `master_evening_reminded_at` / `master_hour_reminded_at` when the matching push is
 sent (`migration 013`). Only **confirmed** rows are eligible; a NULL column means
-that kind has not been sent yet.
+that kind has not been sent yet. When `client_user_id` is NULL (manual / walk-in),
+client reminder kinds and client cancel/status pushes are skipped; master reminders
+still run and show the contact from `manual_clients`.
 
 Availability for **Book** is computed from the schedule for this deploy
 (`SCHEDULE_MODE`): **`weekly`** uses `working_hours` by weekday; **`monthly`** uses
