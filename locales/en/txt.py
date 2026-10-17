@@ -657,7 +657,27 @@ EN: dict[str, str] = {
     "hub_catalog_button": "Services",
     "hub_my_bookings_button": "My bookings",
     "hub_bookings_button": "Bookings",
+    "hub_book_client_button": "Book a client",
     "hub_services_button": "Services",
+    "book_client_ask_query": (
+        "Who should I book?\n"
+        "Enter a phone number, @username, or Telegram id."
+    ),
+    "book_client_results_header": "Matches for “{query}”. Pick a client:",
+    "book_client_empty": (
+        "No matches for “{query}”.\n"
+        "Create a new client or refine the search."
+    ),
+    "book_client_mark_tg": "In bot",
+    "book_client_mark_manual": "No bot",
+    "book_client_new_button": "➕ New client",
+    "book_client_cancel_button": "Cancel",
+    "book_client_stub_picked": (
+        "Client selected. Service and slot choice arrive in the next update."
+    ),
+    "book_client_stub_new": (
+        "Creating a client without Telegram arrives in the next update."
+    ),
     "hub_schedule_section_button": "Schedule",
     "hub_profile_section_button": "Profile",
     "hub_settings_section_button": "Settings",

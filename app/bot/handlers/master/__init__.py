@@ -1,5 +1,6 @@
 from aiogram import Router
 
+from app.bot.handlers.master.book_client import book_client_router
 from app.bot.handlers.master.bookings import bookings_router
 from app.bot.handlers.master.gap import gap_router
 from app.bot.handlers.master.min_lead import min_lead_router
@@ -11,6 +12,7 @@ from app.bot.handlers.master.work_days import work_days_router
 
 master_router = Router(name="master")
 master_router.include_router(bookings_router)
+master_router.include_router(book_client_router)
 master_router.include_router(services_router)
 master_router.include_router(schedule_router)
 master_router.include_router(work_days_router)

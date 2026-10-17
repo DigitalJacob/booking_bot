@@ -657,7 +657,27 @@ RU: dict[str, str] = {
     "hub_catalog_button": "Услуги",
     "hub_my_bookings_button": "Мои записи",
     "hub_bookings_button": "Записи",
+    "hub_book_client_button": "Записать клиента",
     "hub_services_button": "Услуги",
+    "book_client_ask_query": (
+        "Кого записать?\n"
+        "Введите телефон, @username или Telegram id."
+    ),
+    "book_client_results_header": "Нашёл по запросу «{query}». Выберите клиента:",
+    "book_client_empty": (
+        "Никого не нашёл по запросу «{query}».\n"
+        "Создайте нового клиента или уточните поиск."
+    ),
+    "book_client_mark_tg": "В боте",
+    "book_client_mark_manual": "Без бота",
+    "book_client_new_button": "➕ Новый клиент",
+    "book_client_cancel_button": "Отмена",
+    "book_client_stub_picked": (
+        "Клиент выбран. Выбор услуги и слота появится в следующем обновлении."
+    ),
+    "book_client_stub_new": (
+        "Создание клиента без Telegram появится в следующем обновлении."
+    ),
     "hub_schedule_section_button": "График",
     "hub_profile_section_button": "Профиль",
     "hub_settings_section_button": "Настройки",
