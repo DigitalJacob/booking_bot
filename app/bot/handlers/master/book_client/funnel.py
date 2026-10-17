@@ -16,7 +16,6 @@ from app.bot.handlers.common.booking_steps import (
     show_confirm,
     show_days,
     show_months,
-    show_services,
     show_windows,
     unique_days,
     windows_on_day,
@@ -34,11 +33,12 @@ from app.bot.keyboards.booking import (
     ServiceCallback,
     WindowCallback,
     get_confirm_kb,
+    get_services_kb,
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import MasterBookSG
 from app.bot.utils.format import client_contact
-from app.bot.utils.hub_nav import clear_state_keep_hub
+from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
     ForbiddenBookingAction,
@@ -93,11 +93,13 @@ async def start_slot_funnel(
         book_month=None,
     )
     await state.set_state(MasterBookSG.choosing_service)
-    await show_services(
+    # Prefer sticky hub: after New client the inbound message is user text
+    # (often already deleted), so message.edit_text would fail silently.
+    await show_hub_prompt(
         message=message,
-        services=services,
-        i18n=i18n,
-        edit=True,
+        state=state,
+        text=i18n.get("book_choose_service"),
+        reply_markup=get_services_kb(services=services, i18n=i18n),
     )
     return True
 
@@ -182,9 +184,12 @@ async def process_master_service_choice(
     days = unique_days(windows, bot_timezone)
     months = bookable_months(open_months, days)
     if not months:
-        await callback.answer()
-        await callback.message.edit_text(text=i18n.get("book_no_windows"))
-        await clear_state_keep_hub(state)
+        # Keep the service keyboard — wiping the message left a dead end with
+        # no Cancel/OK after New-client → phone (sticky) entry.
+        await callback.answer(
+            text=i18n.get("book_no_windows"),
+            show_alert=True,
+        )
         return
 
     await state.update_data(
