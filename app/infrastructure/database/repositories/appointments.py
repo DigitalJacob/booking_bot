@@ -8,7 +8,7 @@ from psycopg.rows import dict_row
 
 from app.domain.enums import AppointmentStatus, ReminderKind
 from app.domain.enums.reminder import reminded_at_attr
-from app.domain.exceptions import TimeConflict
+from app.domain.exceptions import InvalidAppointmentClient, TimeConflict
 from app.domain.models.appointment import Appointment
 
 logger = logging.getLogger(__name__)
@@ -24,11 +24,21 @@ _APPOINTMENT_COLUMNS = """
     created_at,
     master_notify_message_id,
     price_snapshot,
+    manual_client_id,
     client_evening_reminded_at,
     client_hour_reminded_at,
     master_evening_reminded_at,
     master_hour_reminded_at
 """
+
+
+def _require_single_client(
+    *,
+    client_user_id: int | None,
+    manual_client_id: int | None,
+) -> None:
+    if (client_user_id is None) == (manual_client_id is None):
+        raise InvalidAppointmentClient
 
 
 class AppointmentsRepository:
@@ -38,20 +48,26 @@ class AppointmentsRepository:
     async def add_appointment(
         self,
         *,
-        client_user_id: int,
         master_user_id: int,
         service_id: int,
         starts_at: datetime,
         ends_at: datetime,
+        client_user_id: int | None = None,
+        manual_client_id: int | None = None,
         status: AppointmentStatus = AppointmentStatus.PENDING,
         price_snapshot: Decimal | None = None,
     ) -> Appointment:
+        _require_single_client(
+            client_user_id=client_user_id,
+            manual_client_id=manual_client_id,
+        )
         async with self._conn.cursor(row_factory=dict_row) as cursor:
             try:
                 await cursor.execute(
                     query=f"""
                         INSERT INTO appointments(
                             client_user_id,
+                            manual_client_id,
                             master_user_id,
                             service_id,
                             starts_at,
@@ -61,6 +77,7 @@ class AppointmentsRepository:
                         )
                         VALUES(
                             %(client_user_id)s,
+                            %(manual_client_id)s,
                             %(master_user_id)s,
                             %(service_id)s,
                             %(starts_at)s,
@@ -73,6 +90,7 @@ class AppointmentsRepository:
                     """,
                     params={
                         "client_user_id": client_user_id,
+                        "manual_client_id": manual_client_id,
                         "master_user_id": master_user_id,
                         "service_id": service_id,
                         "starts_at": starts_at,
@@ -85,8 +103,9 @@ class AppointmentsRepository:
                 raise TimeConflict from e
             row = await cursor.fetchone()
         logger.info(
-            "Appointment added. client=%d, master=%d, service=%d, status=%s",
+            "Appointment added. client=%s, manual_client=%s, master=%d, service=%d, status=%s",
             client_user_id,
+            manual_client_id,
             master_user_id,
             service_id,
             status,

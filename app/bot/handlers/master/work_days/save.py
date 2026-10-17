@@ -24,7 +24,7 @@ from app.bot.keyboards.work_days import (
 )
 from app.bot.states.states import WorkDaysSG
 from app.bot.utils.dates import parse_time
-from app.bot.utils.format import client_contact, format_dt
+from app.bot.utils.format import appointment_client_contact, format_dt
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.telegram import delete_user_input
 from app.domain.models import Appointment, User
@@ -120,10 +120,7 @@ async def _warn_bookings_text(
 ) -> str:
     lines: list[str] = []
     for appointment in appointments[:MAX_WARN_LINES]:
-        client = await repos.users.get_user_by_id(
-            user_id=appointment.client_user_id,
-        )
-        name, _ = client_contact(client)
+        name, _ = await appointment_client_contact(repos, appointment)
         lines.append(
             i18n.get("work_days_warn_item").format(
                 when=format_dt(appointment.starts_at, bot_timezone),

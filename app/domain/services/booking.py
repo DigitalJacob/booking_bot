@@ -5,7 +5,9 @@ from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import (
     AppointmentNotFound,
     ForbiddenBookingAction,
+    InvalidAppointmentClient,
     InvalidAppointmentStatus,
+    ManualClientNotFound,
     ServiceInactive,
     ServiceNotFound,
     WindowNotAvailable,
@@ -68,37 +70,54 @@ class BookingService:
     ) -> Appointment:
         service = await self._load_active_service(service_id=service_id)
         return await self._reserve_window(
-            client_user_id=client_user_id,
             service=service,
             starts_at=starts_at,
             status=AppointmentStatus.PENDING,
             schedule_mode=schedule_mode,
             now=now,
             ignore_min_lead=False,
+            client_user_id=client_user_id,
         )
 
     async def book_for_client(
         self,
         *,
         master_user_id: int,
-        client_user_id: int,
         service_id: int,
         starts_at: datetime,
+        client_user_id: int | None = None,
+        manual_client_id: int | None = None,
         schedule_mode: str = "weekly",
         now: datetime | None = None,
     ) -> Appointment:
-        """Master books a Telegram client: confirmed, min_lead ignored, horizon kept."""
+        """Master books a client: confirmed, min_lead ignored, horizon kept.
+
+        Pass exactly one of ``client_user_id`` (Telegram) or ``manual_client_id``.
+        """
+        if (client_user_id is None) == (manual_client_id is None):
+            raise InvalidAppointmentClient
+
         service = await self._load_active_service(service_id=service_id)
         if service.master_user_id != master_user_id:
             raise ForbiddenBookingAction
+
+        if manual_client_id is not None:
+            manual = await self._repos.manual_clients.get(
+                manual_client_id=manual_client_id,
+                master_user_id=master_user_id,
+            )
+            if manual is None:
+                raise ManualClientNotFound
+
         return await self._reserve_window(
-            client_user_id=client_user_id,
             service=service,
             starts_at=starts_at,
             status=AppointmentStatus.CONFIRMED,
             schedule_mode=schedule_mode,
             now=now,
             ignore_min_lead=True,
+            client_user_id=client_user_id,
+            manual_client_id=manual_client_id,
         )
 
     async def _load_active_service(self, *, service_id: int) -> Service:
@@ -112,13 +131,14 @@ class BookingService:
     async def _reserve_window(
         self,
         *,
-        client_user_id: int,
         service: Service,
         starts_at: datetime,
         status: AppointmentStatus,
         schedule_mode: str,
         now: datetime | None,
         ignore_min_lead: bool,
+        client_user_id: int | None = None,
+        manual_client_id: int | None = None,
     ) -> Appointment:
         if now is None:
             now = datetime.now(UTC)
@@ -143,6 +163,7 @@ class BookingService:
 
         appointment = await self._repos.appointments.add_appointment(
             client_user_id=client_user_id,
+            manual_client_id=manual_client_id,
             master_user_id=service.master_user_id,
             service_id=service.id,
             starts_at=match.starts_at,
@@ -152,9 +173,11 @@ class BookingService:
         )
 
         logger.info(
-            "Booked appointment %d via window: client=%d, master=%d, status=%s, starts_at=%s",
+            "Booked appointment %d via window: client=%s, manual_client=%s, "
+            "master=%d, status=%s, starts_at=%s",
             appointment.id,
             client_user_id,
+            manual_client_id,
             service.master_user_id,
             status,
             match.starts_at,
@@ -219,6 +242,7 @@ class BookingService:
         )
         if appointment is None:
             raise AppointmentNotFound
+        # Manual bookings have client_user_id=None → only the master may cancel.
         if actor_user_id not in (
             appointment.client_user_id,
             appointment.master_user_id,

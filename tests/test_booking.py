@@ -18,6 +18,16 @@ from tests.factories import (
 )
 
 
+def _manual_appointment(**kwargs):
+    defaults = {
+        "client_user_id": None,
+        "manual_client_id": 1,
+        "status": AppointmentStatus.CONFIRMED,
+    }
+    defaults.update(kwargs)
+    return make_appointment(**defaults)
+
+
 async def test_confirm_marks_appointment_confirmed():
     repos = make_repos(appointments=[make_appointment()])
     booking = BookingService(repos)
@@ -64,6 +74,20 @@ async def test_cancel_rejects_unrelated_user():
 
     with pytest.raises(ForbiddenBookingAction):
         await booking.cancel(appointment_id=1, actor_user_id=OTHER_ID)
+
+
+async def test_cancel_manual_appointment_allowed_for_master_only():
+    repos = make_repos(appointments=[_manual_appointment()])
+    booking = BookingService(repos)
+
+    with pytest.raises(ForbiddenBookingAction):
+        await booking.cancel(appointment_id=1, actor_user_id=CLIENT_ID)
+
+    updated = await booking.cancel(
+        appointment_id=1,
+        actor_user_id=MASTER_ID,
+    )
+    assert updated.status == AppointmentStatus.CANCELLED
 
 
 async def test_cancel_rejects_already_cancelled():

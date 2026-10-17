@@ -13,6 +13,8 @@ RU: dict[str, str] = {
         "Вы мастер. Управление — кнопками главного меню:\n\n"
         "• Записи — неделя или календарь месяца → день → карточка "
         "(подтвердить / отменить)\n"
+        "• Записать клиента — найти или создать клиента, затем выбрать слот "
+        "(сразу подтверждена)\n"
         "• Услуги — каталог и добавление\n"
         "• График — рабочие часы или дни; "
         "выходные (недельный режим) или перерывы в рабочем дне (месячный)\n"
@@ -657,7 +659,54 @@ RU: dict[str, str] = {
     "hub_catalog_button": "Услуги",
     "hub_my_bookings_button": "Мои записи",
     "hub_bookings_button": "Записи",
+    "hub_book_client_button": "Записать клиента",
     "hub_services_button": "Услуги",
+    "book_client_ask_query": (
+        "Кого записать?\n"
+        "Введите телефон, @username или Telegram id."
+    ),
+    "book_client_results_header": "Нашёл по запросу «{query}». Выберите клиента:",
+    "book_client_empty": (
+        "Никого не нашёл по запросу «{query}».\n"
+        "Создайте нового клиента или уточните поиск."
+    ),
+    "book_client_mark_tg": "В боте",
+    "book_client_mark_manual": "Без бота",
+    "book_client_new_button": "➕ Новый клиент",
+    "book_client_cancel_button": "Отмена",
+    "book_client_ask_name": "Как зовут клиента?",
+    "book_client_ask_phone": (
+        "Введите телефон клиента в международном формате "
+        "(например +79991234567)."
+    ),
+    "book_client_invalid_name": (
+        "Имя должно быть от 2 до 100 символов. Введите ещё раз."
+    ),
+    "book_client_invalid_phone": (
+        "Неверный телефон. Используйте международный формат, например +79991234567."
+    ),
+    "book_client_existing_manual": (
+        "Клиент с таким телефоном уже есть:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Записать его, без создания дубля?"
+    ),
+    "book_client_use_existing_button": "Записать этого",
+    "book_client_tg_offer": (
+        "Этот номер есть у пользователя в боте:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Записать как клиента из бота?"
+    ),
+    "book_client_use_tg_button": "Да, из бота",
+    "book_client_create_manual_button": "Нет, без бота",
+    "book_client_selected_line": "Клиент: {client_name}, {client_phone}",
+    "book_client_confirm_button": "Записать",
+    "book_client_ok": "Клиент записан. Статус: подтверждена.",
+    "book_client_target_lost": "Клиент больше недоступен. Начните поиск заново.",
+    "client_booked_by_master": (
+        "Вас записали.\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}"
+    ),
     "hub_schedule_section_button": "График",
     "hub_profile_section_button": "Профиль",
     "hub_settings_section_button": "Настройки",

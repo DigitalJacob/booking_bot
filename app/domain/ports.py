@@ -7,6 +7,7 @@ from typing import Protocol
 from app.domain.enums import AppointmentStatus
 from app.domain.models import (
     Appointment,
+    ManualClient,
     MasterSettings,
     Service,
     TimeOff,
@@ -30,11 +31,12 @@ class AppointmentsRepoPort(Protocol):
     async def add_appointment(
         self,
         *,
-        client_user_id: int,
         master_user_id: int,
         service_id: int,
         starts_at: datetime,
         ends_at: datetime,
+        client_user_id: int | None = None,
+        manual_client_id: int | None = None,
         status: AppointmentStatus = AppointmentStatus.PENDING,
         price_snapshot: Decimal | None = None,
     ) -> Appointment: ...
@@ -67,6 +69,15 @@ class AppointmentsRepoPort(Protocol):
         appointment_id: int,
         status: AppointmentStatus,
     ) -> Appointment | None: ...
+
+
+class ManualClientsRepoPort(Protocol):
+    async def get(
+        self,
+        *,
+        manual_client_id: int,
+        master_user_id: int,
+    ) -> ManualClient | None: ...
 
 
 class MasterSettingsRepoPort(Protocol):
@@ -115,3 +126,4 @@ class RepositoriesPort(Protocol):
     working_hours: WorkingHoursRepoPort
     work_dates: WorkDatesRepoPort
     time_off: TimeOffRepoPort
+    manual_clients: ManualClientsRepoPort

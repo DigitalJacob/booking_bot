@@ -28,3 +28,11 @@ class WindowNotAvailable(DomainError):
 
 class TimeConflict(DomainError):
     pass
+
+
+class InvalidAppointmentClient(DomainError):
+    """Exactly one of client_user_id / manual_client_id must be set."""
+
+
+class ManualClientNotFound(DomainError):
+    pass

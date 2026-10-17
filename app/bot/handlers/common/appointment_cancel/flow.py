@@ -134,7 +134,7 @@ async def _finish_cancel(
                 with_dismiss=True,
                 reason=reason,
             )
-    else:
+    elif appointment.client_user_id is not None:
         await notify_appointment(
             bot=bot,
             repos=repos,

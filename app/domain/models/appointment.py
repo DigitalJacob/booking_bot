@@ -9,7 +9,7 @@ from app.domain.enums import AppointmentStatus
 @dataclass(frozen=True, slots=True)
 class Appointment:
     id: int
-    client_user_id: int
+    client_user_id: int | None
     master_user_id: int
     service_id: int
     starts_at: datetime
@@ -18,6 +18,7 @@ class Appointment:
     created_at: datetime
     master_notify_message_id: int | None = None
     price_snapshot: Decimal | None = None
+    manual_client_id: int | None = None
     client_evening_reminded_at: datetime | None = None
     client_hour_reminded_at: datetime | None = None
     master_evening_reminded_at: datetime | None = None
@@ -36,6 +37,7 @@ class Appointment:
             created_at=row["created_at"],
             master_notify_message_id=row.get("master_notify_message_id"),
             price_snapshot=row.get("price_snapshot"),
+            manual_client_id=row.get("manual_client_id"),
             client_evening_reminded_at=row.get("client_evening_reminded_at"),
             client_hour_reminded_at=row.get("client_hour_reminded_at"),
             master_evening_reminded_at=row.get("master_evening_reminded_at"),

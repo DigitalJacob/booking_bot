@@ -85,3 +85,15 @@ class WorkDaysSG(StatesGroup):
 class AdminModSG(StatesGroup):
     target = State()
     role = State()
+
+
+class MasterBookSG(StatesGroup):
+    query = State()
+    picking = State()
+    new_name = State()
+    new_phone = State()
+    choosing_service = State()
+    choosing_month = State()
+    choosing_day = State()
+    choosing_window = State()
+    confirming = State()

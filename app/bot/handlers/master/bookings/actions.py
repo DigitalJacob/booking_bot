@@ -34,7 +34,7 @@ from app.bot.keyboards.hub import get_hub_root_kb
 from app.bot.utils.cancel_registry import SOURCE_MASTER_BOOKINGS, SOURCE_MASTER_PUSH
 from app.bot.utils.dates import format_year_month
 from app.bot.utils.format import (
-    client_contact,
+    appointment_client_contact,
     format_dt,
     local_month_bounds,
     local_week_bounds,
@@ -68,8 +68,7 @@ async def build_master_booking_card(
 ) -> tuple[str, InlineKeyboardMarkup]:
     service = await repos.services.get_service(service_id=appointment.service_id)
     title = service.title if service else "?"
-    client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
-    client_name, client_phone = client_contact(client)
+    client_name, client_phone = await appointment_client_contact(repos, appointment)
     now = datetime.now(UTC)
     past = is_slot_past(slot_ends_at=appointment.ends_at, now=now)
     text_key = "master_bookings_card_past" if past else "master_bookings_card"
@@ -411,16 +410,17 @@ async def process_confirm(
         )
         return
 
-    await notify_appointment(
-        bot=bot,
-        repos=repos,
-        appointment=appointment,
-        recipient_user_id=appointment.client_user_id,
-        translations=translations,
-        text_key="client_booking_confirmed",
-        bot_timezone=bot_timezone,
-        with_dismiss=True,
-    )
+    if appointment.client_user_id is not None:
+        await notify_appointment(
+            bot=bot,
+            repos=repos,
+            appointment=appointment,
+            recipient_user_id=appointment.client_user_id,
+            translations=translations,
+            text_key="client_booking_confirmed",
+            bot_timezone=bot_timezone,
+            with_dismiss=True,
+        )
     await _finish_master_decision(
         callback=callback,
         user=user,

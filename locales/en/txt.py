@@ -13,6 +13,8 @@ EN: dict[str, str] = {
         "You are a specialist. Use the main menu buttons:\n\n"
         "• Bookings — week or month calendar → day → card "
         "(confirm / cancel)\n"
+        "• Book a client — find or create a client, then pick a slot "
+        "(saved as confirmed)\n"
         "• Services — catalogue and add\n"
         "• Schedule — working hours or work days; "
         "time off (weekly) or breaks inside an open day (monthly)\n"
@@ -657,7 +659,54 @@ EN: dict[str, str] = {
     "hub_catalog_button": "Services",
     "hub_my_bookings_button": "My bookings",
     "hub_bookings_button": "Bookings",
+    "hub_book_client_button": "Book a client",
     "hub_services_button": "Services",
+    "book_client_ask_query": (
+        "Who should I book?\n"
+        "Enter a phone number, @username, or Telegram id."
+    ),
+    "book_client_results_header": "Matches for “{query}”. Pick a client:",
+    "book_client_empty": (
+        "No matches for “{query}”.\n"
+        "Create a new client or refine the search."
+    ),
+    "book_client_mark_tg": "In bot",
+    "book_client_mark_manual": "No bot",
+    "book_client_new_button": "➕ New client",
+    "book_client_cancel_button": "Cancel",
+    "book_client_ask_name": "What is the client's name?",
+    "book_client_ask_phone": (
+        "Enter the client's phone in international format "
+        "(for example +79991234567)."
+    ),
+    "book_client_invalid_name": (
+        "Name must be 2–100 characters. Please try again."
+    ),
+    "book_client_invalid_phone": (
+        "Invalid phone. Use international format, for example +79991234567."
+    ),
+    "book_client_existing_manual": (
+        "A client with this phone already exists:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Book them without creating a duplicate?"
+    ),
+    "book_client_use_existing_button": "Book this client",
+    "book_client_tg_offer": (
+        "This number belongs to a user in the bot:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Book them as a bot client?"
+    ),
+    "book_client_use_tg_button": "Yes, from the bot",
+    "book_client_create_manual_button": "No, without the bot",
+    "book_client_selected_line": "Client: {client_name}, {client_phone}",
+    "book_client_confirm_button": "Book",
+    "book_client_ok": "Client booked. Status: confirmed.",
+    "book_client_target_lost": "That client is no longer available. Search again.",
+    "client_booked_by_master": (
+        "You have been booked.\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}"
+    ),
     "hub_schedule_section_button": "Schedule",
     "hub_profile_section_button": "Profile",
     "hub_settings_section_button": "Settings",

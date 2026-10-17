@@ -1,4 +1,5 @@
 from app.domain.models.appointment import Appointment
+from app.domain.models.manual_client import ManualClient
 from app.domain.models.master_settings import MasterSettings
 from app.domain.models.service import Service
 from app.domain.models.time_off import TimeOff
@@ -9,6 +10,7 @@ from app.domain.models.working_hours import WorkingHours
 
 __all__ = [
     "Appointment",
+    "ManualClient",
     "Service",
     "User",
     "MasterSettings",

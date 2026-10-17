@@ -84,6 +84,11 @@ def is_reminder_due(
     evening_hour_start: int,
     evening_hour_end: int,
 ) -> bool:
+    if (
+        kind in (ReminderKind.CLIENT_HOUR, ReminderKind.CLIENT_EVENING)
+        and appointment.client_user_id is None
+    ):
+        return False
     if kind in (ReminderKind.CLIENT_HOUR, ReminderKind.MASTER_HOUR):
         return is_hour_reminder_due(
             appointment=appointment,

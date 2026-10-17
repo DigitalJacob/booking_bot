@@ -146,12 +146,16 @@ def get_day_calendar_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def get_confirm_kb(*, i18n: dict[str, str]) -> InlineKeyboardMarkup:
+def get_confirm_kb(
+    *,
+    i18n: dict[str, str],
+    confirm_button_key: str = "book_confirm_button",
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=i18n.get("book_confirm_button"),
+                    text=i18n.get(confirm_button_key),
                     callback_data=BookingNavCallback(action="confirm").pack(),
                 )
             ],
