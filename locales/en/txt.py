@@ -672,11 +672,17 @@ EN: dict[str, str] = {
     "book_client_mark_manual": "No bot",
     "book_client_new_button": "➕ New client",
     "book_client_cancel_button": "Cancel",
-    "book_client_stub_picked": (
-        "Client selected. Service and slot choice arrive in the next update."
-    ),
     "book_client_stub_new": (
         "Creating a client without Telegram arrives in the next update."
+    ),
+    "book_client_selected_line": "Client: {client_name}, {client_phone}",
+    "book_client_confirm_button": "Book",
+    "book_client_ok": "Client booked. Status: confirmed.",
+    "book_client_target_lost": "That client is no longer available. Search again.",
+    "client_booked_by_master": (
+        "You have been booked.\n\n"
+        "Service: {title}\n"
+        "Date and time: {when}"
     ),
     "hub_schedule_section_button": "Schedule",
     "hub_profile_section_button": "Profile",

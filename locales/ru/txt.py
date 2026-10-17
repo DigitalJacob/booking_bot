@@ -672,11 +672,17 @@ RU: dict[str, str] = {
     "book_client_mark_manual": "Без бота",
     "book_client_new_button": "➕ Новый клиент",
     "book_client_cancel_button": "Отмена",
-    "book_client_stub_picked": (
-        "Клиент выбран. Выбор услуги и слота появится в следующем обновлении."
-    ),
     "book_client_stub_new": (
         "Создание клиента без Telegram появится в следующем обновлении."
+    ),
+    "book_client_selected_line": "Клиент: {client_name}, {client_phone}",
+    "book_client_confirm_button": "Записать",
+    "book_client_ok": "Клиент записан. Статус: подтверждена.",
+    "book_client_target_lost": "Клиент больше недоступен. Начните поиск заново.",
+    "client_booked_by_master": (
+        "Вас записали.\n\n"
+        "Услуга: {title}\n"
+        "Дата и время: {when}"
     ),
     "hub_schedule_section_button": "График",
     "hub_profile_section_button": "Профиль",
