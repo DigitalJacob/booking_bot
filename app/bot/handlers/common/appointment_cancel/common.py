@@ -70,6 +70,7 @@ def is_appointment_past(appointment: Appointment, *, source: str) -> bool:
 
 
 def is_party(*, user: User, appointment: Appointment) -> bool:
+    # client_user_id may be None for manual clients → only master matches.
     return user.user_id in (
         appointment.client_user_id,
         appointment.master_user_id,

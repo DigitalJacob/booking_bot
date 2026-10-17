@@ -9,7 +9,7 @@ from app.bot.i18n.translator import resolve_i18n
 from app.bot.keyboards.bookings import get_appointment_actions_kb
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.keyboards.reminders import get_reminder_kb
-from app.bot.utils.format import client_contact, format_dt
+from app.bot.utils.format import appointment_client_contact, format_dt
 from app.domain.enums import ReminderKind
 from app.domain.models import Appointment
 from app.infrastructure.database.repositories import Repositories
@@ -31,8 +31,7 @@ async def appointment_notice_parts(
         translations=translations,
     )
     service = await repos.services.get_service(service_id=appointment.service_id)
-    client = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
-    client_name, client_phone = client_contact(client)
+    client_name, client_phone = await appointment_client_contact(repos, appointment)
     text = i18n.get(text_key).format(
         title=service.title if service else "?",
         when=format_dt(appointment.starts_at, bot_timezone),

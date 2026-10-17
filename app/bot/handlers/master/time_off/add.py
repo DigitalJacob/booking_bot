@@ -32,7 +32,7 @@ from app.bot.keyboards.time_off import (
 from app.bot.states.states import TimeOffSG
 from app.bot.utils.dates import parse_time
 from app.bot.utils.format import (
-    client_contact,
+    appointment_client_contact,
     combine_local,
     format_dt,
     get_zone,
@@ -83,10 +83,7 @@ async def _warn_bookings_text(
 ) -> str:
     lines: list[str] = []
     for appointment in appointments[:MAX_WARN_LINES]:
-        client = await repos.users.get_user_by_id(
-            user_id=appointment.client_user_id,
-        )
-        name, _ = client_contact(client)
+        name, _ = await appointment_client_contact(repos, appointment)
         lines.append(
             i18n.get("time_off_warn_item").format(
                 when=format_dt(appointment.starts_at, bot_timezone),
