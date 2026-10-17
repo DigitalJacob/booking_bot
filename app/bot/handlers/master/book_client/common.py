@@ -10,7 +10,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, Message
 
 from app.bot.keyboards.book_client import get_book_client_cancel_kb
-from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.utils.format import client_contact
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
 from app.bot.utils.phone import normalize_phone, phone_digits
@@ -182,26 +181,4 @@ async def cancel_book_client_flow(
         user=user,
         i18n=i18n,
         state=state,
-    )
-
-
-async def finish_book_client_stub(
-    *,
-    message: Message,
-    state: FSMContext,
-    user: User,
-    i18n: dict[str, str],
-    notice_key: str,
-) -> None:
-    """Temporary exit until slot funnel / manual create commits land."""
-    await clear_state_keep_hub(state)
-    await show_hub(
-        message=message,
-        user=user,
-        i18n=i18n,
-        state=state,
-    )
-    await message.answer(
-        text=i18n.get(notice_key),
-        reply_markup=get_hub_dismiss_kb(i18n),
     )

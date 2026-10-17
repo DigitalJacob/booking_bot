@@ -672,9 +672,30 @@ EN: dict[str, str] = {
     "book_client_mark_manual": "No bot",
     "book_client_new_button": "➕ New client",
     "book_client_cancel_button": "Cancel",
-    "book_client_stub_new": (
-        "Creating a client without Telegram arrives in the next update."
+    "book_client_ask_name": "What is the client's name?",
+    "book_client_ask_phone": (
+        "Enter the client's phone in international format "
+        "(for example +79991234567)."
     ),
+    "book_client_invalid_name": (
+        "Name must be 2–100 characters. Please try again."
+    ),
+    "book_client_invalid_phone": (
+        "Invalid phone. Use international format, for example +79991234567."
+    ),
+    "book_client_existing_manual": (
+        "A client with this phone already exists:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Book them without creating a duplicate?"
+    ),
+    "book_client_use_existing_button": "Book this client",
+    "book_client_tg_offer": (
+        "This number belongs to a user in the bot:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Book them as a bot client?"
+    ),
+    "book_client_use_tg_button": "Yes, from the bot",
+    "book_client_create_manual_button": "No, without the bot",
     "book_client_selected_line": "Client: {client_name}, {client_phone}",
     "book_client_confirm_button": "Book",
     "book_client_ok": "Client booked. Status: confirmed.",

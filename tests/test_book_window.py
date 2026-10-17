@@ -319,6 +319,36 @@ async def test_book_for_client_with_manual_client():
 
 
 @pytest.mark.asyncio
+async def test_book_for_client_reuses_manual_client_on_rebook():
+    """Second booking for the same walk-in keeps the same manual_client_id."""
+    manual = make_manual_client()
+    booking = BookingService(_repos_with_schedule(manual_clients=[manual]))
+    first_starts = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)
+    second_starts = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)
+
+    first = await booking.book_for_client(
+        master_user_id=MASTER_ID,
+        manual_client_id=manual.id,
+        service_id=1,
+        starts_at=first_starts,
+        now=NOW,
+    )
+    second = await booking.book_for_client(
+        master_user_id=MASTER_ID,
+        manual_client_id=manual.id,
+        service_id=1,
+        starts_at=second_starts,
+        now=NOW,
+    )
+
+    assert first.id != second.id
+    assert first.manual_client_id == manual.id
+    assert second.manual_client_id == manual.id
+    assert first.client_user_id is None
+    assert second.client_user_id is None
+
+
+@pytest.mark.asyncio
 async def test_book_for_client_rejects_unknown_manual_client():
     booking = BookingService(_repos_with_schedule())
 

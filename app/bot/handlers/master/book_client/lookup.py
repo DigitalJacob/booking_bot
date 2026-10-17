@@ -9,11 +9,11 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.handlers.master.book_client.common import (
     cancel_book_client_flow,
-    finish_book_client_stub,
     is_eligible_tg_client,
     search_book_clients,
     show_book_client_prompt,
 )
+from app.bot.handlers.master.book_client.create import start_new_client_flow
 from app.bot.handlers.master.book_client.funnel import start_slot_funnel
 from app.bot.handlers.master.book_client.router import book_client_router
 from app.bot.keyboards.book_client import (
@@ -177,16 +177,13 @@ async def process_book_client_pick(
 async def process_book_client_new(
     callback: CallbackQuery,
     state: FSMContext,
-    user: User,
     i18n: dict[str, str],
 ) -> None:
     await callback.answer()
-    await finish_book_client_stub(
+    await start_new_client_flow(
         message=callback.message,
         state=state,
-        user=user,
         i18n=i18n,
-        notice_key="book_client_stub_new",
     )
 
 

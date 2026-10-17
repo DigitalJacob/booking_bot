@@ -672,9 +672,30 @@ RU: dict[str, str] = {
     "book_client_mark_manual": "Без бота",
     "book_client_new_button": "➕ Новый клиент",
     "book_client_cancel_button": "Отмена",
-    "book_client_stub_new": (
-        "Создание клиента без Telegram появится в следующем обновлении."
+    "book_client_ask_name": "Как зовут клиента?",
+    "book_client_ask_phone": (
+        "Введите телефон клиента в международном формате "
+        "(например +79991234567)."
     ),
+    "book_client_invalid_name": (
+        "Имя должно быть от 2 до 100 символов. Введите ещё раз."
+    ),
+    "book_client_invalid_phone": (
+        "Неверный телефон. Используйте международный формат, например +79991234567."
+    ),
+    "book_client_existing_manual": (
+        "Клиент с таким телефоном уже есть:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Записать его, без создания дубля?"
+    ),
+    "book_client_use_existing_button": "Записать этого",
+    "book_client_tg_offer": (
+        "Этот номер есть у пользователя в боте:\n"
+        "{client_name}, {client_phone}\n\n"
+        "Записать как клиента из бота?"
+    ),
+    "book_client_use_tg_button": "Да, из бота",
+    "book_client_create_manual_button": "Нет, без бота",
     "book_client_selected_line": "Клиент: {client_name}, {client_phone}",
     "book_client_confirm_button": "Записать",
     "book_client_ok": "Клиент записан. Статус: подтверждена.",
