@@ -29,6 +29,7 @@ _TRUNCATE_TABLES = (
     "work_dates",
     "working_hours",
     "master_settings",
+    "manual_clients",
     "users",
 )
 
