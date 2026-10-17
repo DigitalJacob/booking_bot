@@ -1,5 +1,3 @@
-import re
-
 from aiogram import F, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -18,14 +16,13 @@ from app.bot.keyboards.profile import ProfileNavCallback, remove_kb
 from app.bot.states.states import ProfileSG
 from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.hub_registry import register
+from app.bot.utils.phone import normalize_phone
 from app.bot.utils.telegram import delete_user_input
 from app.domain.enums import UserRole
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
 profile_router = Router(name="client_profile")
-
-_PHONE_RE = re.compile(r"^\+?\d{10,15}$")
 
 
 def format_profile_card(user: User, i18n: dict[str, str]) -> str:
@@ -347,8 +344,8 @@ async def process_phone_text(
         )
         return
 
-    phone = raw.replace(" ", "").replace("-", "")
-    if not _PHONE_RE.match(phone):
+    phone = normalize_phone(raw)
+    if phone is None:
         await show_profile_prompt(
             message=message,
             state=state,

@@ -3,6 +3,9 @@ from dataclasses import dataclass
 from psycopg import AsyncConnection
 
 from app.infrastructure.database.repositories.appointments import AppointmentsRepository
+from app.infrastructure.database.repositories.manual_clients import (
+    ManualClientsRepository,
+)
 from app.infrastructure.database.repositories.master_settings import (
     MasterSettingsRepository,
 )
@@ -22,6 +25,7 @@ class Repositories:
     working_hours: WorkingHoursRepository
     work_dates: WorkDatesRepository
     time_off: TimeOffRepository
+    manual_clients: ManualClientsRepository
 
     @classmethod
     def from_connection(cls, conn: AsyncConnection) -> "Repositories":
@@ -33,11 +37,13 @@ class Repositories:
             working_hours=WorkingHoursRepository(conn),
             work_dates=WorkDatesRepository(conn),
             time_off=TimeOffRepository(conn),
+            manual_clients=ManualClientsRepository(conn),
         )
 
 
 __all__ = [
     "AppointmentsRepository",
+    "ManualClientsRepository",
     "Repositories",
     "ServicesRepository",
     "UsersRepository",

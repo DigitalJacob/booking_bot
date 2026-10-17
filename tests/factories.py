@@ -6,6 +6,7 @@ from app.domain.enums import AppointmentStatus
 from app.domain.exceptions import TimeConflict
 from app.domain.models import (
     Appointment,
+    ManualClient,
     MasterSettings,
     Service,
     TimeOff,
@@ -276,6 +277,79 @@ class FakeTimeOffRepository:
         return sorted(result, key=lambda row: row.starts_at)
 
 
+class FakeManualClientsRepository:
+    def __init__(self, clients: list[ManualClient] | None = None) -> None:
+        self._clients = {item.id: item for item in (clients or [])}
+        self._next_id = max(self._clients, default=0) + 1
+
+    async def create(
+        self,
+        *,
+        master_user_id: int,
+        name: str,
+        phone: str,
+        phone_digits: str,
+    ) -> ManualClient:
+        for existing in self._clients.values():
+            if existing.master_user_id == master_user_id and existing.phone_digits == phone_digits:
+                raise ValueError("duplicate manual client phone")
+        client = ManualClient(
+            id=self._next_id,
+            master_user_id=master_user_id,
+            name=name,
+            phone=phone,
+            phone_digits=phone_digits,
+            created_at=NOW,
+        )
+        self._clients[client.id] = client
+        self._next_id += 1
+        return client
+
+    async def get(
+        self,
+        *,
+        manual_client_id: int,
+        master_user_id: int,
+    ) -> ManualClient | None:
+        client = self._clients.get(manual_client_id)
+        if client is None or client.master_user_id != master_user_id:
+            return None
+        return client
+
+    async def find_by_phone(
+        self,
+        *,
+        master_user_id: int,
+        phone_digits: str,
+    ) -> ManualClient | None:
+        for client in self._clients.values():
+            if client.master_user_id == master_user_id and client.phone_digits == phone_digits:
+                return client
+        return None
+
+    async def search(
+        self,
+        *,
+        master_user_id: int,
+        query: str,
+        limit: int = 8,
+    ) -> list[ManualClient]:
+        if limit <= 0:
+            return []
+        needle = query.strip().casefold()
+        digits = "".join(ch for ch in query if ch.isdigit())
+        matches: list[ManualClient] = []
+        for client in self._clients.values():
+            if client.master_user_id != master_user_id:
+                continue
+            name_hit = bool(needle) and needle in client.name.casefold()
+            phone_hit = bool(digits) and digits in client.phone_digits
+            if name_hit or phone_hit:
+                matches.append(client)
+        matches.sort(key=lambda item: (item.name, item.id))
+        return matches[:limit]
+
+
 class FakeAppointmentsRepository:
     def __init__(
         self,
@@ -390,6 +464,7 @@ class FakeRepositories:
     working_hours: FakeWorkingHoursRepository
     work_dates: FakeWorkDatesRepository
     time_off: FakeTimeOffRepository
+    manual_clients: FakeManualClientsRepository
 
 
 def make_repos(
@@ -400,6 +475,7 @@ def make_repos(
     working_hours: list[WorkingHours] | None = None,
     work_dates: list[WorkDate] | None = None,
     time_offs: list[TimeOff] | None = None,
+    manual_clients: list[ManualClient] | None = None,
 ) -> RepositoriesPort:
     return FakeRepositories(
         services=FakeServicesRepository(services or []),
@@ -408,4 +484,5 @@ def make_repos(
         working_hours=FakeWorkingHoursRepository(working_hours or []),
         work_dates=FakeWorkDatesRepository(work_dates or []),
         time_off=FakeTimeOffRepository(time_offs or []),
+        manual_clients=FakeManualClientsRepository(manual_clients),
     )
