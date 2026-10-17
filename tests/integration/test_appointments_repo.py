@@ -124,6 +124,45 @@ async def test_price_snapshot_defaults_to_null(repos: Repositories) -> None:
 
 
 @pytest.mark.asyncio
+async def test_add_appointment_with_manual_client(repos: Repositories) -> None:
+    from app.bot.utils.phone import normalize_phone, phone_digits
+    from app.domain.exceptions import InvalidAppointmentClient
+
+    service = await _seed_service(repos)
+    phone = normalize_phone("+7 999 000-11-22")
+    assert phone is not None
+    manual = await repos.manual_clients.create(
+        master_user_id=MASTER_ID,
+        name="Walk-in",
+        phone=phone,
+        phone_digits=phone_digits(phone),
+    )
+
+    created = await repos.appointments.add_appointment(
+        master_user_id=MASTER_ID,
+        service_id=service.id,
+        starts_at=START,
+        ends_at=END,
+        manual_client_id=manual.id,
+        status=AppointmentStatus.CONFIRMED,
+    )
+    loaded = await repos.appointments.get_appointment(appointment_id=created.id)
+
+    assert created.client_user_id is None
+    assert created.manual_client_id == manual.id
+    assert loaded is not None
+    assert loaded.manual_client_id == manual.id
+
+    with pytest.raises(InvalidAppointmentClient):
+        await repos.appointments.add_appointment(
+            master_user_id=MASTER_ID,
+            service_id=service.id,
+            starts_at=END,
+            ends_at=END + timedelta(hours=1),
+        )
+
+
+@pytest.mark.asyncio
 async def test_cancelled_slot_can_be_rebooked(repos: Repositories) -> None:
     service = await _seed_service(repos)
 

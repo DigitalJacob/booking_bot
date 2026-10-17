@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
 from app.domain.enums import AppointmentStatus
-from app.domain.exceptions import TimeConflict
+from app.domain.exceptions import InvalidAppointmentClient, TimeConflict
 from app.domain.models import (
     Appointment,
     ManualClient,
@@ -46,13 +46,14 @@ def make_service(
 def make_appointment(
     *,
     appointment_id: int = 1,
-    client_user_id: int = CLIENT_ID,
+    client_user_id: int | None = CLIENT_ID,
     master_user_id: int = MASTER_ID,
     service_id: int = 1,
     starts_at: datetime | None = None,
     ends_at: datetime | None = None,
     status: AppointmentStatus = AppointmentStatus.PENDING,
     price_snapshot: Decimal | None = None,
+    manual_client_id: int | None = None,
 ) -> Appointment:
     if starts_at is None:
         starts_at = NOW + timedelta(hours=2)
@@ -68,6 +69,25 @@ def make_appointment(
         status=status,
         created_at=NOW,
         price_snapshot=price_snapshot,
+        manual_client_id=manual_client_id,
+    )
+
+
+def make_manual_client(
+    *,
+    manual_client_id: int = 1,
+    master_user_id: int = MASTER_ID,
+    name: str = "Walk-in",
+    phone: str = "+79991234567",
+    phone_digits: str = "79991234567",
+) -> ManualClient:
+    return ManualClient(
+        id=manual_client_id,
+        master_user_id=master_user_id,
+        name=name,
+        phone=phone,
+        phone_digits=phone_digits,
+        created_at=NOW,
     )
 
 
@@ -361,14 +381,17 @@ class FakeAppointmentsRepository:
     async def add_appointment(
         self,
         *,
-        client_user_id: int,
         master_user_id: int,
         service_id: int,
         starts_at: datetime,
         ends_at: datetime,
+        client_user_id: int | None = None,
+        manual_client_id: int | None = None,
         status: AppointmentStatus = AppointmentStatus.PENDING,
         price_snapshot: Decimal | None = None,
     ) -> Appointment:
+        if (client_user_id is None) == (manual_client_id is None):
+            raise InvalidAppointmentClient
         for existing in self._appointments.values():
             if existing.master_user_id != master_user_id:
                 continue
@@ -389,6 +412,7 @@ class FakeAppointmentsRepository:
             ends_at=ends_at,
             status=status,
             price_snapshot=price_snapshot,
+            manual_client_id=manual_client_id,
         )
         self._appointments[appointment.id] = appointment
         self._next_id += 1
