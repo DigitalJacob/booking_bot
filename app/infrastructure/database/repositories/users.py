@@ -101,6 +101,29 @@ class UsersRepository:
             row = await cursor.fetchone()
         return User.from_db_row(row) if row else None
 
+    async def find_by_phone_digits(
+        self,
+        *,
+        phone_digits: str,
+    ) -> list[User]:
+        """Match users by digits-only phone (ignores +, spaces, dashes in DB)."""
+        digits = "".join(ch for ch in phone_digits if ch.isdigit())
+        if not digits:
+            return []
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(
+                query=f"""
+                    SELECT {_SELECT_COLUMNS}
+                    FROM users
+                    WHERE phone IS NOT NULL
+                      AND regexp_replace(phone, '\\D', '', 'g') = %(phone_digits)s
+                    ORDER BY user_id;
+                """,
+                params={"phone_digits": digits},
+            )
+            rows = await cursor.fetchall()
+        return [User.from_db_row(row) for row in rows]
+
     async def change_user_lang(
         self,
         *,
