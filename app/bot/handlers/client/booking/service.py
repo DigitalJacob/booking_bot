@@ -4,19 +4,14 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.handlers.client.booking.common import (
-    bookable_months,
-    show_months,
-    unique_days,
-)
 from app.bot.handlers.client.booking.router import booking_router
 from app.bot.handlers.client.booking_flow import start_booking_flow
+from app.bot.handlers.common.booking_funnel import handle_service_choice
 from app.bot.keyboards.booking import ServiceCallback
 from app.bot.states.states import BookingSG
 from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
-from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 
 
@@ -33,45 +28,16 @@ async def process_service_choice(
     bot_timezone: str,
     schedule_mode: str,
 ) -> None:
-    fsm_data = await state.get_data()
-    master_user_id = fsm_data["master_user_id"]
-
-    service = await repos.services.get_service(service_id=callback_data.service_id)
-    if service is None or service.master_user_id != master_user_id or not service.is_active:
-        await callback.answer(
-            text=i18n.get("book_service_not_found"),
-            show_alert=True,
-        )
-        return
-
-    booking = BookingService(repos)
-    open_months = await booking.list_open_months(
-        master_user_id=master_user_id,
+    await handle_service_choice(
+        callback=callback,
+        callback_data=callback_data,
+        state=state,
+        repos=repos,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
         schedule_mode=schedule_mode,
+        states=BookingSG,
     )
-    windows = await booking.list_available_windows(
-        master_user_id=master_user_id,
-        duration_minutes=service.duration_minutes,
-        schedule_mode=schedule_mode,
-    )
-    days = unique_days(windows, bot_timezone)
-    months = bookable_months(open_months, days)
-    if not months:
-        await callback.answer(
-            text=i18n.get("book_no_windows"),
-            show_alert=True,
-        )
-        return
-
-    await state.update_data(
-        service_id=service.id,
-        service_duration=service.duration_minutes,
-        book_year=None,
-        book_month=None,
-    )
-    await state.set_state(BookingSG.choosing_month)
-    await show_months(message=callback.message, months=months, i18n=i18n)
-    await callback.answer()
 
 
 async def _hub_book(
