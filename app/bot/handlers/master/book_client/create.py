@@ -8,9 +8,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.handlers.master.book_client.common import (
+    ClientKind,
     cancel_book_client_flow,
+    get_new_client_draft,
+    get_new_client_name,
     is_eligible_tg_client,
     resolve_pick_target,
+    set_book_client_target,
     show_book_client_prompt,
     show_existing_manual_prompt,
 )
@@ -55,15 +59,14 @@ async def _enter_funnel(
     repos: Repositories,
     user: User,
     i18n: dict[str, str],
-    kind: str,
+    kind: ClientKind,
     ref_id: int,
 ) -> None:
-    await state.update_data(
-        book_client_kind=kind,
-        book_client_ref_id=ref_id,
-        book_client_new_name=None,
-        book_client_new_phone=None,
-        book_client_new_digits=None,
+    await set_book_client_target(
+        state,
+        kind=kind,
+        ref_id=ref_id,
+        clear_draft=True,
     )
     started = await start_slot_funnel(
         message=message,
@@ -194,8 +197,8 @@ async def process_new_client_phone(
 
     digits = phone_digits(phone)
     data = await state.get_data()
-    name = data.get("book_client_new_name")
-    if not isinstance(name, str) or not name:
+    name = get_new_client_name(data)
+    if name is None:
         await state.set_state(MasterBookSG.new_name)
         await show_book_client_prompt(
             message=message,
@@ -301,18 +304,8 @@ async def process_create_manual_anyway(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    data = await state.get_data()
-    name = data.get("book_client_new_name")
-    phone = data.get("book_client_new_phone")
-    digits = data.get("book_client_new_digits")
-    if (
-        not isinstance(name, str)
-        or not name
-        or not isinstance(phone, str)
-        or not phone
-        or not isinstance(digits, str)
-        or not digits
-    ):
+    draft = get_new_client_draft(await state.get_data())
+    if draft is None:
         await callback.answer(
             text=i18n.get("book_client_target_lost"),
             show_alert=True,
@@ -333,7 +326,7 @@ async def process_create_manual_anyway(
         repos=repos,
         user=user,
         i18n=i18n,
-        name=name,
-        phone=phone,
-        digits=digits,
+        name=draft.name,
+        phone=draft.phone,
+        digits=draft.digits,
     )

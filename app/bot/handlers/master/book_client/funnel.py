@@ -18,6 +18,7 @@ from app.bot.handlers.common.booking_funnel import (
 from app.bot.handlers.common.booking_nav import handle_booking_back
 from app.bot.handlers.master.book_client.common import (
     cancel_book_client_flow,
+    get_book_client_target,
     show_book_client_prompt,
 )
 from app.bot.handlers.master.book_client.router import book_client_router
@@ -105,20 +106,18 @@ async def _selected_client_header(
     master_user_id: int,
     i18n: dict[str, str],
 ) -> str:
-    data = await state.get_data()
-    kind = data.get("book_client_kind")
-    ref_id = data.get("book_client_ref_id")
-    if kind == "tg" and ref_id is not None:
-        target = await repos.users.get_user_by_id(user_id=int(ref_id))
-        if target is not None:
-            name, phone = client_contact(target)
+    target = get_book_client_target(await state.get_data())
+    if target is not None and target.kind == "tg":
+        user = await repos.users.get_user_by_id(user_id=target.ref_id)
+        if user is not None:
+            name, phone = client_contact(user)
             return i18n.get("book_client_selected_line").format(
                 client_name=name,
                 client_phone=phone,
             )
-    if kind == "manual" and ref_id is not None:
+    if target is not None and target.kind == "manual":
         manual = await repos.manual_clients.get(
-            manual_client_id=int(ref_id),
+            manual_client_id=target.ref_id,
             master_user_id=master_user_id,
         )
         if manual is not None:
@@ -277,23 +276,19 @@ async def process_master_confirm(
     schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
-    kind = fsm_data.get("book_client_kind")
-    ref_id = fsm_data.get("book_client_ref_id")
+    target = get_book_client_target(fsm_data)
     booking = BookingService(repos)
 
-    client_user_id: int | None = None
-    manual_client_id: int | None = None
-    if kind == "tg" and ref_id is not None:
-        client_user_id = int(ref_id)
-    elif kind == "manual" and ref_id is not None:
-        manual_client_id = int(ref_id)
-    else:
+    if target is None:
         await callback.answer(
             text=i18n.get("book_client_target_lost"),
             show_alert=True,
         )
         await clear_state_keep_hub(state)
         return
+
+    client_user_id = target.ref_id if target.kind == "tg" else None
+    manual_client_id = target.ref_id if target.kind == "manual" else None
 
     try:
         appointment = await booking.book_for_client(

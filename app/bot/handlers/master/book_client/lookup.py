@@ -11,6 +11,7 @@ from app.bot.handlers.master.book_client.common import (
     cancel_book_client_flow,
     resolve_pick_target,
     search_book_clients,
+    set_book_client_target,
     show_book_client_prompt,
 )
 from app.bot.handlers.master.book_client.create import start_new_client_flow
@@ -133,9 +134,10 @@ async def process_book_client_pick(
         )
         return
 
-    await state.update_data(
-        book_client_kind=target.kind,
-        book_client_ref_id=target.ref_id,
+    await set_book_client_target(
+        state,
+        kind=target.kind,
+        ref_id=target.ref_id,
     )
     started = await start_slot_funnel(
         message=callback.message,

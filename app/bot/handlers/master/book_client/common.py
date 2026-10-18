@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal, TypedDict
 
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
@@ -26,6 +27,17 @@ RESULT_LIMIT = 8
 ClientKind = Literal["tg", "manual"]
 
 
+class BookClientTargetFields(TypedDict):
+    book_client_kind: ClientKind
+    book_client_ref_id: int
+
+
+class BookClientDraftFields(TypedDict, total=False):
+    book_client_new_name: str | None
+    book_client_new_phone: str | None
+    book_client_new_digits: str | None
+
+
 @dataclass(frozen=True, slots=True)
 class ClientSearchHit:
     kind: ClientKind
@@ -43,6 +55,65 @@ class ClientSearchHit:
 class ResolvedClientTarget:
     kind: ClientKind
     ref_id: int
+
+
+@dataclass(frozen=True, slots=True)
+class NewClientDraft:
+    name: str
+    phone: str
+    digits: str
+
+
+def get_book_client_target(data: Mapping[str, Any]) -> ResolvedClientTarget | None:
+    kind = data.get("book_client_kind")
+    ref_id = data.get("book_client_ref_id")
+    if kind not in ("tg", "manual") or not isinstance(ref_id, int):
+        return None
+    return ResolvedClientTarget(kind=kind, ref_id=ref_id)
+
+
+async def set_book_client_target(
+    state: FSMContext,
+    *,
+    kind: ClientKind,
+    ref_id: int,
+    clear_draft: bool = False,
+) -> None:
+    target: BookClientTargetFields = {
+        "book_client_kind": kind,
+        "book_client_ref_id": ref_id,
+    }
+    if not clear_draft:
+        await state.update_data(**target)
+        return
+    draft: BookClientDraftFields = {
+        "book_client_new_name": None,
+        "book_client_new_phone": None,
+        "book_client_new_digits": None,
+    }
+    await state.update_data(**target, **draft)
+
+
+def get_new_client_name(data: Mapping[str, Any]) -> str | None:
+    name = data.get("book_client_new_name")
+    if isinstance(name, str) and name:
+        return name
+    return None
+
+
+def get_new_client_draft(data: Mapping[str, Any]) -> NewClientDraft | None:
+    name = get_new_client_name(data)
+    phone = data.get("book_client_new_phone")
+    digits = data.get("book_client_new_digits")
+    if (
+        name is None
+        or not isinstance(phone, str)
+        or not phone
+        or not isinstance(digits, str)
+        or not digits
+    ):
+        return None
+    return NewClientDraft(name=name, phone=phone, digits=digits)
 
 
 def is_eligible_tg_client(*, user: User, master_user_id: int) -> bool:
