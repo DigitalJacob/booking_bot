@@ -3,7 +3,11 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
 from app.domain.enums import AppointmentStatus
-from app.domain.exceptions import InvalidAppointmentClient, TimeConflict
+from app.domain.exceptions import (
+    InvalidAppointmentClient,
+    ManualClientPhoneTaken,
+    TimeConflict,
+)
 from app.domain.models import (
     Appointment,
     ManualClient,
@@ -312,7 +316,7 @@ class FakeManualClientsRepository:
     ) -> ManualClient:
         for existing in self._clients.values():
             if existing.master_user_id == master_user_id and existing.phone_digits == phone_digits:
-                raise ValueError("duplicate manual client phone")
+                raise ManualClientPhoneTaken
         client = ManualClient(
             id=self._next_id,
             master_user_id=master_user_id,

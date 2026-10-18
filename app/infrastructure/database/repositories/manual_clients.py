@@ -1,8 +1,10 @@
 import logging
 
 from psycopg import AsyncConnection
+from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 
+from app.domain.exceptions import ManualClientPhoneTaken
 from app.domain.models.manual_client import ManualClient
 
 logger = logging.getLogger(__name__)
@@ -29,31 +31,39 @@ class ManualClientsRepository:
         phone: str,
         phone_digits: str,
     ) -> ManualClient:
-        async with self._conn.cursor(row_factory=dict_row) as cursor:
-            await cursor.execute(
-                query=f"""
-                    INSERT INTO manual_clients (
-                        master_user_id,
-                        name,
-                        phone,
-                        phone_digits
-                    )
-                    VALUES (
-                        %(master_user_id)s,
-                        %(name)s,
-                        %(phone)s,
-                        %(phone_digits)s
-                    )
-                    RETURNING {_SELECT_COLUMNS};
-                """,
-                params={
-                    "master_user_id": master_user_id,
-                    "name": name,
-                    "phone": phone,
-                    "phone_digits": phone_digits,
-                },
-            )
-            row = await cursor.fetchone()
+        # Nested transaction → savepoint when middleware already opened one,
+        # so UniqueViolation does not poison the outer handler transaction.
+        try:
+            async with (
+                self._conn.transaction(),
+                self._conn.cursor(row_factory=dict_row) as cursor,
+            ):
+                await cursor.execute(
+                    query=f"""
+                        INSERT INTO manual_clients (
+                            master_user_id,
+                            name,
+                            phone,
+                            phone_digits
+                        )
+                        VALUES (
+                            %(master_user_id)s,
+                            %(name)s,
+                            %(phone)s,
+                            %(phone_digits)s
+                        )
+                        RETURNING {_SELECT_COLUMNS};
+                    """,
+                    params={
+                        "master_user_id": master_user_id,
+                        "name": name,
+                        "phone": phone,
+                        "phone_digits": phone_digits,
+                    },
+                )
+                row = await cursor.fetchone()
+        except UniqueViolation as exc:
+            raise ManualClientPhoneTaken from exc
         logger.info(
             "Manual client added. master_user_id=%d, phone_digits=%s",
             master_user_id,

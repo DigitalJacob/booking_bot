@@ -6,7 +6,6 @@ from aiogram import F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from psycopg.errors import UniqueViolation
 
 from app.bot.handlers.master.book_client.common import (
     cancel_book_client_flow,
@@ -25,6 +24,7 @@ from app.bot.states.states import MasterBookSG
 from app.bot.utils.format import client_contact
 from app.bot.utils.phone import normalize_phone, phone_digits
 from app.bot.utils.telegram import delete_user_input
+from app.domain.exceptions import ManualClientPhoneTaken
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
@@ -118,7 +118,7 @@ async def _create_manual_and_enter(
             phone=phone,
             phone_digits=digits,
         )
-    except UniqueViolation:
+    except ManualClientPhoneTaken:
         existing = await repos.manual_clients.find_by_phone(
             master_user_id=user.user_id,
             phone_digits=digits,
