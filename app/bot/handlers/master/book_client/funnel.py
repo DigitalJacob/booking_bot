@@ -2,26 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 
 from aiogram import Bot, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.handlers.common.booking_nav import handle_booking_back
-from app.bot.handlers.common.booking_steps import (
-    bookable_months,
-    days_in_month,
-    show_confirm,
-    show_days,
-    show_months,
-    show_windows,
-    unique_days,
-    windows_on_day,
+from app.bot.handlers.common.booking_funnel import (
+    handle_day_choice,
+    handle_month_choice,
+    handle_service_choice,
+    handle_window_choice,
 )
+from app.bot.handlers.common.booking_nav import handle_booking_back
 from app.bot.handlers.master.book_client.common import (
     cancel_book_client_flow,
+    get_book_client_target,
     show_book_client_prompt,
 )
 from app.bot.handlers.master.book_client.router import book_client_router
@@ -32,12 +29,11 @@ from app.bot.keyboards.booking import (
     MonthCallback,
     ServiceCallback,
     WindowCallback,
-    get_confirm_kb,
     get_services_kb,
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import MasterBookSG
-from app.bot.utils.format import client_contact
+from app.bot.utils.contacts import client_contact
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
@@ -93,8 +89,7 @@ async def start_slot_funnel(
         book_month=None,
     )
     await state.set_state(MasterBookSG.choosing_service)
-    # Prefer sticky hub: after New client the inbound message is user text
-    # (often already deleted), so message.edit_text would fail silently.
+    # Sticky hub: inbound message may be deleted user text after New client.
     await show_hub_prompt(
         message=message,
         state=state,
@@ -111,20 +106,18 @@ async def _selected_client_header(
     master_user_id: int,
     i18n: dict[str, str],
 ) -> str:
-    data = await state.get_data()
-    kind = data.get("book_client_kind")
-    ref_id = data.get("book_client_ref_id")
-    if kind == "tg" and ref_id is not None:
-        target = await repos.users.get_user_by_id(user_id=int(ref_id))
-        if target is not None:
-            name, phone = client_contact(target)
+    target = get_book_client_target(await state.get_data())
+    if target is not None and target.kind == "tg":
+        user = await repos.users.get_user_by_id(user_id=target.ref_id)
+        if user is not None:
+            name, phone = client_contact(user)
             return i18n.get("book_client_selected_line").format(
                 client_name=name,
                 client_phone=phone,
             )
-    if kind == "manual" and ref_id is not None:
+    if target is not None and target.kind == "manual":
         manual = await repos.manual_clients.get(
-            manual_client_id=int(ref_id),
+            manual_client_id=target.ref_id,
             master_user_id=master_user_id,
         )
         if manual is not None:
@@ -159,48 +152,17 @@ async def process_master_service_choice(
     bot_timezone: str,
     schedule_mode: str,
 ) -> None:
-    fsm_data = await state.get_data()
-    master_user_id = fsm_data["master_user_id"]
-
-    service = await repos.services.get_service(service_id=callback_data.service_id)
-    if service is None or service.master_user_id != master_user_id or not service.is_active:
-        await callback.answer(
-            text=i18n.get("book_service_not_found"),
-            show_alert=True,
-        )
-        return
-
-    booking = BookingService(repos)
-    open_months = await booking.list_open_months(
-        master_user_id=master_user_id,
+    await handle_service_choice(
+        callback=callback,
+        callback_data=callback_data,
+        state=state,
+        repos=repos,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
         schedule_mode=schedule_mode,
+        states=MasterBookSG,
+        for_master=True,
     )
-    windows = await booking.list_available_windows(
-        master_user_id=master_user_id,
-        duration_minutes=service.duration_minutes,
-        schedule_mode=schedule_mode,
-        ignore_min_lead=True,
-    )
-    days = unique_days(windows, bot_timezone)
-    months = bookable_months(open_months, days)
-    if not months:
-        # Keep the service keyboard — wiping the message left a dead end with
-        # no Cancel/OK after New-client → phone (sticky) entry.
-        await callback.answer(
-            text=i18n.get("book_no_windows"),
-            show_alert=True,
-        )
-        return
-
-    await state.update_data(
-        service_id=service.id,
-        service_duration=service.duration_minutes,
-        book_year=None,
-        book_month=None,
-    )
-    await state.set_state(MasterBookSG.choosing_month)
-    await show_months(message=callback.message, months=months, i18n=i18n)
-    await callback.answer()
 
 
 @book_client_router.callback_query(
@@ -216,46 +178,17 @@ async def process_master_month_choice(
     bot_timezone: str,
     schedule_mode: str,
 ) -> None:
-    fsm_data = await state.get_data()
-    master_user_id = fsm_data["master_user_id"]
-    service_duration = fsm_data["service_duration"]
-
-    booking = BookingService(repos)
-    open_months = await booking.list_open_months(
-        master_user_id=master_user_id,
-        schedule_mode=schedule_mode,
-    )
-    windows = await booking.list_available_windows(
-        master_user_id=master_user_id,
-        duration_minutes=service_duration,
-        schedule_mode=schedule_mode,
-        ignore_min_lead=True,
-    )
-    days = days_in_month(
-        unique_days(windows, bot_timezone),
-        callback_data.year,
-        callback_data.month,
-    )
-    if (callback_data.year, callback_data.month) not in open_months or not days:
-        await callback.answer(
-            text=i18n.get("book_month_unavailable"),
-            show_alert=True,
-        )
-        return
-
-    await state.update_data(
-        book_year=callback_data.year,
-        book_month=callback_data.month,
-    )
-    await state.set_state(MasterBookSG.choosing_day)
-    await show_days(
-        message=callback.message,
-        year=callback_data.year,
-        month=callback_data.month,
-        days=days,
+    await handle_month_choice(
+        callback=callback,
+        callback_data=callback_data,
+        state=state,
+        repos=repos,
         i18n=i18n,
+        bot_timezone=bot_timezone,
+        schedule_mode=schedule_mode,
+        states=MasterBookSG,
+        for_master=True,
     )
-    await callback.answer()
 
 
 @book_client_router.callback_query(
@@ -279,47 +212,17 @@ async def process_master_day_choice(
     bot_timezone: str,
     schedule_mode: str,
 ) -> None:
-    fsm_data = await state.get_data()
-    master_user_id = fsm_data["master_user_id"]
-    service_duration = fsm_data["service_duration"]
-    day = date.fromisoformat(callback_data.value)
-    book_year = fsm_data.get("book_year")
-    book_month = fsm_data.get("book_month")
-    if (
-        book_year is not None
-        and book_month is not None
-        and (day.year, day.month) != (int(book_year), int(book_month))
-    ):
-        await callback.answer()
-        return
-
-    booking = BookingService(repos)
-    windows = windows_on_day(
-        await booking.list_available_windows(
-            master_user_id=master_user_id,
-            duration_minutes=service_duration,
-            schedule_mode=schedule_mode,
-            ignore_min_lead=True,
-        ),
-        day,
-        bot_timezone,
-    )
-    if not windows:
-        await callback.answer(
-            text=i18n.get("book_no_windows"),
-            show_alert=True,
-        )
-        return
-
-    await state.update_data(day=day.isoformat())
-    await state.set_state(MasterBookSG.choosing_window)
-    await show_windows(
-        message=callback.message,
-        windows=windows,
+    await handle_day_choice(
+        callback=callback,
+        callback_data=callback_data,
+        state=state,
+        repos=repos,
         i18n=i18n,
         bot_timezone=bot_timezone,
+        schedule_mode=schedule_mode,
+        states=MasterBookSG,
+        for_master=True,
     )
-    await callback.answer()
 
 
 @book_client_router.callback_query(
@@ -336,68 +239,25 @@ async def process_master_window_choice(
     bot_timezone: str,
     schedule_mode: str,
 ) -> None:
-    fsm_data = await state.get_data()
-    master_user_id = fsm_data["master_user_id"]
-    service_id = fsm_data["service_id"]
-    day = date.fromisoformat(fsm_data["day"])
-    starts_at = datetime.fromisoformat(callback_data.starts_at)
-
-    service = await repos.services.get_service(service_id=service_id)
-    if service is None:
-        await callback.answer(
-            text=i18n.get("book_service_not_found"),
-            show_alert=True,
-        )
-        return
-
-    booking = BookingService(repos)
-    windows = windows_on_day(
-        await booking.list_available_windows(
-            master_user_id=master_user_id,
-            duration_minutes=service.duration_minutes,
-            schedule_mode=schedule_mode,
-            ignore_min_lead=True,
-        ),
-        day,
-        bot_timezone,
-    )
-    match = next(
-        (
-            window
-            for window in windows
-            if window.starts_at == starts_at
-            or window.starts_at.isoformat() == callback_data.starts_at
-        ),
-        None,
-    )
-    if match is None:
-        await callback.answer(
-            text=i18n.get("book_window_not_found"),
-            show_alert=True,
-        )
-        return
-
-    await state.update_data(starts_at=match.starts_at.isoformat())
-    await state.set_state(MasterBookSG.confirming)
     header = await _selected_client_header(
         repos=repos,
         state=state,
         master_user_id=user.user_id,
         i18n=i18n,
     )
-    await show_confirm(
-        message=callback.message,
-        service=service,
-        starts_at=match.starts_at,
+    await handle_window_choice(
+        callback=callback,
+        callback_data=callback_data,
+        state=state,
+        repos=repos,
         i18n=i18n,
         bot_timezone=bot_timezone,
-        header=header,
-        reply_markup=get_confirm_kb(
-            i18n=i18n,
-            confirm_button_key="book_client_confirm_button",
-        ),
+        schedule_mode=schedule_mode,
+        states=MasterBookSG,
+        for_master=True,
+        confirm_header=header,
+        confirm_button_key="book_client_confirm_button",
     )
-    await callback.answer()
 
 
 @book_client_router.callback_query(
@@ -416,23 +276,19 @@ async def process_master_confirm(
     schedule_mode: str,
 ) -> None:
     fsm_data = await state.get_data()
-    kind = fsm_data.get("book_client_kind")
-    ref_id = fsm_data.get("book_client_ref_id")
+    target = get_book_client_target(fsm_data)
     booking = BookingService(repos)
 
-    client_user_id: int | None = None
-    manual_client_id: int | None = None
-    if kind == "tg" and ref_id is not None:
-        client_user_id = int(ref_id)
-    elif kind == "manual" and ref_id is not None:
-        manual_client_id = int(ref_id)
-    else:
+    if target is None:
         await callback.answer(
             text=i18n.get("book_client_target_lost"),
             show_alert=True,
         )
         await clear_state_keep_hub(state)
         return
+
+    client_user_id = target.ref_id if target.kind == "tg" else None
+    manual_client_id = target.ref_id if target.kind == "manual" else None
 
     try:
         appointment = await booking.book_for_client(
@@ -525,5 +381,5 @@ async def process_master_funnel_back(
         bot_timezone=bot_timezone,
         schedule_mode=schedule_mode,
         states=MasterBookSG,
-        ignore_min_lead=True,
+        for_master=True,
     )

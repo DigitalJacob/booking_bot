@@ -1,4 +1,4 @@
-"""B-lite: create a manual client (name → phone) before the slot funnel."""
+"""Create a manual client (name → phone) before the slot funnel."""
 
 from __future__ import annotations
 
@@ -6,25 +6,30 @@ from aiogram import F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from psycopg.errors import UniqueViolation
 
 from app.bot.handlers.master.book_client.common import (
+    ClientKind,
     cancel_book_client_flow,
+    get_new_client_draft,
+    get_new_client_name,
     is_eligible_tg_client,
+    resolve_pick_target,
+    set_book_client_target,
     show_book_client_prompt,
+    show_existing_manual_prompt,
 )
 from app.bot.handlers.master.book_client.funnel import start_slot_funnel
 from app.bot.handlers.master.book_client.router import book_client_router
 from app.bot.keyboards.book_client import (
     BookClientNavCallback,
     BookClientPickCallback,
-    get_book_client_existing_manual_kb,
     get_book_client_tg_offer_kb,
 )
 from app.bot.states.states import MasterBookSG
-from app.bot.utils.format import client_contact
+from app.bot.utils.contacts import client_contact
 from app.bot.utils.phone import normalize_phone, phone_digits
 from app.bot.utils.telegram import delete_user_input
+from app.domain.exceptions import ManualClientPhoneTaken
 from app.domain.models import User
 from app.infrastructure.database.repositories import Repositories
 
@@ -54,15 +59,14 @@ async def _enter_funnel(
     repos: Repositories,
     user: User,
     i18n: dict[str, str],
-    kind: str,
+    kind: ClientKind,
     ref_id: int,
 ) -> None:
-    await state.update_data(
-        book_client_kind=kind,
-        book_client_ref_id=ref_id,
-        book_client_new_name=None,
-        book_client_new_phone=None,
-        book_client_new_digits=None,
+    await set_book_client_target(
+        state,
+        kind=kind,
+        ref_id=ref_id,
+        clear_draft=True,
     )
     started = await start_slot_funnel(
         message=message,
@@ -96,18 +100,11 @@ async def _create_manual_and_enter(
         phone_digits=digits,
     )
     if existing is not None:
-        await show_book_client_prompt(
+        await show_existing_manual_prompt(
             message=message,
             state=state,
-            text=i18n.get("book_client_existing_manual").format(
-                client_name=existing.name,
-                client_phone=existing.phone,
-            ),
             i18n=i18n,
-            reply_markup=get_book_client_existing_manual_kb(
-                manual_client_id=existing.id,
-                i18n=i18n,
-            ),
+            client=existing,
         )
         return
 
@@ -118,7 +115,7 @@ async def _create_manual_and_enter(
             phone=phone,
             phone_digits=digits,
         )
-    except UniqueViolation:
+    except ManualClientPhoneTaken:
         existing = await repos.manual_clients.find_by_phone(
             master_user_id=user.user_id,
             phone_digits=digits,
@@ -131,18 +128,11 @@ async def _create_manual_and_enter(
                 i18n=i18n,
             )
             return
-        await show_book_client_prompt(
+        await show_existing_manual_prompt(
             message=message,
             state=state,
-            text=i18n.get("book_client_existing_manual").format(
-                client_name=existing.name,
-                client_phone=existing.phone,
-            ),
             i18n=i18n,
-            reply_markup=get_book_client_existing_manual_kb(
-                manual_client_id=existing.id,
-                i18n=i18n,
-            ),
+            client=existing,
         )
         return
 
@@ -207,8 +197,8 @@ async def process_new_client_phone(
 
     digits = phone_digits(phone)
     data = await state.get_data()
-    name = data.get("book_client_new_name")
-    if not isinstance(name, str) or not name:
+    name = get_new_client_name(data)
+    if name is None:
         await state.set_state(MasterBookSG.new_name)
         await show_book_client_prompt(
             message=message,
@@ -228,18 +218,11 @@ async def process_new_client_phone(
         phone_digits=digits,
     )
     if existing is not None:
-        await show_book_client_prompt(
+        await show_existing_manual_prompt(
             message=message,
             state=state,
-            text=i18n.get("book_client_existing_manual").format(
-                client_name=existing.name,
-                client_phone=existing.phone,
-            ),
             i18n=i18n,
-            reply_markup=get_book_client_existing_manual_kb(
-                manual_client_id=existing.id,
-                i18n=i18n,
-            ),
+            client=existing,
         )
         return
 
@@ -285,29 +268,13 @@ async def process_new_client_pick(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    if callback_data.kind == "tg":
-        target = await repos.users.get_user_by_id(user_id=callback_data.ref_id)
-        if target is None or not is_eligible_tg_client(
-            user=target,
-            master_user_id=user.user_id,
-        ):
-            await callback.answer(
-                text=i18n.get("book_client_target_lost"),
-                show_alert=True,
-            )
-            return
-    elif callback_data.kind == "manual":
-        manual = await repos.manual_clients.get(
-            manual_client_id=callback_data.ref_id,
-            master_user_id=user.user_id,
-        )
-        if manual is None:
-            await callback.answer(
-                text=i18n.get("book_client_target_lost"),
-                show_alert=True,
-            )
-            return
-    else:
+    target = await resolve_pick_target(
+        repos=repos,
+        master_user_id=user.user_id,
+        kind=callback_data.kind,
+        ref_id=callback_data.ref_id,
+    )
+    if target is None:
         await callback.answer(
             text=i18n.get("book_client_target_lost"),
             show_alert=True,
@@ -321,8 +288,8 @@ async def process_new_client_pick(
         repos=repos,
         user=user,
         i18n=i18n,
-        kind=callback_data.kind,
-        ref_id=callback_data.ref_id,
+        kind=target.kind,
+        ref_id=target.ref_id,
     )
 
 
@@ -337,18 +304,8 @@ async def process_create_manual_anyway(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    data = await state.get_data()
-    name = data.get("book_client_new_name")
-    phone = data.get("book_client_new_phone")
-    digits = data.get("book_client_new_digits")
-    if (
-        not isinstance(name, str)
-        or not name
-        or not isinstance(phone, str)
-        or not phone
-        or not isinstance(digits, str)
-        or not digits
-    ):
+    draft = get_new_client_draft(await state.get_data())
+    if draft is None:
         await callback.answer(
             text=i18n.get("book_client_target_lost"),
             show_alert=True,
@@ -369,7 +326,7 @@ async def process_create_manual_anyway(
         repos=repos,
         user=user,
         i18n=i18n,
-        name=name,
-        phone=phone,
-        digits=digits,
+        name=draft.name,
+        phone=draft.phone,
+        digits=draft.digits,
     )

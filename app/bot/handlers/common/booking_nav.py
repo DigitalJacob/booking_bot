@@ -18,7 +18,6 @@ from app.bot.handlers.common.booking_steps import (
     unique_days,
     windows_on_day,
 )
-from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 
@@ -32,12 +31,25 @@ async def handle_booking_back(
     bot_timezone: str,
     schedule_mode: str,
     states: type[StatesGroup],
-    ignore_min_lead: bool = False,
+    for_master: bool = False,
 ) -> None:
     current = await state.get_state()
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
     booking = BookingService(repos)
+
+    async def list_windows(*, duration_minutes: int):
+        if for_master:
+            return await booking.list_windows_for_master(
+                master_user_id=master_user_id,
+                duration_minutes=duration_minutes,
+                schedule_mode=schedule_mode,
+            )
+        return await booking.list_available_windows(
+            master_user_id=master_user_id,
+            duration_minutes=duration_minutes,
+            schedule_mode=schedule_mode,
+        )
 
     if current == states.choosing_month.state:
         services = await booking.list_services(master_user_id=master_user_id)
@@ -64,71 +76,63 @@ async def handle_booking_back(
             master_user_id=master_user_id,
             schedule_mode=schedule_mode,
         )
-        windows = await booking.list_available_windows(
-            master_user_id=master_user_id,
-            duration_minutes=fsm_data["service_duration"],
-            schedule_mode=schedule_mode,
-            ignore_min_lead=ignore_min_lead,
-        )
+        windows = await list_windows(duration_minutes=fsm_data["service_duration"])
         months = bookable_months(
             open_months,
             unique_days(windows, bot_timezone),
         )
+        if not months:
+            await callback.answer(
+                text=i18n.get("book_no_windows"),
+                show_alert=True,
+            )
+            return
         await state.set_state(states.choosing_month)
         await state.update_data(day=None, starts_at=None, book_year=None, book_month=None)
-        if not months:
-            await callback.message.edit_text(text=i18n.get("book_no_windows"))
-            await clear_state_keep_hub(state)
-        else:
-            await show_months(message=callback.message, months=months, i18n=i18n)
+        await show_months(message=callback.message, months=months, i18n=i18n)
         await callback.answer()
         return
 
     if current == states.choosing_window.state:
         year = fsm_data.get("book_year")
         month = fsm_data.get("book_month")
-        windows = await booking.list_available_windows(
-            master_user_id=master_user_id,
-            duration_minutes=fsm_data["service_duration"],
-            schedule_mode=schedule_mode,
-            ignore_min_lead=ignore_min_lead,
-        )
+        windows = await list_windows(duration_minutes=fsm_data["service_duration"])
         days = unique_days(windows, bot_timezone)
         if year is not None and month is not None:
             days = days_in_month(days, int(year), int(month))
+        if not days or year is None or month is None:
+            await callback.answer(
+                text=i18n.get("book_no_windows"),
+                show_alert=True,
+            )
+            return
         await state.set_state(states.choosing_day)
         await state.update_data(day=None, starts_at=None)
-        if not days or year is None or month is None:
-            await callback.message.edit_text(text=i18n.get("book_no_windows"))
-            await clear_state_keep_hub(state)
-        else:
-            await show_days(
-                message=callback.message,
-                year=int(year),
-                month=int(month),
-                days=days,
-                i18n=i18n,
-            )
+        await show_days(
+            message=callback.message,
+            year=int(year),
+            month=int(month),
+            days=days,
+            i18n=i18n,
+        )
         await callback.answer()
         return
 
     if current == states.confirming.state:
         day = date.fromisoformat(fsm_data["day"])
         windows = windows_on_day(
-            await booking.list_available_windows(
-                master_user_id=master_user_id,
-                duration_minutes=fsm_data["service_duration"],
-                schedule_mode=schedule_mode,
-                ignore_min_lead=ignore_min_lead,
-            ),
+            await list_windows(duration_minutes=fsm_data["service_duration"]),
             day,
             bot_timezone,
         )
+        if not windows:
+            await callback.answer(
+                text=i18n.get("book_no_windows"),
+                show_alert=True,
+            )
+            return
         await state.set_state(states.choosing_window)
         await state.update_data(starts_at=None)
-        if not windows:
-            await callback.answer(text=i18n.get("book_no_windows"), show_alert=True)
-            return
         await show_windows(
             message=callback.message,
             windows=windows,

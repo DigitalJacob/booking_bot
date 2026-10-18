@@ -144,5 +144,4 @@ async def process_back(
         bot_timezone=bot_timezone,
         schedule_mode=schedule_mode,
         states=BookingSG,
-        ignore_min_lead=False,
     )

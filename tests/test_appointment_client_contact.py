@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 import pytest
-from app.bot.utils.format import appointment_client_contact
+from app.bot.utils.contacts import appointment_client_contact
 from app.domain.enums import UserRole
 from app.domain.models import User
 

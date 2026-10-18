@@ -1,8 +1,8 @@
 import pytest
 from app.bot.utils.phone import normalize_phone, phone_digits
 from app.domain.enums import UserRole
+from app.domain.exceptions import ManualClientPhoneTaken
 from app.infrastructure.database.repositories import Repositories
-from psycopg.errors import UniqueViolation
 
 pytestmark = pytest.mark.integration
 
@@ -78,7 +78,7 @@ async def test_create_duplicate_phone_same_master_raises(
         phone="+79991112233",
         phone_digits="79991112233",
     )
-    with pytest.raises(UniqueViolation):
+    with pytest.raises(ManualClientPhoneTaken):
         await repos.manual_clients.create(
             master_user_id=MASTER_A,
             name="Anna 2",

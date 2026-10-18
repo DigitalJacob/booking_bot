@@ -36,3 +36,7 @@ class InvalidAppointmentClient(DomainError):
 
 class ManualClientNotFound(DomainError):
     pass
+
+
+class ManualClientPhoneTaken(DomainError):
+    """This master already has a manual client with the same phone_digits."""

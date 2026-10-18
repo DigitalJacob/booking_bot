@@ -23,8 +23,9 @@ from app.bot.keyboards.work_days import (
     month_label,
 )
 from app.bot.states.states import WorkDaysSG
+from app.bot.utils.contacts import appointment_client_contact
 from app.bot.utils.dates import parse_time
-from app.bot.utils.format import appointment_client_contact, format_dt
+from app.bot.utils.format import format_dt
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.telegram import delete_user_input
 from app.domain.models import Appointment, User

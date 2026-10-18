@@ -32,9 +32,9 @@ from app.bot.keyboards.bookings import (
 )
 from app.bot.keyboards.hub import get_hub_root_kb
 from app.bot.utils.cancel_registry import SOURCE_MASTER_BOOKINGS, SOURCE_MASTER_PUSH
+from app.bot.utils.contacts import appointment_client_contact
 from app.bot.utils.dates import format_year_month
 from app.bot.utils.format import (
-    appointment_client_contact,
     format_dt,
     local_month_bounds,
     local_week_bounds,
