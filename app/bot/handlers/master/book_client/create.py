@@ -1,4 +1,4 @@
-"""B-lite: create a manual client (name → phone) before the slot funnel."""
+"""Create a manual client (name → phone) before the slot funnel."""
 
 from __future__ import annotations
 
