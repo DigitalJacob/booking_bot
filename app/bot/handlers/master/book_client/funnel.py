@@ -174,11 +174,10 @@ async def process_master_service_choice(
         master_user_id=master_user_id,
         schedule_mode=schedule_mode,
     )
-    windows = await booking.list_available_windows(
+    windows = await booking.list_windows_for_master(
         master_user_id=master_user_id,
         duration_minutes=service.duration_minutes,
         schedule_mode=schedule_mode,
-        ignore_min_lead=True,
     )
     days = unique_days(windows, bot_timezone)
     months = bookable_months(open_months, days)
@@ -222,11 +221,10 @@ async def process_master_month_choice(
         master_user_id=master_user_id,
         schedule_mode=schedule_mode,
     )
-    windows = await booking.list_available_windows(
+    windows = await booking.list_windows_for_master(
         master_user_id=master_user_id,
         duration_minutes=service_duration,
         schedule_mode=schedule_mode,
-        ignore_min_lead=True,
     )
     days = days_in_month(
         unique_days(windows, bot_timezone),
@@ -292,11 +290,10 @@ async def process_master_day_choice(
 
     booking = BookingService(repos)
     windows = windows_on_day(
-        await booking.list_available_windows(
+        await booking.list_windows_for_master(
             master_user_id=master_user_id,
             duration_minutes=service_duration,
             schedule_mode=schedule_mode,
-            ignore_min_lead=True,
         ),
         day,
         bot_timezone,
@@ -349,11 +346,10 @@ async def process_master_window_choice(
 
     booking = BookingService(repos)
     windows = windows_on_day(
-        await booking.list_available_windows(
+        await booking.list_windows_for_master(
             master_user_id=master_user_id,
             duration_minutes=service.duration_minutes,
             schedule_mode=schedule_mode,
-            ignore_min_lead=True,
         ),
         day,
         bot_timezone,
@@ -522,5 +518,5 @@ async def process_master_funnel_back(
         bot_timezone=bot_timezone,
         schedule_mode=schedule_mode,
         states=MasterBookSG,
-        ignore_min_lead=True,
+        for_master=True,
     )

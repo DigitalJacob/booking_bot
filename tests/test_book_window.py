@@ -260,6 +260,27 @@ async def test_book_for_client_rejects_when_already_taken():
 
 
 @pytest.mark.asyncio
+async def test_list_windows_for_master_ignores_min_lead():
+    repos = _repos_with_schedule(settings=_settings(min_lead_minutes=120))
+    booking = BookingService(repos)
+    starts_near = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00 MSK
+
+    client_windows = await booking.list_available_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        now=NOW,
+    )
+    master_windows = await booking.list_windows_for_master(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        now=NOW,
+    )
+
+    assert starts_near not in {window.starts_at for window in client_windows}
+    assert starts_near in {window.starts_at for window in master_windows}
+
+
+@pytest.mark.asyncio
 async def test_book_for_client_ignores_min_lead_but_keeps_horizon():
     """Client cannot book the first slot under min_lead; master can.
 

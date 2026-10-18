@@ -46,6 +46,23 @@ class BookingService:
             ignore_min_lead=ignore_min_lead,
         )
 
+    async def list_windows_for_master(
+        self,
+        *,
+        master_user_id: int,
+        duration_minutes: int,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
+    ) -> list[TimeWindow]:
+        """Windows for master-initiated booking: min_lead ignored, horizon kept."""
+        return await self.list_available_windows(
+            master_user_id=master_user_id,
+            duration_minutes=duration_minutes,
+            schedule_mode=schedule_mode,
+            now=now,
+            ignore_min_lead=True,
+        )
+
     async def list_open_months(
         self,
         *,
@@ -75,7 +92,6 @@ class BookingService:
             status=AppointmentStatus.PENDING,
             schedule_mode=schedule_mode,
             now=now,
-            ignore_min_lead=False,
             client_user_id=client_user_id,
         )
 
@@ -115,7 +131,7 @@ class BookingService:
             status=AppointmentStatus.CONFIRMED,
             schedule_mode=schedule_mode,
             now=now,
-            ignore_min_lead=True,
+            for_master=True,
             client_user_id=client_user_id,
             manual_client_id=manual_client_id,
         )
@@ -136,7 +152,7 @@ class BookingService:
         status: AppointmentStatus,
         schedule_mode: str,
         now: datetime | None,
-        ignore_min_lead: bool,
+        for_master: bool = False,
         client_user_id: int | None = None,
         manual_client_id: int | None = None,
     ) -> Appointment:
@@ -147,13 +163,20 @@ class BookingService:
         else:
             starts_at = starts_at.astimezone(UTC)
 
-        windows = await self.list_available_windows(
-            master_user_id=service.master_user_id,
-            duration_minutes=service.duration_minutes,
-            schedule_mode=schedule_mode,
-            now=now,
-            ignore_min_lead=ignore_min_lead,
-        )
+        if for_master:
+            windows = await self.list_windows_for_master(
+                master_user_id=service.master_user_id,
+                duration_minutes=service.duration_minutes,
+                schedule_mode=schedule_mode,
+                now=now,
+            )
+        else:
+            windows = await self.list_available_windows(
+                master_user_id=service.master_user_id,
+                duration_minutes=service.duration_minutes,
+                schedule_mode=schedule_mode,
+                now=now,
+            )
         match = next(
             (window for window in windows if window.starts_at.astimezone(UTC) == starts_at),
             None,
