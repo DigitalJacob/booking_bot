@@ -703,8 +703,7 @@ EN: dict[str, str] = {
     "book_client_ok": "Client booked. Status: confirmed.",
     "book_client_target_lost": "That client is no longer available. Search again.",
     "client_booked_by_master": (
-        "You have been booked.\n\n"
-        "Service: {title}\n"
+        "You are booked for {title}.\n\n"
         "Date and time: {when}"
     ),
     "hub_schedule_section_button": "Schedule",

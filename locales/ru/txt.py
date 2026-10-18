@@ -703,8 +703,7 @@ RU: dict[str, str] = {
     "book_client_ok": "Клиент записан. Статус: подтверждена.",
     "book_client_target_lost": "Клиент больше недоступен. Начните поиск заново.",
     "client_booked_by_master": (
-        "Вас записали.\n\n"
-        "Услуга: {title}\n"
+        "Вы записаны на услугу {title}.\n\n"
         "Дата и время: {when}"
     ),
     "hub_schedule_section_button": "График",
