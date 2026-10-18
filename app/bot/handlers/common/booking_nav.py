@@ -18,7 +18,6 @@ from app.bot.handlers.common.booking_steps import (
     unique_days,
     windows_on_day,
 )
-from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 
@@ -74,13 +73,15 @@ async def handle_booking_back(
             open_months,
             unique_days(windows, bot_timezone),
         )
+        if not months:
+            await callback.answer(
+                text=i18n.get("book_no_windows"),
+                show_alert=True,
+            )
+            return
         await state.set_state(states.choosing_month)
         await state.update_data(day=None, starts_at=None, book_year=None, book_month=None)
-        if not months:
-            await callback.message.edit_text(text=i18n.get("book_no_windows"))
-            await clear_state_keep_hub(state)
-        else:
-            await show_months(message=callback.message, months=months, i18n=i18n)
+        await show_months(message=callback.message, months=months, i18n=i18n)
         await callback.answer()
         return
 
@@ -96,19 +97,21 @@ async def handle_booking_back(
         days = unique_days(windows, bot_timezone)
         if year is not None and month is not None:
             days = days_in_month(days, int(year), int(month))
+        if not days or year is None or month is None:
+            await callback.answer(
+                text=i18n.get("book_no_windows"),
+                show_alert=True,
+            )
+            return
         await state.set_state(states.choosing_day)
         await state.update_data(day=None, starts_at=None)
-        if not days or year is None or month is None:
-            await callback.message.edit_text(text=i18n.get("book_no_windows"))
-            await clear_state_keep_hub(state)
-        else:
-            await show_days(
-                message=callback.message,
-                year=int(year),
-                month=int(month),
-                days=days,
-                i18n=i18n,
-            )
+        await show_days(
+            message=callback.message,
+            year=int(year),
+            month=int(month),
+            days=days,
+            i18n=i18n,
+        )
         await callback.answer()
         return
 
@@ -124,11 +127,14 @@ async def handle_booking_back(
             day,
             bot_timezone,
         )
+        if not windows:
+            await callback.answer(
+                text=i18n.get("book_no_windows"),
+                show_alert=True,
+            )
+            return
         await state.set_state(states.choosing_window)
         await state.update_data(starts_at=None)
-        if not windows:
-            await callback.answer(text=i18n.get("book_no_windows"), show_alert=True)
-            return
         await show_windows(
             message=callback.message,
             windows=windows,

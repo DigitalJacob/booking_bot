@@ -13,7 +13,6 @@ from app.bot.handlers.client.booking.router import booking_router
 from app.bot.handlers.client.booking_flow import start_booking_flow
 from app.bot.keyboards.booking import ServiceCallback
 from app.bot.states.states import BookingSG
-from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.hub_registry import register
 from app.domain.enums import UserRole
 from app.domain.models import User
@@ -58,9 +57,10 @@ async def process_service_choice(
     days = unique_days(windows, bot_timezone)
     months = bookable_months(open_months, days)
     if not months:
-        await callback.answer()
-        await callback.message.edit_text(text=i18n.get("book_no_windows"))
-        await clear_state_keep_hub(state)
+        await callback.answer(
+            text=i18n.get("book_no_windows"),
+            show_alert=True,
+        )
         return
 
     await state.update_data(

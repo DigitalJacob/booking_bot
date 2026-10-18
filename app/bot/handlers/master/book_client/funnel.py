@@ -93,8 +93,7 @@ async def start_slot_funnel(
         book_month=None,
     )
     await state.set_state(MasterBookSG.choosing_service)
-    # Prefer sticky hub: after New client the inbound message is user text
-    # (often already deleted), so message.edit_text would fail silently.
+    # Sticky hub: inbound message may be deleted user text after New client.
     await show_hub_prompt(
         message=message,
         state=state,
@@ -184,8 +183,6 @@ async def process_master_service_choice(
     days = unique_days(windows, bot_timezone)
     months = bookable_months(open_months, days)
     if not months:
-        # Keep the service keyboard — wiping the message left a dead end with
-        # no Cancel/OK after New-client → phone (sticky) entry.
         await callback.answer(
             text=i18n.get("book_no_windows"),
             show_alert=True,
