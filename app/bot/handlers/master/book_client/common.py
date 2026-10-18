@@ -13,7 +13,7 @@ from app.bot.keyboards.book_client import (
     get_book_client_cancel_kb,
     get_book_client_existing_manual_kb,
 )
-from app.bot.utils.format import client_contact
+from app.bot.utils.contacts import client_contact
 from app.bot.utils.hub_nav import HUB_MESSAGE_ID_KEY, clear_state_keep_hub, show_hub
 from app.bot.utils.phone import normalize_phone, phone_digits
 from app.bot.utils.telegram import is_not_modified

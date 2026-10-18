@@ -2,15 +2,9 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
-from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from app.domain.enums import AppointmentStatus
-from app.domain.models import User
-
-if TYPE_CHECKING:
-    from app.domain.models import Appointment
-    from app.infrastructure.database.repositories import Repositories
 
 _STATUS_KEYS = {
     AppointmentStatus.PENDING: "status_pending",
@@ -21,32 +15,6 @@ _STATUS_KEYS = {
 
 def status_label(status: AppointmentStatus, i18n: dict[str, str]) -> str:
     return i18n.get(_STATUS_KEYS[status])
-
-
-def client_contact(user: User | None) -> tuple[str, str]:
-    if user is None:
-        return "?", "-"
-    phone = user.phone or "-"
-    return user.display_name, phone
-
-
-async def appointment_client_contact(
-    repos: Repositories,
-    appointment: Appointment,
-) -> tuple[str, str]:
-    """Resolve display name + phone for a TG or manual appointment client."""
-    if appointment.client_user_id is not None:
-        user = await repos.users.get_user_by_id(user_id=appointment.client_user_id)
-        return client_contact(user)
-    if appointment.manual_client_id is not None:
-        manual = await repos.manual_clients.get(
-            manual_client_id=appointment.manual_client_id,
-            master_user_id=appointment.master_user_id,
-        )
-        if manual is None:
-            return "?", "-"
-        return manual.name, manual.phone or "-"
-    return "?", "-"
 
 
 def get_zone(tz_name: str) -> ZoneInfo:

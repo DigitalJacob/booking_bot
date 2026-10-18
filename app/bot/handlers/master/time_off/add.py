@@ -30,13 +30,9 @@ from app.bot.keyboards.time_off import (
     get_time_off_warn_kb,
 )
 from app.bot.states.states import TimeOffSG
+from app.bot.utils.contacts import appointment_client_contact
 from app.bot.utils.dates import parse_time
-from app.bot.utils.format import (
-    appointment_client_contact,
-    combine_local,
-    format_dt,
-    get_zone,
-)
+from app.bot.utils.format import combine_local, format_dt, get_zone
 from app.bot.utils.hub_nav import clear_state_keep_hub
 from app.bot.utils.telegram import delete_user_input
 from app.domain.models import Appointment, User

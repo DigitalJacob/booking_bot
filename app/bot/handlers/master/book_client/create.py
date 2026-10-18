@@ -22,7 +22,7 @@ from app.bot.keyboards.book_client import (
     get_book_client_tg_offer_kb,
 )
 from app.bot.states.states import MasterBookSG
-from app.bot.utils.format import client_contact
+from app.bot.utils.contacts import client_contact
 from app.bot.utils.phone import normalize_phone, phone_digits
 from app.bot.utils.telegram import delete_user_input
 from app.domain.exceptions import ManualClientPhoneTaken

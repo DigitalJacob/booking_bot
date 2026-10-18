@@ -32,7 +32,7 @@ from app.bot.keyboards.booking import (
 )
 from app.bot.keyboards.hub import get_hub_dismiss_kb
 from app.bot.states.states import MasterBookSG
-from app.bot.utils.format import client_contact
+from app.bot.utils.contacts import client_contact
 from app.bot.utils.hub_nav import clear_state_keep_hub, show_hub_prompt
 from app.bot.utils.notify import notify_appointment
 from app.domain.exceptions import (
