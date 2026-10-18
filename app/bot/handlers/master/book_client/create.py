@@ -10,14 +10,15 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.handlers.master.book_client.common import (
     cancel_book_client_flow,
     is_eligible_tg_client,
+    resolve_pick_target,
     show_book_client_prompt,
+    show_existing_manual_prompt,
 )
 from app.bot.handlers.master.book_client.funnel import start_slot_funnel
 from app.bot.handlers.master.book_client.router import book_client_router
 from app.bot.keyboards.book_client import (
     BookClientNavCallback,
     BookClientPickCallback,
-    get_book_client_existing_manual_kb,
     get_book_client_tg_offer_kb,
 )
 from app.bot.states.states import MasterBookSG
@@ -96,18 +97,11 @@ async def _create_manual_and_enter(
         phone_digits=digits,
     )
     if existing is not None:
-        await show_book_client_prompt(
+        await show_existing_manual_prompt(
             message=message,
             state=state,
-            text=i18n.get("book_client_existing_manual").format(
-                client_name=existing.name,
-                client_phone=existing.phone,
-            ),
             i18n=i18n,
-            reply_markup=get_book_client_existing_manual_kb(
-                manual_client_id=existing.id,
-                i18n=i18n,
-            ),
+            client=existing,
         )
         return
 
@@ -131,18 +125,11 @@ async def _create_manual_and_enter(
                 i18n=i18n,
             )
             return
-        await show_book_client_prompt(
+        await show_existing_manual_prompt(
             message=message,
             state=state,
-            text=i18n.get("book_client_existing_manual").format(
-                client_name=existing.name,
-                client_phone=existing.phone,
-            ),
             i18n=i18n,
-            reply_markup=get_book_client_existing_manual_kb(
-                manual_client_id=existing.id,
-                i18n=i18n,
-            ),
+            client=existing,
         )
         return
 
@@ -228,18 +215,11 @@ async def process_new_client_phone(
         phone_digits=digits,
     )
     if existing is not None:
-        await show_book_client_prompt(
+        await show_existing_manual_prompt(
             message=message,
             state=state,
-            text=i18n.get("book_client_existing_manual").format(
-                client_name=existing.name,
-                client_phone=existing.phone,
-            ),
             i18n=i18n,
-            reply_markup=get_book_client_existing_manual_kb(
-                manual_client_id=existing.id,
-                i18n=i18n,
-            ),
+            client=existing,
         )
         return
 
@@ -285,29 +265,13 @@ async def process_new_client_pick(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    if callback_data.kind == "tg":
-        target = await repos.users.get_user_by_id(user_id=callback_data.ref_id)
-        if target is None or not is_eligible_tg_client(
-            user=target,
-            master_user_id=user.user_id,
-        ):
-            await callback.answer(
-                text=i18n.get("book_client_target_lost"),
-                show_alert=True,
-            )
-            return
-    elif callback_data.kind == "manual":
-        manual = await repos.manual_clients.get(
-            manual_client_id=callback_data.ref_id,
-            master_user_id=user.user_id,
-        )
-        if manual is None:
-            await callback.answer(
-                text=i18n.get("book_client_target_lost"),
-                show_alert=True,
-            )
-            return
-    else:
+    target = await resolve_pick_target(
+        repos=repos,
+        master_user_id=user.user_id,
+        kind=callback_data.kind,
+        ref_id=callback_data.ref_id,
+    )
+    if target is None:
         await callback.answer(
             text=i18n.get("book_client_target_lost"),
             show_alert=True,
@@ -321,8 +285,8 @@ async def process_new_client_pick(
         repos=repos,
         user=user,
         i18n=i18n,
-        kind=callback_data.kind,
-        ref_id=callback_data.ref_id,
+        kind=target.kind,
+        ref_id=target.ref_id,
     )
 
 
