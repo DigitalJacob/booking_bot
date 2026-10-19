@@ -36,6 +36,14 @@ class BookClientDraftFields(TypedDict, total=False):
     book_client_new_name: str | None
     book_client_new_phone: str | None
     book_client_new_digits: str | None
+    book_client_prefill_phone: str | None
+    book_client_prefill_digits: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class PhonePrefill:
+    phone: str
+    digits: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,8 +98,49 @@ async def set_book_client_target(
         "book_client_new_name": None,
         "book_client_new_phone": None,
         "book_client_new_digits": None,
+        "book_client_prefill_phone": None,
+        "book_client_prefill_digits": None,
     }
     await state.update_data(**target, **draft)
+
+
+def parse_phone_prefill(raw: str) -> PhonePrefill | None:
+    phone = normalize_phone(raw)
+    if phone is None:
+        return None
+    return PhonePrefill(phone=phone, digits=phone_digits(phone))
+
+
+def get_phone_prefill(data: Mapping[str, Any]) -> PhonePrefill | None:
+    phone = data.get("book_client_prefill_phone")
+    digits = data.get("book_client_prefill_digits")
+    if (
+        not isinstance(phone, str)
+        or not phone
+        or not isinstance(digits, str)
+        or not digits
+    ):
+        return None
+    return PhonePrefill(phone=phone, digits=digits)
+
+
+async def set_phone_prefill(
+    state: FSMContext,
+    *,
+    phone: str,
+    digits: str,
+) -> None:
+    await state.update_data(
+        book_client_prefill_phone=phone,
+        book_client_prefill_digits=digits,
+    )
+
+
+async def clear_phone_prefill(state: FSMContext) -> None:
+    await state.update_data(
+        book_client_prefill_phone=None,
+        book_client_prefill_digits=None,
+    )
 
 
 def get_new_client_name(data: Mapping[str, Any]) -> str | None:

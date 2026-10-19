@@ -9,9 +9,12 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.handlers.master.book_client.common import (
     cancel_book_client_flow,
+    clear_phone_prefill,
+    parse_phone_prefill,
     resolve_pick_target,
     search_book_clients,
     set_book_client_target,
+    set_phone_prefill,
     show_book_client_prompt,
 )
 from app.bot.handlers.master.book_client.create import start_new_client_flow
@@ -92,6 +95,16 @@ async def process_book_client_query(
         raw=raw,
         i18n=i18n,
     )
+    prefill = parse_phone_prefill(raw)
+    if prefill is not None:
+        await set_phone_prefill(
+            state,
+            phone=prefill.phone,
+            digits=prefill.digits,
+        )
+    else:
+        await clear_phone_prefill(state)
+
     await state.set_state(MasterBookSG.picking)
     if not hits:
         text = i18n.get("book_client_empty").format(query=raw)

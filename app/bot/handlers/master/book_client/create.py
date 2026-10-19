@@ -10,8 +10,10 @@ from aiogram.types import CallbackQuery, Message
 from app.bot.handlers.master.book_client.common import (
     ClientKind,
     cancel_book_client_flow,
+    clear_phone_prefill,
     get_new_client_draft,
     get_new_client_name,
+    get_phone_prefill,
     is_eligible_tg_client,
     resolve_pick_target,
     set_book_client_target,
@@ -147,71 +149,22 @@ async def _create_manual_and_enter(
     )
 
 
-@book_client_router.message(StateFilter(MasterBookSG.new_name), F.text)
-async def process_new_client_name(
-    message: Message,
-    state: FSMContext,
-    i18n: dict[str, str],
-) -> None:
-    name = (message.text or "").strip()
-    await delete_user_input(message)
-    if len(name) < _NAME_MIN or len(name) > _NAME_MAX:
-        await show_book_client_prompt(
-            message=message,
-            state=state,
-            text=i18n.get("book_client_invalid_name"),
-            i18n=i18n,
-        )
-        return
-
-    await state.update_data(book_client_new_name=name)
-    await state.set_state(MasterBookSG.new_phone)
-    await show_book_client_prompt(
-        message=message,
-        state=state,
-        text=i18n.get("book_client_ask_phone"),
-        i18n=i18n,
-    )
-
-
-@book_client_router.message(StateFilter(MasterBookSG.new_phone), F.text)
-async def process_new_client_phone(
+async def _continue_after_phone(
+    *,
     message: Message,
     state: FSMContext,
     repos: Repositories,
     user: User,
     i18n: dict[str, str],
+    name: str,
+    phone: str,
+    digits: str,
 ) -> None:
-    raw = (message.text or "").strip()
-    await delete_user_input(message)
-
-    phone = normalize_phone(raw)
-    if phone is None:
-        await show_book_client_prompt(
-            message=message,
-            state=state,
-            text=i18n.get("book_client_invalid_phone"),
-            i18n=i18n,
-        )
-        return
-
-    digits = phone_digits(phone)
-    data = await state.get_data()
-    name = get_new_client_name(data)
-    if name is None:
-        await state.set_state(MasterBookSG.new_name)
-        await show_book_client_prompt(
-            message=message,
-            state=state,
-            text=i18n.get("book_client_ask_name"),
-            i18n=i18n,
-        )
-        return
-
     await state.update_data(
         book_client_new_phone=phone,
         book_client_new_digits=digits,
     )
+    await clear_phone_prefill(state)
 
     existing = await repos.manual_clients.find_by_phone(
         master_user_id=user.user_id,
@@ -245,6 +198,95 @@ async def process_new_client_phone(
             return
 
     await _create_manual_and_enter(
+        message=message,
+        state=state,
+        repos=repos,
+        user=user,
+        i18n=i18n,
+        name=name,
+        phone=phone,
+        digits=digits,
+    )
+
+
+@book_client_router.message(StateFilter(MasterBookSG.new_name), F.text)
+async def process_new_client_name(
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+) -> None:
+    name = (message.text or "").strip()
+    await delete_user_input(message)
+    if len(name) < _NAME_MIN or len(name) > _NAME_MAX:
+        await show_book_client_prompt(
+            message=message,
+            state=state,
+            text=i18n.get("book_client_invalid_name"),
+            i18n=i18n,
+        )
+        return
+
+    await state.update_data(book_client_new_name=name)
+    await state.set_state(MasterBookSG.new_phone)
+
+    prefill = get_phone_prefill(await state.get_data())
+    if prefill is not None:
+        await _continue_after_phone(
+            message=message,
+            state=state,
+            repos=repos,
+            user=user,
+            i18n=i18n,
+            name=name,
+            phone=prefill.phone,
+            digits=prefill.digits,
+        )
+        return
+
+    await show_book_client_prompt(
+        message=message,
+        state=state,
+        text=i18n.get("book_client_ask_phone"),
+        i18n=i18n,
+    )
+
+
+@book_client_router.message(StateFilter(MasterBookSG.new_phone), F.text)
+async def process_new_client_phone(
+    message: Message,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+) -> None:
+    raw = (message.text or "").strip()
+    await delete_user_input(message)
+
+    phone = normalize_phone(raw)
+    if phone is None:
+        await show_book_client_prompt(
+            message=message,
+            state=state,
+            text=i18n.get("book_client_invalid_phone"),
+            i18n=i18n,
+        )
+        return
+
+    digits = phone_digits(phone)
+    name = get_new_client_name(await state.get_data())
+    if name is None:
+        await state.set_state(MasterBookSG.new_name)
+        await show_book_client_prompt(
+            message=message,
+            state=state,
+            text=i18n.get("book_client_ask_name"),
+            i18n=i18n,
+        )
+        return
+
+    await _continue_after_phone(
         message=message,
         state=state,
         repos=repos,
