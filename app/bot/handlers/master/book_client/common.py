@@ -114,12 +114,7 @@ def parse_phone_prefill(raw: str) -> PhonePrefill | None:
 def get_phone_prefill(data: Mapping[str, Any]) -> PhonePrefill | None:
     phone = data.get("book_client_prefill_phone")
     digits = data.get("book_client_prefill_digits")
-    if (
-        not isinstance(phone, str)
-        or not phone
-        or not isinstance(digits, str)
-        or not digits
-    ):
+    if not isinstance(phone, str) or not phone or not isinstance(digits, str) or not digits:
         return None
     return PhonePrefill(phone=phone, digits=digits)
 
