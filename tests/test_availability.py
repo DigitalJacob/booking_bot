@@ -482,3 +482,145 @@ async def test_list_open_months_weekly_from_working_hours():
     )
 
     assert months == [(2026, 9)]
+
+
+@pytest.mark.asyncio
+async def test_exclude_appointment_id_frees_overlapping_slot():
+    """Reschedule must ignore the appointment being moved when building busy."""
+    busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00 MSK
+    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)  # 10:00 MSK
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        working_hours=[_working()],
+        appointments=[
+            _appointment(
+                appointment_id=42,
+                starts_at=busy_start,
+                ends_at=busy_end,
+                status=AppointmentStatus.CONFIRMED,
+            )
+        ],
+    )
+    service = AvailabilityService(repos)
+
+    blocked = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        now=NOW,
+    )
+    freed = await service.list_windows(
+        master_user_id=MASTER_ID,
+        duration_minutes=60,
+        now=NOW,
+        exclude_appointment_id=42,
+    )
+
+    assert datetime(2026, 9, 10, 6, 0, tzinfo=UTC) not in _starts(blocked)
+    assert datetime(2026, 9, 10, 6, 0, tzinfo=UTC) in _starts(freed)
+    assert datetime(2026, 9, 10, 7, 0, tzinfo=UTC) in _starts(freed)
+
+
+@pytest.mark.asyncio
+async def test_is_interval_bookable_inside_work_hours():
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        working_hours=[_working()],
+    )
+    service = AvailabilityService(repos)
+
+    ok = await service.is_interval_bookable(
+        master_user_id=MASTER_ID,
+        starts_at=datetime(2026, 9, 10, 6, 15, tzinfo=UTC),  # 09:15 MSK
+        ends_at=datetime(2026, 9, 10, 7, 15, tzinfo=UTC),  # 10:15 MSK
+        schedule_mode="weekly",
+    )
+    assert ok is True
+
+
+@pytest.mark.asyncio
+async def test_is_interval_bookable_rejects_outside_work_hours():
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        working_hours=[_working()],
+    )
+    service = AvailabilityService(repos)
+
+    ok = await service.is_interval_bookable(
+        master_user_id=MASTER_ID,
+        starts_at=datetime(2026, 9, 10, 8, 30, tzinfo=UTC),  # 11:30 MSK
+        ends_at=datetime(2026, 9, 10, 9, 30, tzinfo=UTC),  # 12:30 MSK past close
+        schedule_mode="weekly",
+    )
+    assert ok is False
+
+
+@pytest.mark.asyncio
+async def test_is_interval_bookable_respects_gap_and_exclude():
+    busy_start = datetime(2026, 9, 10, 6, 0, tzinfo=UTC)  # 09:00
+    busy_end = datetime(2026, 9, 10, 7, 0, tzinfo=UTC)  # 10:00
+    other_start = datetime(2026, 9, 10, 8, 0, tzinfo=UTC)  # 11:00
+    other_end = datetime(2026, 9, 10, 9, 0, tzinfo=UTC)  # 12:00
+    repos = make_availability_repos(
+        settings=_settings(gap_minutes=15, booking_horizon_days=1),
+        working_hours=[_working()],
+        appointments=[
+            _appointment(
+                appointment_id=1,
+                starts_at=busy_start,
+                ends_at=busy_end,
+                status=AppointmentStatus.CONFIRMED,
+            ),
+            _appointment(
+                appointment_id=2,
+                starts_at=other_start,
+                ends_at=other_end,
+                status=AppointmentStatus.PENDING,
+            ),
+        ],
+    )
+    service = AvailabilityService(repos)
+
+    # Shift own booking into the gap-blocked zone after itself without exclude → fail.
+    without_exclude = await service.is_interval_bookable(
+        master_user_id=MASTER_ID,
+        starts_at=datetime(2026, 9, 10, 6, 30, tzinfo=UTC),
+        ends_at=datetime(2026, 9, 10, 7, 30, tzinfo=UTC),
+        schedule_mode="weekly",
+    )
+    with_exclude = await service.is_interval_bookable(
+        master_user_id=MASTER_ID,
+        starts_at=datetime(2026, 9, 10, 6, 30, tzinfo=UTC),
+        ends_at=datetime(2026, 9, 10, 7, 30, tzinfo=UTC),
+        schedule_mode="weekly",
+        exclude_appointment_id=1,
+    )
+    # Still blocked by the other appointment at 11:00 when shifting into it.
+    into_other = await service.is_interval_bookable(
+        master_user_id=MASTER_ID,
+        starts_at=datetime(2026, 9, 10, 7, 45, tzinfo=UTC),  # 10:45 → overlaps 11:00+gap
+        ends_at=datetime(2026, 9, 10, 8, 45, tzinfo=UTC),
+        schedule_mode="weekly",
+        exclude_appointment_id=1,
+    )
+
+    assert without_exclude is False
+    assert with_exclude is True
+    assert into_other is False
+
+
+@pytest.mark.asyncio
+async def test_is_interval_bookable_monthly_work_date():
+    work_day = date(2026, 9, 10)
+    repos = make_availability_repos(
+        settings=_settings(booking_horizon_days=1),
+        work_dates=[_work_date(work_date=work_day)],
+    )
+    service = AvailabilityService(repos)
+
+    ok = await service.is_interval_bookable(
+        master_user_id=MASTER_ID,
+        starts_at=datetime(2026, 9, 10, 6, 0, tzinfo=UTC),
+        ends_at=datetime(2026, 9, 10, 7, 0, tzinfo=UTC),
+        schedule_mode="monthly",
+    )
+    assert ok is True

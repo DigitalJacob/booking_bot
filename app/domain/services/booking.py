@@ -37,6 +37,7 @@ class BookingService:
         schedule_mode: str = "weekly",
         now: datetime | None = None,
         ignore_min_lead: bool = False,
+        exclude_appointment_id: int | None = None,
     ) -> list[TimeWindow]:
         return await AvailabilityService(self._repos).list_windows(
             master_user_id=master_user_id,
@@ -44,6 +45,7 @@ class BookingService:
             schedule_mode=schedule_mode,
             now=now,
             ignore_min_lead=ignore_min_lead,
+            exclude_appointment_id=exclude_appointment_id,
         )
 
     async def list_windows_for_master(
@@ -53,6 +55,7 @@ class BookingService:
         duration_minutes: int,
         schedule_mode: str = "weekly",
         now: datetime | None = None,
+        exclude_appointment_id: int | None = None,
     ) -> list[TimeWindow]:
         """Windows for master-initiated booking: min_lead ignored, horizon kept."""
         return await self.list_available_windows(
@@ -61,6 +64,7 @@ class BookingService:
             schedule_mode=schedule_mode,
             now=now,
             ignore_min_lead=True,
+            exclude_appointment_id=exclude_appointment_id,
         )
 
     async def list_open_months(
