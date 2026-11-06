@@ -36,7 +36,7 @@ from app.bot.keyboards.booking import (
     MonthCallback,
     WindowCallback,
 )
-from app.bot.keyboards.bookings import MasterRescheduleCallback
+from app.bot.keyboards.bookings import MasterRescheduleCallback, get_master_late_kb
 from app.bot.states.states import MasterRescheduleSG
 from app.bot.utils.format import format_dt
 from app.bot.utils.notify import notify_appointment
@@ -408,3 +408,163 @@ async def process_reschedule_text(
     i18n: dict[str, str],
 ) -> None:
     await message.answer(text=i18n.get("book_use_buttons"))
+
+
+@bookings_router.callback_query(MasterRescheduleCallback.filter(F.action == "late"))
+async def process_late_prompt(
+    callback: CallbackQuery,
+    callback_data: MasterRescheduleCallback,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+) -> None:
+    if await _reject_if_slot_past(
+        callback=callback,
+        repos=repos,
+        appointment_id=callback_data.appointment_id,
+        i18n=i18n,
+    ):
+        return
+
+    appointment = await _load_owned_appointment(
+        repos=repos,
+        appointment_id=callback_data.appointment_id,
+        master_user_id=user.user_id,
+    )
+    if appointment is None:
+        await callback.answer(
+            text=i18n.get("master_action_failed"),
+            show_alert=True,
+        )
+        return
+
+    await callback.message.edit_text(
+        text=i18n.get("master_late_prompt"),
+        reply_markup=get_master_late_kb(
+            appointment_id=appointment.id,
+            i18n=i18n,
+        ),
+    )
+    await callback.answer()
+
+
+@bookings_router.callback_query(MasterRescheduleCallback.filter(F.action == "late_back"))
+async def process_late_back(
+    callback: CallbackQuery,
+    callback_data: MasterRescheduleCallback,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+) -> None:
+    appointment = await _load_owned_appointment(
+        repos=repos,
+        appointment_id=callback_data.appointment_id,
+        master_user_id=user.user_id,
+    )
+    if appointment is None:
+        await callback.answer(
+            text=i18n.get("master_action_failed"),
+            show_alert=True,
+        )
+        return
+
+    await _show_booking_card(
+        message=callback.message,
+        state=state,
+        appointment=appointment,
+        repos=repos,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await callback.answer()
+
+
+@bookings_router.callback_query(MasterRescheduleCallback.filter(F.action == "shift"))
+async def process_late_shift(
+    callback: CallbackQuery,
+    callback_data: MasterRescheduleCallback,
+    bot: Bot,
+    translations: dict,
+    state: FSMContext,
+    repos: Repositories,
+    user: User,
+    i18n: dict[str, str],
+    bot_timezone: str,
+    schedule_mode: str,
+) -> None:
+    if await _reject_if_slot_past(
+        callback=callback,
+        repos=repos,
+        appointment_id=callback_data.appointment_id,
+        i18n=i18n,
+    ):
+        return
+
+    appointment = await _load_owned_appointment(
+        repos=repos,
+        appointment_id=callback_data.appointment_id,
+        master_user_id=user.user_id,
+    )
+    if appointment is None:
+        await callback.answer(
+            text=i18n.get("master_action_failed"),
+            show_alert=True,
+        )
+        return
+
+    booking = BookingService(repos)
+    try:
+        result = await booking.shift_late(
+            appointment_id=callback_data.appointment_id,
+            master_user_id=user.user_id,
+            minutes=callback_data.minutes,
+            schedule_mode=schedule_mode,
+        )
+    except WindowNotAvailable:
+        await callback.answer(
+            text=i18n.get("master_shift_unavailable"),
+            show_alert=True,
+        )
+        return
+    except (
+        AppointmentNotFound,
+        ForbiddenBookingAction,
+        InvalidAppointmentStatus,
+        AppointmentAlreadyEnded,
+        ValueError,
+    ):
+        await callback.answer(
+            text=i18n.get("master_action_failed"),
+            show_alert=True,
+        )
+        return
+
+    appointment = result.appointment
+    if appointment.client_user_id is not None:
+        await notify_appointment(
+            bot=bot,
+            repos=repos,
+            appointment=appointment,
+            recipient_user_id=appointment.client_user_id,
+            translations=translations,
+            text_key="client_booking_shifted",
+            bot_timezone=bot_timezone,
+            with_dismiss=True,
+            extra={
+                "old_when": format_dt(result.old_starts_at, bot_timezone),
+            },
+        )
+
+    await _show_booking_card(
+        message=callback.message,
+        state=state,
+        appointment=appointment,
+        repos=repos,
+        i18n=i18n,
+        bot_timezone=bot_timezone,
+    )
+    await callback.answer(
+        text=format_dt(appointment.starts_at, bot_timezone),
+    )

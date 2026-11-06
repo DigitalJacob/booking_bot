@@ -314,7 +314,14 @@ def get_master_booking_card_kb(
                             action="start",
                             appointment_id=appointment.id,
                         ).pack(),
-                    )
+                    ),
+                    InlineKeyboardButton(
+                        text=i18n.get("master_late_button"),
+                        callback_data=MasterRescheduleCallback(
+                            action="late",
+                            appointment_id=appointment.id,
+                        ).pack(),
+                    ),
                 ]
             )
 
@@ -330,3 +337,41 @@ def get_master_booking_card_kb(
         ]
     )
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def get_master_late_kb(
+    *,
+    appointment_id: int,
+    i18n: dict[str, str],
+) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("master_shift_15_button"),
+                    callback_data=MasterRescheduleCallback(
+                        action="shift",
+                        appointment_id=appointment_id,
+                        minutes=15,
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text=i18n.get("master_shift_30_button"),
+                    callback_data=MasterRescheduleCallback(
+                        action="shift",
+                        appointment_id=appointment_id,
+                        minutes=30,
+                    ).pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=i18n.get("master_bookings_back_button"),
+                    callback_data=MasterRescheduleCallback(
+                        action="late_back",
+                        appointment_id=appointment_id,
+                    ).pack(),
+                )
+            ],
+        ]
+    )
