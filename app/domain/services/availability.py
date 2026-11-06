@@ -202,7 +202,7 @@ class AvailabilityService:
             master_user_id=master_user_id,
         )
         if settings is None:
-            return self._default_settings(master_user_id)
+            return self.default_settings(master_user_id)
         return settings
 
     async def _load_work_intervals(
@@ -315,7 +315,7 @@ class AvailabilityService:
             raise ValueError(f"schedule_mode must be 'weekly' or 'monthly', got: {schedule_mode!r}")
 
     @staticmethod
-    def _default_settings(master_user_id: int) -> MasterSettings:
+    def default_settings(master_user_id: int) -> MasterSettings:
         now = datetime.now(UTC)
         return MasterSettings(
             master_user_id=master_user_id,

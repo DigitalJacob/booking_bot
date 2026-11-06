@@ -112,7 +112,7 @@ async def build_master_new_booking_push(
     return i18n, text, kb
 
 
-async def _show_booking_card(
+async def show_booking_card(
     *,
     message: Message,
     state: FSMContext,
@@ -132,7 +132,7 @@ async def _show_booking_card(
     await message.edit_text(text=text, reply_markup=kb)
 
 
-async def _reject_if_slot_past(
+async def reject_if_slot_past(
     *,
     callback: CallbackQuery,
     repos: Repositories,
@@ -359,7 +359,7 @@ async def process_open(
         )
         return
 
-    await _show_booking_card(
+    await show_booking_card(
         message=callback.message,
         state=state,
         appointment=appointment,
@@ -383,7 +383,7 @@ async def process_confirm(
     state: FSMContext,
     schedule_mode: str,
 ) -> None:
-    if await _reject_if_slot_past(
+    if await reject_if_slot_past(
         callback=callback,
         repos=repos,
         appointment_id=callback_data.appointment_id,

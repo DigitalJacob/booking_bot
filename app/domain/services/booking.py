@@ -324,17 +324,14 @@ class BookingService:
             raise AppointmentAlreadyEnded
 
         if is_client and not is_master:
-            settings = await self._repos.master_settings.get_by_master(
+            min_lead = await self.client_min_lead_minutes(
                 master_user_id=appointment.master_user_id,
             )
-            min_lead = (
-                settings.min_lead_minutes
-                if settings is not None
-                else AvailabilityService._default_settings(
-                    appointment.master_user_id,
-                ).min_lead_minutes
-            )
-            if appointment.starts_at < now + timedelta(minutes=min_lead):
+            if self.is_client_reschedule_too_late(
+                starts_at=appointment.starts_at,
+                min_lead_minutes=min_lead,
+                now=now,
+            ):
                 raise RescheduleTooLate
 
         old_starts_at = appointment.starts_at
@@ -473,6 +470,24 @@ class BookingService:
             old_starts_at=old_starts_at,
             old_ends_at=old_ends_at,
         )
+
+    async def client_min_lead_minutes(self, *, master_user_id: int) -> int:
+        """Master's min_lead for client booking / reschedule checks."""
+        settings = await self._repos.master_settings.get_by_master(
+            master_user_id=master_user_id,
+        )
+        if settings is not None:
+            return settings.min_lead_minutes
+        return AvailabilityService.default_settings(master_user_id).min_lead_minutes
+
+    @staticmethod
+    def is_client_reschedule_too_late(
+        *,
+        starts_at: datetime,
+        min_lead_minutes: int,
+        now: datetime,
+    ) -> bool:
+        return starts_at < now + timedelta(minutes=min_lead_minutes)
 
     @staticmethod
     def _as_utc(value: datetime) -> datetime:

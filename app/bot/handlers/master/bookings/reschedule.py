@@ -25,8 +25,8 @@ from app.bot.handlers.common.reschedule_steps import (
     start_reschedule_funnel,
 )
 from app.bot.handlers.master.bookings.actions import (
-    _reject_if_slot_past,
-    _show_booking_card,
+    reject_if_slot_past,
+    show_booking_card,
 )
 from app.bot.handlers.master.bookings.router import bookings_router
 from app.bot.keyboards.booking import (
@@ -99,7 +99,7 @@ async def _return_to_card(
     )
     if appointment is None:
         return
-    await _show_booking_card(
+    await show_booking_card(
         message=message,
         state=state,
         appointment=appointment,
@@ -120,7 +120,7 @@ async def process_reschedule_start(
     bot_timezone: str,
     schedule_mode: str,
 ) -> None:
-    if await _reject_if_slot_past(
+    if await reject_if_slot_past(
         callback=callback,
         repos=repos,
         appointment_id=callback_data.appointment_id,
@@ -330,7 +330,7 @@ async def process_reschedule_confirm(
         )
 
     await clear_reschedule_state(state)
-    await _show_booking_card(
+    await show_booking_card(
         message=callback.message,
         state=state,
         appointment=appointment,
@@ -399,6 +399,7 @@ async def process_reschedule_back(
         schedule_mode=schedule_mode,
         states=MasterRescheduleSG,
         for_master=True,
+        has_service_step=False,
     )
 
 
@@ -418,7 +419,7 @@ async def process_late_prompt(
     user: User,
     i18n: dict[str, str],
 ) -> None:
-    if await _reject_if_slot_past(
+    if await reject_if_slot_past(
         callback=callback,
         repos=repos,
         appointment_id=callback_data.appointment_id,
@@ -470,7 +471,7 @@ async def process_late_back(
         )
         return
 
-    await _show_booking_card(
+    await show_booking_card(
         message=callback.message,
         state=state,
         appointment=appointment,
@@ -494,7 +495,7 @@ async def process_late_shift(
     bot_timezone: str,
     schedule_mode: str,
 ) -> None:
-    if await _reject_if_slot_past(
+    if await reject_if_slot_past(
         callback=callback,
         repos=repos,
         appointment_id=callback_data.appointment_id,
@@ -557,7 +558,7 @@ async def process_late_shift(
             },
         )
 
-    await _show_booking_card(
+    await show_booking_card(
         message=callback.message,
         state=state,
         appointment=appointment,

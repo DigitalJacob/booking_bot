@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from aiogram import Bot, F, Router
 from aiogram.filters import StateFilter
@@ -47,7 +47,6 @@ from app.domain.exceptions import (
     WindowNotAvailable,
 )
 from app.domain.models import Appointment, User
-from app.domain.services.availability import AvailabilityService
 from app.domain.services.booking import BookingService
 from app.infrastructure.database.repositories import Repositories
 
@@ -73,19 +72,6 @@ async def _load_owned_appointment(
     if appointment is None or appointment.client_user_id != client_user_id:
         return None
     return appointment
-
-
-async def _client_min_lead_minutes(
-    *,
-    repos: Repositories,
-    master_user_id: int,
-) -> int:
-    settings = await repos.master_settings.get_by_master(
-        master_user_id=master_user_id,
-    )
-    if settings is not None:
-        return settings.min_lead_minutes
-    return AvailabilityService._default_settings(master_user_id).min_lead_minutes
 
 
 async def _return_to_card(
@@ -153,11 +139,15 @@ async def process_reschedule_start(
         )
         return
 
-    min_lead = await _client_min_lead_minutes(
-        repos=repos,
+    booking = BookingService(repos)
+    min_lead = await booking.client_min_lead_minutes(
         master_user_id=appointment.master_user_id,
     )
-    if appointment.starts_at < datetime.now(UTC) + timedelta(minutes=min_lead):
+    if booking.is_client_reschedule_too_late(
+        starts_at=appointment.starts_at,
+        min_lead_minutes=min_lead,
+        now=datetime.now(UTC),
+    ):
         await callback.answer(
             text=i18n.get("client_reschedule_too_late").format(minutes=min_lead),
             show_alert=True,
@@ -324,8 +314,7 @@ async def process_reschedule_confirm(
         )
         return
     except RescheduleTooLate:
-        min_lead = await _client_min_lead_minutes(
-            repos=repos,
+        min_lead = await booking.client_min_lead_minutes(
             master_user_id=int(fsm_data["master_user_id"]),
         )
         await callback.answer(
@@ -471,6 +460,7 @@ async def process_reschedule_back(
         schedule_mode=schedule_mode,
         states=ClientRescheduleSG,
         for_master=False,
+        has_service_step=False,
     )
 
 

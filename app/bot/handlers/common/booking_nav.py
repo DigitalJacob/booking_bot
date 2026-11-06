@@ -34,6 +34,7 @@ async def handle_booking_back(
     schedule_mode: str,
     states: type[StatesGroup],
     for_master: bool = False,
+    has_service_step: bool = True,
 ) -> None:
     current = await state.get_state()
     fsm_data = await state.get_data()
@@ -63,7 +64,7 @@ async def handle_booking_back(
 
     if current == states.choosing_month.state:
         # Reschedule funnels have no service step — caller handles month-back.
-        if not hasattr(states, "choosing_service"):
+        if not has_service_step:
             await callback.answer()
             return
         services = await booking.list_services(master_user_id=master_user_id)
