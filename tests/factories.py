@@ -2,7 +2,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
-from app.domain.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus, RescheduleKind
 from app.domain.exceptions import (
     InvalidAppointmentClient,
     ManualClientPhoneTaken,
@@ -58,6 +58,11 @@ def make_appointment(
     status: AppointmentStatus = AppointmentStatus.PENDING,
     price_snapshot: Decimal | None = None,
     manual_client_id: int | None = None,
+    rescheduled_at: datetime | None = None,
+    client_evening_reminded_at: datetime | None = None,
+    client_hour_reminded_at: datetime | None = None,
+    master_evening_reminded_at: datetime | None = None,
+    master_hour_reminded_at: datetime | None = None,
 ) -> Appointment:
     if starts_at is None:
         starts_at = NOW + timedelta(hours=2)
@@ -74,6 +79,11 @@ def make_appointment(
         created_at=NOW,
         price_snapshot=price_snapshot,
         manual_client_id=manual_client_id,
+        rescheduled_at=rescheduled_at,
+        client_evening_reminded_at=client_evening_reminded_at,
+        client_hour_reminded_at=client_hour_reminded_at,
+        master_evening_reminded_at=master_evening_reminded_at,
+        master_hour_reminded_at=master_hour_reminded_at,
     )
 
 
@@ -381,6 +391,7 @@ class FakeAppointmentsRepository:
     ) -> None:
         self._appointments = {item.id: item for item in appointments}
         self._next_id = max(self._appointments, default=0) + 1
+        self.reschedule_logs: list[dict] = []
 
     async def add_appointment(
         self,
@@ -480,6 +491,66 @@ class FakeAppointmentsRepository:
         updated = replace(appointment, status=status)
         self._appointments[appointment_id] = updated
         return updated
+
+    async def reschedule(
+        self,
+        *,
+        appointment_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        status: AppointmentStatus,
+    ) -> Appointment | None:
+        appointment = self._appointments.get(appointment_id)
+        if appointment is None:
+            return None
+        for existing in self._appointments.values():
+            if existing.id == appointment_id:
+                continue
+            if existing.master_user_id != appointment.master_user_id:
+                continue
+            if existing.status not in (
+                AppointmentStatus.PENDING,
+                AppointmentStatus.CONFIRMED,
+            ):
+                continue
+            if starts_at < existing.ends_at and ends_at > existing.starts_at:
+                raise TimeConflict
+        updated = replace(
+            appointment,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            status=status,
+            rescheduled_at=datetime.now(UTC),
+            client_evening_reminded_at=None,
+            client_hour_reminded_at=None,
+            master_evening_reminded_at=None,
+            master_hour_reminded_at=None,
+        )
+        self._appointments[appointment_id] = updated
+        return updated
+
+    async def add_reschedule_log(
+        self,
+        *,
+        appointment_id: int,
+        actor_user_id: int,
+        kind: RescheduleKind,
+        old_starts_at: datetime,
+        old_ends_at: datetime,
+        new_starts_at: datetime,
+        new_ends_at: datetime,
+    ) -> None:
+        self.reschedule_logs.append(
+            {
+                "appointment_id": appointment_id,
+                "actor_user_id": actor_user_id,
+                "kind": kind,
+                "old_starts_at": old_starts_at,
+                "old_ends_at": old_ends_at,
+                "new_starts_at": new_starts_at,
+                "new_ends_at": new_ends_at,
+            }
+        )
 
 
 @dataclass
