@@ -153,6 +153,8 @@ async def build_my_booking_card(
         title=title,
         status=status_label(appointment.status, i18n),
     )
+    if appointment.rescheduled_at is not None:
+        text = f"{text}\n{i18n.get('card_rescheduled_mark')}"
     return text, get_my_booking_card_kb(appointment=appointment, i18n=i18n)
 
 
