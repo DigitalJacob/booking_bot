@@ -97,3 +97,17 @@ class MasterBookSG(StatesGroup):
     choosing_day = State()
     choosing_window = State()
     confirming = State()
+
+
+class MasterRescheduleSG(StatesGroup):
+    choosing_month = State()
+    choosing_day = State()
+    choosing_window = State()
+    confirming = State()
+
+
+class ClientRescheduleSG(StatesGroup):
+    choosing_month = State()
+    choosing_day = State()
+    choosing_window = State()
+    confirming = State()

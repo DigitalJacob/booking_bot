@@ -9,8 +9,10 @@ from aiogram.fsm.state import StatesGroup
 from aiogram.types import CallbackQuery
 
 from app.bot.handlers.common.booking_steps import (
+    RESCHEDULE_APPOINTMENT_ID_KEY,
     bookable_months,
     days_in_month,
+    filter_reschedule_windows,
     show_days,
     show_months,
     show_services,
@@ -39,19 +41,31 @@ async def handle_booking_back(
     booking = BookingService(repos)
 
     async def list_windows(*, duration_minutes: int):
+        exclude_appointment_id = None
+        raw = fsm_data.get(RESCHEDULE_APPOINTMENT_ID_KEY)
+        if raw is not None:
+            exclude_appointment_id = int(raw)
         if for_master:
-            return await booking.list_windows_for_master(
+            windows = await booking.list_windows_for_master(
                 master_user_id=master_user_id,
                 duration_minutes=duration_minutes,
                 schedule_mode=schedule_mode,
+                exclude_appointment_id=exclude_appointment_id,
             )
-        return await booking.list_available_windows(
-            master_user_id=master_user_id,
-            duration_minutes=duration_minutes,
-            schedule_mode=schedule_mode,
-        )
+        else:
+            windows = await booking.list_available_windows(
+                master_user_id=master_user_id,
+                duration_minutes=duration_minutes,
+                schedule_mode=schedule_mode,
+                exclude_appointment_id=exclude_appointment_id,
+            )
+        return filter_reschedule_windows(windows, fsm_data)
 
     if current == states.choosing_month.state:
+        # Reschedule funnels have no service step — caller handles month-back.
+        if not hasattr(states, "choosing_service"):
+            await callback.answer()
+            return
         services = await booking.list_services(master_user_id=master_user_id)
         await state.set_state(states.choosing_service)
         await state.update_data(
