@@ -16,7 +16,11 @@ monthly open days, chosen at deploy), time off or intraday breaks, sees the clie
 on every card, and confirms or declines either from the **Bookings** screen or
 straight from the new-booking notification. The master can also **book a client**
 themselves — an existing bot user or a walk-in without Telegram — into a confirmed
-slot. Cancelling (or declining a pending request) asks for confirmation and an
+slot. Active visits can be **rescheduled** onto another free window, or nudged by
++15 / +30 minutes when the master is running late. Clients can reschedule from
+**My bookings** (the visit returns to pending and the master gets a fresh
+Confirm/Cancel push).
+Cancelling (or declining a pending request) asks for confirmation and an
 optional short reason from reminders, **My bookings**, and the master's card or
 push. Both sides get notified on status changes for bot clients; walk-in visits
 skip client pushes and client reminders. Evening-before and hour-ahead reminders
@@ -52,8 +56,8 @@ outer layers know about inner ones, never the reverse.
 app/
 ├── domain/           # Business logic. No aiogram, no SQL, no I/O.
 │   ├── models/       # Immutable dataclasses: User, Service, Appointment, …
-│   ├── enums/        # UserRole, AppointmentStatus, ReminderKind, …
-│   ├── exceptions.py # TimeConflict, WindowNotAvailable, ManualClientPhoneTaken, ...
+│   ├── enums/        # UserRole, AppointmentStatus, ReminderKind, RescheduleKind, …
+│   ├── exceptions.py # TimeConflict, WindowNotAvailable, RescheduleTooLate, …
 │   ├── ports.py      # typing.Protocol contracts for persistence (RepositoriesPort)
 │   └── services/     # Booking, Availability, ScheduleConflicts, reminders
 │
@@ -61,7 +65,7 @@ app/
 │   └── database/     # Connection pool and repositories (raw SQL only)
 │
 └── bot/              # Telegram presentation layer.
-    ├── handlers/     # By role; packages + shared booking_steps/nav/funnel; book_client, appointment_cancel, …
+    ├── handlers/     # By role; shared booking_steps/nav/funnel/reschedule_steps; book_client, appointment_cancel, …
     ├── keyboards/    # Inline keyboards and typed CallbackData
     ├── middlewares/  # Transactions, user context, i18n, ban check
     ├── states/       # FSM state groups
@@ -112,21 +116,35 @@ failure halfway through a booking cannot leave a half-written appointment behind
   (weekly hours or monthly open days), blocked by time off, already taken, or in
   the past are filtered out before the client sees them; month and day pickers
   respect the same filters within `booking_horizon_days`
-- **My bookings** — sticky list of upcoming appointments; open a card to cancel
-  (pending or confirmed)
+- **My bookings** — sticky list of upcoming appointments; open a card to
+  **Reschedule** (month → day → window → confirm) or **Cancel** (pending or
+  confirmed). Reschedule keeps the same appointment row; the status becomes
+  **pending** again, the master's previous Confirm/Cancel push is replaced, and
+  a new one is sent. Clients may reschedule only while outside the master's
+  `min_lead_minutes` window before the current start (same lead that gates new
+  bookings); offered windows also respect `min_lead`
 - **Shared cancellation** — confirm → optional short reason (or skip); the other
   party is notified with the reason when given (same flow as reminder cancel)
-- **Status notifications** — a message arrives when the master confirms or declines
-  (dismiss with **OK**)
+- **Status notifications** — a message arrives when the master confirms or declines,
+  or when the master reschedules / late-shifts the visit (dismiss with **OK**)
 - **Appointment reminders** — for each **confirmed** visit, an evening-before push
   (local window from `.env`) and an hour-ahead push; **OK** dismisses; **Cancel
-  appointment** uses the same confirm + optional reason flow
+  appointment** uses the same confirm + optional reason flow. After a reschedule,
+  reminder markers are cleared so evening / hour pushes fire again for the new time
 
 ### For the master
 
 - **Bookings** — sticky list shaped by `SCHEDULE_MODE`: **weekly** is week → day →
   card (← / → weeks); **monthly** is month calendar (days with appointments marked
   `•`) → day → card (← / → months); same card actions in both modes
+- **Reschedule / running late** — on a future pending or confirmed card:
+  **Reschedule** reuses the booking funnel (month → day → window) with the
+  current visit excluded from busy times and without client `min_lead`, so a move
+  onto a neighbouring overlapping slot works; status stays as-is and a Telegram
+  client gets an “old → new” push. **Running late** offers **+15** / **+30**
+  outside the slot grid; the shift must still fit work hours and avoid other
+  visits (including `gap_minutes`). Walk-in / manual bookings can be moved the
+  same way; they never get a client push
 - **Book a client** — search by phone, `@username`, Telegram id (active
   non-banned clients only), or name / phone substring among this master's
   walk-ins; or **New client** (name → phone; a phone already in `manual_clients`
@@ -194,9 +212,9 @@ failure halfway through a booking cannot leave a half-written appointment behind
 - **Profile gate** — **Book** requires personal-data consent (current version) and a
   complete contact profile first, then resumes the booking flow on the sticky hub;
   everything else stays available without them
-- **Inline Cancel** — multistep flows (booking, book-a-client, profile, services,
-  schedule, time off, gap, min lead, slot step, admin) abort with a button, not a
-  slash command
+- **Inline Cancel** — multistep flows (booking, book-a-client, reschedule, profile,
+  services, schedule, time off, gap, min lead, slot step, admin) abort with a
+  button, not a slash command
 - **Username sync** — a changed Telegram `@username` is picked up automatically, so
   admin lookups by username keep working
 - **Concurrency safety** — a database exclusion constraint, not an application check,
@@ -220,9 +238,9 @@ is inline buttons on the sticky hub message.
 |--------------------------------------------|----------|--------------------------------------------------------------------------|
 | **Book**                                   | client   | Consent (if needed) → profile (if needed) → service → month → day → time |
 | **Services**                               | client   | Browse active services (description / photo)                             |
-| **My bookings**                            | client   | Upcoming appointments (open / cancel with confirm + reason)              |
+| **My bookings**                            | client   | Upcoming appointments (open / reschedule / cancel with confirm + reason) |
 | **Profile → Show / Edit**                  | client   | View or update name and phone (consent first if missing / outdated)      |
-| **Bookings**                               | master   | Week or month calendar → day → card (matches `SCHEDULE_MODE`)            |
+| **Bookings**                               | master   | Week or month calendar → day → card; reschedule or +15/+30 late shift    |
 | **Book a client**                          | master   | Find / create client → service → month → day → time (confirmed)          |
 | **Services**                               | master   | List, add, edit, description/photo, deactivate                           |
 | **Schedule → Working hours**               | master   | Weekly mode: view / edit repeating intervals                             |
@@ -242,11 +260,11 @@ is inline buttons on the sticky hub message.
 
 Three roles, all stored in the database — nothing is hardcoded in the source.
 
-| Role      | Gets                                                                                                                                       |
-|-----------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `client`  | Consent + contact profile, booking, and managing their own appointments. Default for new users.                                            |
-| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off or breaks, Bookings, and **Book a client** (bot user or walk-in). |
-| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                                                            |
+| Role      | Gets                                                                                                                                                                       |
+|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `client`  | Consent + contact profile, booking, reschedule / cancel of own appointments. Default for new users.                                                                        |
+| `master`  | Service catalogue, schedule (weekly or monthly by deploy mode), time off or breaks, Bookings (incl. reschedule / late shift), and **Book a client** (bot user or walk-in). |
+| `admin`   | User moderation only (lookup, roles, ban / unban) — no client booking features.                                                                                            |
 
 ### First run: bootstrapping the master
 
@@ -401,16 +419,17 @@ Core booking tables (plus `schema_migrations`, `master_settings`, `working_hours
 Schema is applied by versioned SQL files in `migrations/versions/`, run via `python -m migrations.migrate`
 on startup.
 
-| Table              | Purpose                                                                                                                 |
-|--------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `users`            | Telegram id, username, language, role, ban flag, contact profile, PDN consent (`pdn_consent_at`, `pdn_consent_version`) |
-| `services`         | Master's offerings: title, duration, price, description, photo file id, active flag                                     |
-| `appointments`     | Client (Telegram user **or** manual), service, status, time range, price snapshot, reminder sent-at columns             |
-| `manual_clients`   | Master-scoped walk-in contacts (name + phone); no Telegram account (`migration 015`)                                    |
-| `master_settings`  | Per-master timezone, grid step, gap, lead time and booking horizon                                                      |
-| `working_hours`    | Weekly mode: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                                                 |
-| `work_dates`       | Monthly mode: concrete open dates with local `starts_time` / `ends_time` (unique per master+day)                        |
-| `time_off`         | Absolute blocked intervals (day off, break, vacation) per master                                                        |
+| Table                     | Purpose                                                                                                                 |
+|---------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `users`                   | Telegram id, username, language, role, ban flag, contact profile, PDN consent (`pdn_consent_at`, `pdn_consent_version`) |
+| `services`                | Master's offerings: title, duration, price, description, photo file id, active flag                                     |
+| `appointments`            | Client (Telegram user **or** manual), service, status, time range, price snapshot, reminder sent-at, `rescheduled_at`   |
+| `appointment_reschedules` | Audit log of moves / late shifts (`kind` `move` \| `shift`; old/new times; actor) (`migration 016`)                     |
+| `manual_clients`          | Master-scoped walk-in contacts (name + phone); no Telegram account (`migration 015`)                                    |
+| `master_settings`         | Per-master timezone, grid step, gap, lead time and booking horizon                                                      |
+| `working_hours`           | Weekly mode: weekday (ISO 1=Mon…7=Sun) and local time ranges per master                                                 |
+| `work_dates`              | Monthly mode: concrete open dates with local `starts_time` / `ends_time` (unique per master+day)                        |
+| `time_off`                | Absolute blocked intervals (day off, break, vacation) per master                                                        |
 
 `users.pdn_consent_at` / `pdn_consent_version` are written when the client taps **Agree**
 on the short notice (`migration 012`). They must match the current `PDN_CONSENT_VERSION`
@@ -447,14 +466,26 @@ that kind has not been sent yet. When `client_user_id` is NULL (manual / walk-in
 client reminder kinds and client cancel/status pushes are skipped; master reminders
 still run and show the contact from `manual_clients`.
 
+Reschedule updates the same `appointments` row in place (`migration 016`): new
+`starts_at` / `ends_at`, optional status change (client move → `pending`),
+`rescheduled_at = now()`, and cleared reminder markers so evening / hour pushes
+can fire for the new time. Each move or late shift also inserts a row into
+`appointment_reschedules` (`kind` `move` or `shift`). Duration for the move comes
+from the appointment itself, not the current service length. The GiST exclusion
+constraint still applies on `UPDATE` (racing two moves onto one window →
+`TimeConflict`).
+
 Availability for **Book** is computed from the schedule for this deploy
 (`SCHEDULE_MODE`): **`weekly`** uses `working_hours` by weekday; **`monthly`** uses
 `work_dates` for concrete open days. In both modes, `time_off` and existing
 appointments are subtracted (`AvailabilityService`), using `master_settings` for
-step, gap, lead time and horizon. The client month list comes from
-`AvailabilityService.list_open_months` (open schedule months inside the horizon
-that still have free slots for the chosen service). Switching mode does not migrate
-data — after a change you must restart and fill the matching schedule tables.
+step, gap, lead time and horizon. Reschedule passes `exclude_appointment_id` so the
+visit being moved is not treated as busy; late shifts use
+`is_interval_bookable` (work hours + busy/gap, no grid / `min_lead`). The client
+month list comes from `AvailabilityService.list_open_months` (open schedule months
+inside the horizon that still have free slots for the chosen service). Switching
+mode does not migrate data — after a change you must restart and fill the matching
+schedule tables.
 
 `master_settings.gap_minutes` defaults to `0` (back-to-back) and is editable under
 **Schedule → Break between appointments**. `min_lead_minutes` defaults to `0` and is
@@ -516,29 +547,34 @@ pytest
 Without Postgres integration enabled, integration tests are skipped automatically:
 
 ```
-86 passed, 26 skipped
+117 passed, 30 skipped
 ```
 
 The unit suite covers `BookingService` (client `book_window` and master
 `book_for_client` / `list_windows_for_master`, including price snapshots and
-manual clients), `AvailabilityService`, `ScheduleConflictsService`, shared
-`time_range` helpers, reminder due-rules and recipient skips for walk-ins, phone
-normalization, master book-client search hits, sticky funnel entry and
-existing-manual create path, and `appointment_client_contact` (in
-`app/bot/utils/contacts.py`): window booking (including monthly open days and
-open-month listing), confirm and cancel with permission checks, client
-appointment listing filters, active appointment overlap / local-day conflict
-checks (half-open intervals), and evening / hour reminder eligibility (confirmed
-only, lead window, half-open evening hours, already-sent skip).
+manual clients; `reschedule` / `shift_late` with role, `min_lead`, same-time,
+ended, and log/reminder-clear checks), `AvailabilityService` (including
+`exclude_appointment_id` and `is_interval_bookable`), `ScheduleConflictsService`,
+shared `time_range` helpers, reminder due-rules and recipient skips for walk-ins,
+phone normalization, master book-client search hits, sticky funnel entry and
+existing-manual create path, reschedule funnel helpers
+(`start_reschedule_funnel` / `clear_reschedule_state`), and
+`appointment_client_contact` (in `app/bot/utils/contacts.py`): window booking
+(including monthly open days and open-month listing), confirm and cancel with
+permission checks, client appointment listing filters, active appointment
+overlap / local-day conflict checks (half-open intervals), and evening / hour
+reminder eligibility (confirmed only, lead window, half-open evening hours,
+already-sent skip).
 
 ### Integration (repositories + Postgres)
 
 `tests/integration/` exercises real SQL repositories against PostgreSQL 17:
-migrations, the appointments exclusion constraint (`TimeConflict` on overlap),
-`work_dates` upsert / date-range listing, `time_off` overlap filtering,
-`manual_clients` schema checks (client XOR, phone uniqueness) and repository
-CRUD/search, and `users` lookup by phone digits. Tables are truncated between
-tests; `schema_migrations` is left alone.
+migrations (including `appointment_reschedules` / `rescheduled_at`), the
+appointments exclusion constraint (`TimeConflict` on overlap, including
+reschedule races and self-overlap moves), `work_dates` upsert / date-range
+listing, `time_off` overlap filtering, `manual_clients` schema checks (client
+XOR, phone uniqueness) and repository CRUD/search, and `users` lookup by phone
+digits. Tables are truncated between tests; `schema_migrations` is left alone.
 
 **Do not point these tests at a production or day-to-day bot database** — use a dedicated
 DB (for example `booking_bot_test`). Integration tests are off by default; they run only
@@ -568,16 +604,16 @@ booking_bot/
 ├── app/
 │   ├── bot/                # Telegram layer
 │   │   ├── filters/        # Role and locale filters
-│   │   ├── handlers/       # roles + shared booking_steps/nav/funnel; book_client; appointment_cancel
+│   │   ├── handlers/       # roles + booking_steps/nav/funnel/reschedule_steps; book_client; appointment_cancel
 │   │   ├── i18n/           # Locale resolution
 │   │   ├── keyboards/      # Inline keyboards and typed CallbackData
 │   │   ├── middlewares/    # DB transactions, user context, i18n, ban check
-│   │   ├── states/         # FSM state groups
+│   │   ├── states/         # FSM state groups (incl. Master/ClientRescheduleSG)
 │   │   ├── utils/          # Notifications, hub/cancel registries, sticky hub, contacts, phone, formatting
 │   │   ├── reminders.py    # Background appointment-reminder worker
 │   │   ├── bot_commands.py # Telegram ☰ menu (/start, /menu)
 │   │   └── bot.py          # Dispatcher setup and startup
-│   ├── domain/             # Models (incl. ManualClient), ports, enums, exceptions, services
+│   ├── domain/             # Models (incl. ManualClient, RescheduleResult), ports, enums, exceptions, services
 │   └── infrastructure/     # Connection pool and SQL repositories
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
