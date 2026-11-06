@@ -1,22 +1,29 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from app.domain.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus, RescheduleKind
 from app.domain.exceptions import (
+    AppointmentAlreadyEnded,
     AppointmentNotFound,
     ForbiddenBookingAction,
     InvalidAppointmentClient,
     InvalidAppointmentStatus,
     ManualClientNotFound,
+    RescheduleSameTime,
+    RescheduleTooLate,
     ServiceInactive,
     ServiceNotFound,
     WindowNotAvailable,
 )
-from app.domain.models import Appointment, Service, TimeWindow
+from app.domain.models import Appointment, RescheduleResult, Service, TimeWindow
 from app.domain.ports import RepositoriesPort
 from app.domain.services.availability import AvailabilityService
 
 logger = logging.getLogger(__name__)
+
+_ACTIVE_STATUSES = (AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+_MIN_SHIFT_MINUTES = 1
+_MAX_SHIFT_MINUTES = 180
 
 
 class BookingService:
@@ -285,3 +292,190 @@ class BookingService:
         if updated is None:
             raise AppointmentNotFound
         return updated
+
+    async def reschedule(
+        self,
+        *,
+        appointment_id: int,
+        actor_user_id: int,
+        new_starts_at: datetime,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
+    ) -> RescheduleResult:
+        if now is None:
+            now = datetime.now(UTC)
+        new_starts_at = self._as_utc(new_starts_at)
+
+        appointment = await self._repos.appointments.get_appointment(
+            appointment_id=appointment_id,
+        )
+        if appointment is None:
+            raise AppointmentNotFound
+
+        is_master = actor_user_id == appointment.master_user_id
+        is_client = (
+            appointment.client_user_id is not None and actor_user_id == appointment.client_user_id
+        )
+        if not is_master and not is_client:
+            raise ForbiddenBookingAction
+        if appointment.status not in _ACTIVE_STATUSES:
+            raise InvalidAppointmentStatus
+        if appointment.ends_at <= now:
+            raise AppointmentAlreadyEnded
+
+        if is_client and not is_master:
+            settings = await self._repos.master_settings.get_by_master(
+                master_user_id=appointment.master_user_id,
+            )
+            min_lead = (
+                settings.min_lead_minutes
+                if settings is not None
+                else AvailabilityService._default_settings(
+                    appointment.master_user_id,
+                ).min_lead_minutes
+            )
+            if appointment.starts_at < now + timedelta(minutes=min_lead):
+                raise RescheduleTooLate
+
+        old_starts_at = appointment.starts_at
+        old_ends_at = appointment.ends_at
+        if new_starts_at == old_starts_at.astimezone(UTC):
+            raise RescheduleSameTime
+
+        duration_minutes = int((old_ends_at - old_starts_at).total_seconds() // 60)
+        if is_master:
+            windows = await self.list_windows_for_master(
+                master_user_id=appointment.master_user_id,
+                duration_minutes=duration_minutes,
+                schedule_mode=schedule_mode,
+                now=now,
+                exclude_appointment_id=appointment_id,
+            )
+        else:
+            windows = await self.list_available_windows(
+                master_user_id=appointment.master_user_id,
+                duration_minutes=duration_minutes,
+                schedule_mode=schedule_mode,
+                now=now,
+                exclude_appointment_id=appointment_id,
+            )
+        match = next(
+            (window for window in windows if window.starts_at.astimezone(UTC) == new_starts_at),
+            None,
+        )
+        if match is None:
+            raise WindowNotAvailable
+
+        new_status = appointment.status if is_master else AppointmentStatus.PENDING
+        updated = await self._repos.appointments.reschedule(
+            appointment_id=appointment_id,
+            starts_at=match.starts_at,
+            ends_at=match.ends_at,
+            status=new_status,
+        )
+        if updated is None:
+            raise AppointmentNotFound
+
+        await self._repos.appointments.add_reschedule_log(
+            appointment_id=appointment_id,
+            actor_user_id=actor_user_id,
+            kind=RescheduleKind.MOVE,
+            old_starts_at=old_starts_at,
+            old_ends_at=old_ends_at,
+            new_starts_at=updated.starts_at,
+            new_ends_at=updated.ends_at,
+        )
+        logger.info(
+            "Rescheduled appointment %d by actor=%d: %s → %s",
+            appointment_id,
+            actor_user_id,
+            old_starts_at,
+            updated.starts_at,
+        )
+        return RescheduleResult(
+            appointment=updated,
+            old_starts_at=old_starts_at,
+            old_ends_at=old_ends_at,
+        )
+
+    async def shift_late(
+        self,
+        *,
+        appointment_id: int,
+        master_user_id: int,
+        minutes: int,
+        schedule_mode: str = "weekly",
+        now: datetime | None = None,
+    ) -> RescheduleResult:
+        if not (_MIN_SHIFT_MINUTES <= minutes <= _MAX_SHIFT_MINUTES):
+            raise ValueError(
+                f"minutes must be between {_MIN_SHIFT_MINUTES} and "
+                f"{_MAX_SHIFT_MINUTES}, got: {minutes}",
+            )
+        if now is None:
+            now = datetime.now(UTC)
+
+        appointment = await self._repos.appointments.get_appointment(
+            appointment_id=appointment_id,
+        )
+        if appointment is None:
+            raise AppointmentNotFound
+        if appointment.master_user_id != master_user_id:
+            raise ForbiddenBookingAction
+        if appointment.status not in _ACTIVE_STATUSES:
+            raise InvalidAppointmentStatus
+
+        old_starts_at = appointment.starts_at
+        old_ends_at = appointment.ends_at
+        delta = timedelta(minutes=minutes)
+        new_starts_at = old_starts_at + delta
+        new_ends_at = old_ends_at + delta
+        if new_ends_at <= now:
+            raise AppointmentAlreadyEnded
+
+        bookable = await AvailabilityService(self._repos).is_interval_bookable(
+            master_user_id=appointment.master_user_id,
+            starts_at=new_starts_at,
+            ends_at=new_ends_at,
+            schedule_mode=schedule_mode,
+            exclude_appointment_id=appointment_id,
+        )
+        if not bookable:
+            raise WindowNotAvailable
+
+        updated = await self._repos.appointments.reschedule(
+            appointment_id=appointment_id,
+            starts_at=new_starts_at,
+            ends_at=new_ends_at,
+            status=appointment.status,
+        )
+        if updated is None:
+            raise AppointmentNotFound
+
+        await self._repos.appointments.add_reschedule_log(
+            appointment_id=appointment_id,
+            actor_user_id=master_user_id,
+            kind=RescheduleKind.SHIFT,
+            old_starts_at=old_starts_at,
+            old_ends_at=old_ends_at,
+            new_starts_at=updated.starts_at,
+            new_ends_at=updated.ends_at,
+        )
+        logger.info(
+            "Late-shifted appointment %d by master=%d: +%d min → %s",
+            appointment_id,
+            master_user_id,
+            minutes,
+            updated.starts_at,
+        )
+        return RescheduleResult(
+            appointment=updated,
+            old_starts_at=old_starts_at,
+            old_ends_at=old_ends_at,
+        )
+
+    @staticmethod
+    def _as_utc(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)

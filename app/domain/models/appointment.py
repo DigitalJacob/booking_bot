@@ -7,6 +7,13 @@ from app.domain.enums import AppointmentStatus
 
 
 @dataclass(frozen=True, slots=True)
+class RescheduleResult:
+    appointment: "Appointment"
+    old_starts_at: datetime
+    old_ends_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class Appointment:
     id: int
     client_user_id: int | None
