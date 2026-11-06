@@ -79,6 +79,8 @@ async def build_master_booking_card(
         client_name=client_name,
         client_phone=client_phone,
     )
+    if appointment.rescheduled_at is not None:
+        text = f"{text}\n{i18n.get('card_rescheduled_mark')}"
     return text, get_master_booking_card_kb(
         appointment=appointment,
         i18n=i18n,
