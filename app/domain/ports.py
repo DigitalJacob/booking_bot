@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Protocol
 
-from app.domain.enums import AppointmentStatus
+from app.domain.enums import AppointmentStatus, RescheduleKind
 from app.domain.models import (
     Appointment,
     ManualClient,
@@ -69,6 +69,27 @@ class AppointmentsRepoPort(Protocol):
         appointment_id: int,
         status: AppointmentStatus,
     ) -> Appointment | None: ...
+
+    async def reschedule(
+        self,
+        *,
+        appointment_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        status: AppointmentStatus,
+    ) -> Appointment | None: ...
+
+    async def add_reschedule_log(
+        self,
+        *,
+        appointment_id: int,
+        actor_user_id: int,
+        kind: RescheduleKind,
+        old_starts_at: datetime,
+        old_ends_at: datetime,
+        new_starts_at: datetime,
+        new_ends_at: datetime,
+    ) -> None: ...
 
 
 class ManualClientsRepoPort(Protocol):

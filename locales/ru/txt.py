@@ -706,6 +706,53 @@ RU: dict[str, str] = {
         "Вы записаны на услугу {title}.\n\n"
         "Дата и время: {when}"
     ),
+    "reschedule_button": "Перенести",
+    "master_late_button": "Опоздание",
+    "master_shift_15_button": "+15 мин",
+    "master_shift_30_button": "+30 мин",
+    "master_late_prompt": (
+        "На сколько сдвинуть запись?\n\n"
+        "Сдвиг возможен, если новое время укладывается в рабочий день "
+        "и не пересекается с другими записями."
+    ),
+    "reschedule_old_line": "Было: {when}",
+    "reschedule_confirm": (
+        "Перенести запись?\n\n"
+        "Услуга: {title}\n"
+        "Новое время: {when}\n"
+        "Длительность: {duration} мин"
+    ),
+    "reschedule_confirm_button": "Перенести",
+    "reschedule_no_windows": "Нет другого свободного времени для переноса.",
+    "client_reschedule_too_late": (
+        "Перенести запись можно не позже чем за {minutes} мин до начала."
+    ),
+    "master_shift_unavailable": (
+        "Не получается сдвинуть: не укладывается в рабочее время "
+        "или пересекается со следующей записью. Используйте «Перенести»."
+    ),
+    "master_rescheduled_ok": "Запись перенесена.",
+    "client_rescheduled_ok": (
+        "Запись перенесена. Ожидает подтверждения мастера."
+    ),
+    "client_booking_rescheduled": (
+        "Время вашей записи на {title} изменено:\n"
+        "{old_when} → {when}"
+    ),
+    "client_booking_shifted": (
+        "Запись на {title} сдвинута из‑за опоздания:\n"
+        "{old_when} → {when}"
+    ),
+    "master_booking_rescheduled": (
+        "Клиент перенёс запись на {title}.\n\n"
+        "Было: {old_when}\n"
+        "Стало: {when}\n"
+        "Клиент: {client_name}, {client_phone}"
+    ),
+    "master_push_rescheduled": (
+        "Клиент перенёс эту запись. Ожидайте новое уведомление."
+    ),
+    "card_rescheduled_mark": "↻ перенесена",
     "hub_schedule_section_button": "График",
     "hub_profile_section_button": "Профиль",
     "hub_settings_section_button": "Настройки",

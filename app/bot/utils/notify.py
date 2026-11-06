@@ -25,6 +25,7 @@ async def appointment_notice_parts(
     bot_timezone: str,
     recipient_user_id: int,
     reason: str | None = None,
+    extra: dict[str, str] | None = None,
 ) -> tuple[dict[str, str], str]:
     recipient = await repos.users.get_user_by_id(user_id=recipient_user_id)
     i18n = resolve_i18n(
@@ -38,6 +39,7 @@ async def appointment_notice_parts(
         when=format_dt(appointment.starts_at, bot_timezone),
         client_name=client_name,
         client_phone=client_phone,
+        **(extra or {}),
     )
     if reason:
         text += i18n.get("cancel_reason_block").format(reason=reason)
@@ -58,6 +60,7 @@ async def notify_appointment(
     with_reminder_actions: bool = False,
     reminder_kind: ReminderKind | None = None,
     reason: str | None = None,
+    extra: dict[str, str] | None = None,
 ) -> int | None:
     """
     Send an appointment status notification.
@@ -71,6 +74,7 @@ async def notify_appointment(
         bot_timezone=bot_timezone,
         recipient_user_id=recipient_user_id,
         reason=reason,
+        extra=extra,
     )
 
     reply_markup: InlineKeyboardMarkup | None = None
@@ -111,6 +115,7 @@ async def supersede_master_action_push(
     text_key: str,
     bot_timezone: str,
     reason: str | None = None,
+    extra: dict[str, str] | None = None,
 ) -> bool:
     """
     Replace the master's confirm/cancel push with a status message + OK.
@@ -128,6 +133,7 @@ async def supersede_master_action_push(
         bot_timezone=bot_timezone,
         recipient_user_id=appointment.master_user_id,
         reason=reason,
+        extra=extra,
     )
 
     edited = False

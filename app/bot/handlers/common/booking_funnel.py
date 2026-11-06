@@ -9,8 +9,10 @@ from aiogram.fsm.state import StatesGroup
 from aiogram.types import CallbackQuery
 
 from app.bot.handlers.common.booking_steps import (
+    RESCHEDULE_APPOINTMENT_ID_KEY,
     bookable_months,
     days_in_month,
+    filter_reschedule_windows,
     show_confirm,
     show_days,
     show_months,
@@ -37,18 +39,31 @@ async def _list_windows(
     duration_minutes: int,
     schedule_mode: str,
     for_master: bool,
+    fsm_data: dict | None = None,
 ) -> list[TimeWindow]:
+    exclude_appointment_id = None
+    if fsm_data is not None:
+        raw = fsm_data.get(RESCHEDULE_APPOINTMENT_ID_KEY)
+        if raw is not None:
+            exclude_appointment_id = int(raw)
+
     if for_master:
-        return await booking.list_windows_for_master(
+        windows = await booking.list_windows_for_master(
             master_user_id=master_user_id,
             duration_minutes=duration_minutes,
             schedule_mode=schedule_mode,
+            exclude_appointment_id=exclude_appointment_id,
         )
-    return await booking.list_available_windows(
-        master_user_id=master_user_id,
-        duration_minutes=duration_minutes,
-        schedule_mode=schedule_mode,
-    )
+    else:
+        windows = await booking.list_available_windows(
+            master_user_id=master_user_id,
+            duration_minutes=duration_minutes,
+            schedule_mode=schedule_mode,
+            exclude_appointment_id=exclude_appointment_id,
+        )
+    if fsm_data is None:
+        return windows
+    return filter_reschedule_windows(windows, fsm_data)
 
 
 async def handle_service_choice(
@@ -85,6 +100,7 @@ async def handle_service_choice(
         duration_minutes=service.duration_minutes,
         schedule_mode=schedule_mode,
         for_master=for_master,
+        fsm_data=fsm_data,
     )
     months = bookable_months(open_months, unique_days(windows, bot_timezone))
     if not months:
@@ -132,6 +148,7 @@ async def handle_month_choice(
         duration_minutes=service_duration,
         schedule_mode=schedule_mode,
         for_master=for_master,
+        fsm_data=fsm_data,
     )
     days = days_in_month(
         unique_days(windows, bot_timezone),
@@ -194,6 +211,7 @@ async def handle_day_choice(
             duration_minutes=service_duration,
             schedule_mode=schedule_mode,
             for_master=for_master,
+            fsm_data=fsm_data,
         ),
         day,
         bot_timezone,
@@ -229,10 +247,12 @@ async def handle_window_choice(
     for_master: bool = False,
     confirm_header: str | None = None,
     confirm_button_key: str | None = None,
+    confirm_key: str = "book_confirm",
 ) -> None:
     fsm_data = await state.get_data()
     master_user_id = fsm_data["master_user_id"]
     service_id = fsm_data["service_id"]
+    service_duration = fsm_data["service_duration"]
     day = date.fromisoformat(fsm_data["day"])
     starts_at = datetime.fromisoformat(callback_data.starts_at)
 
@@ -249,9 +269,10 @@ async def handle_window_choice(
         await _list_windows(
             booking,
             master_user_id=master_user_id,
-            duration_minutes=service.duration_minutes,
+            duration_minutes=service_duration,
             schedule_mode=schedule_mode,
             for_master=for_master,
+            fsm_data=fsm_data,
         ),
         day,
         bot_timezone,
@@ -288,5 +309,7 @@ async def handle_window_choice(
         bot_timezone=bot_timezone,
         header=confirm_header,
         reply_markup=reply_markup,
+        confirm_key=confirm_key,
+        duration=service_duration,
     )
     await callback.answer()

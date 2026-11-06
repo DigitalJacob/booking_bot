@@ -40,3 +40,15 @@ class ManualClientNotFound(DomainError):
 
 class ManualClientPhoneTaken(DomainError):
     """This master already has a manual client with the same phone_digits."""
+
+
+class RescheduleTooLate(DomainError):
+    """Client tried to reschedule inside the master's min_lead window."""
+
+
+class RescheduleSameTime(DomainError):
+    """New starts_at matches the current appointment time."""
+
+
+class AppointmentAlreadyEnded(DomainError):
+    """Appointment ends_at is not in the future."""
