@@ -5,6 +5,7 @@
 from app.bot.handlers.master.bookings import actions as _actions  # noqa: F401
 from app.bot.handlers.master.bookings import cancel_hooks as _cancel_hooks  # noqa: F401
 from app.bot.handlers.master.bookings import list as _list_handlers  # noqa: F401
+from app.bot.handlers.master.bookings import reschedule as _reschedule  # noqa: F401
 from app.bot.handlers.master.bookings.router import bookings_router
 
 __all__ = ["bookings_router"]

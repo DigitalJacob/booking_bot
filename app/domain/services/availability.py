@@ -19,19 +19,14 @@ class AvailabilityService:
         schedule_mode: str = "weekly",
         now: datetime | None = None,
         ignore_min_lead: bool = False,
+        exclude_appointment_id: int | None = None,
     ) -> list[TimeWindow]:
         if duration_minutes <= 0:
             raise ValueError("Duration_minutes must be positive")
-        if schedule_mode not in ("weekly", "monthly"):
-            raise ValueError(f"schedule_mode must be 'weekly' or 'monthly', got: {schedule_mode!r}")
+        self._validate_schedule_mode(schedule_mode)
 
         now = as_utc(now or datetime.now(UTC))
-        settings = await self._repos.master_settings.get_by_master(
-            master_user_id=master_user_id,
-        )
-        if settings is None:
-            settings = self._default_settings(master_user_id)
-
+        settings = await self._load_settings(master_user_id=master_user_id)
         zone = ZoneInfo(settings.timezone)
         now_local = now.astimezone(zone)
         lead_minutes = 0 if ignore_min_lead else settings.min_lead_minutes
@@ -39,53 +34,20 @@ class AvailabilityService:
 
         start_day = now_local.date()
         end_day = start_day + timedelta(days=settings.booking_horizon_days)
-
-        range_from = datetime.combine(start_day, time.min, tzinfo=zone)
-        range_to = datetime.combine(end_day, time.min, tzinfo=zone)
-
-        by_weekday: dict[int, list] = {}
-        by_date: dict[date, list] = {}
-        if schedule_mode == "monthly":
-            work_dates = await self._repos.work_dates.list_by_master(
-                master_user_id=master_user_id,
-                from_date=start_day,
-                to_date=end_day,
-            )
-            for work_date in work_dates:
-                by_date.setdefault(work_date.work_date, []).append(work_date)
-        else:
-            working = await self._repos.working_hours.list_by_master(
-                master_user_id=master_user_id,
-            )
-            for hours in working:
-                by_weekday.setdefault(hours.weekday, []).append(hours)
-
-        time_offs = await self._repos.time_off.list_by_master(
+        by_weekday, by_date = await self._load_work_intervals(
             master_user_id=master_user_id,
-            from_dt=range_from,
-            to_dt=range_to,
+            schedule_mode=schedule_mode,
+            start_day=start_day,
+            end_day=end_day,
         )
-        appointments = await self._repos.appointments.list_by_master(
+        busy = await self._load_busy(
             master_user_id=master_user_id,
-            from_dt=range_from,
-            to_dt=range_to,
+            settings=settings,
+            zone=zone,
+            start_day=start_day,
+            end_day=end_day,
+            exclude_appointment_id=exclude_appointment_id,
         )
-        busy: list[tuple[datetime, datetime]] = []
-        for block in time_offs:
-            busy.append((as_utc(block.starts_at), as_utc(block.ends_at)))
-        gap = timedelta(minutes=settings.gap_minutes)
-        for appointment in appointments:
-            if appointment.status not in (
-                AppointmentStatus.PENDING,
-                AppointmentStatus.CONFIRMED,
-            ):
-                continue
-            busy.append(
-                (
-                    as_utc(appointment.starts_at),
-                    as_utc(appointment.ends_at) + gap,
-                )
-            )
 
         step_minutes = settings.slot_step_minutes or duration_minutes
         step = timedelta(minutes=step_minutes)
@@ -94,12 +56,12 @@ class AvailabilityService:
         windows: list[TimeWindow] = []
         day = start_day
         while day < end_day:
-            if schedule_mode == "monthly":
-                intervals = by_date.get(day, [])
-            else:
-                intervals = by_weekday.get(day.isoweekday(), [])
-
-            for interval in intervals:
+            for interval in self._intervals_for_day(
+                day=day,
+                schedule_mode=schedule_mode,
+                by_weekday=by_weekday,
+                by_date=by_date,
+            ):
                 day_start = datetime.combine(
                     day,
                     interval.starts_time,
@@ -140,6 +102,58 @@ class AvailabilityService:
 
         return windows
 
+    async def is_interval_bookable(
+        self,
+        *,
+        master_user_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        schedule_mode: str = "weekly",
+        exclude_appointment_id: int | None = None,
+    ) -> bool:
+        """True if [starts_at, ends_at) fits work hours and avoids busy/time_off.
+
+        Does not apply ``min_lead`` or the slot grid — used for late shifts.
+        """
+        self._validate_schedule_mode(schedule_mode)
+        start_utc = as_utc(starts_at)
+        end_utc = as_utc(ends_at)
+        if end_utc <= start_utc:
+            return False
+
+        settings = await self._load_settings(master_user_id=master_user_id)
+        zone = ZoneInfo(settings.timezone)
+        local_start = start_utc.astimezone(zone)
+        local_end = end_utc.astimezone(zone)
+        day = local_start.date()
+
+        by_weekday, by_date = await self._load_work_intervals(
+            master_user_id=master_user_id,
+            schedule_mode=schedule_mode,
+            start_day=day,
+            end_day=day + timedelta(days=1),
+        )
+        if not self._contained_in_work_day(
+            local_start=local_start,
+            local_end=local_end,
+            day=day,
+            schedule_mode=schedule_mode,
+            by_weekday=by_weekday,
+            by_date=by_date,
+            zone=zone,
+        ):
+            return False
+
+        busy = await self._load_busy(
+            master_user_id=master_user_id,
+            settings=settings,
+            zone=zone,
+            start_day=day,
+            end_day=day + timedelta(days=1),
+            exclude_appointment_id=exclude_appointment_id,
+        )
+        return not any(intervals_overlap(start_utc, end_utc, b0, b1) for b0, b1 in busy)
+
     async def list_open_months(
         self,
         *,
@@ -152,16 +166,10 @@ class AvailabilityService:
         monthly: months with a ``work_dates`` row on/after today (within horizon).
         weekly: months that contain a horizon day matching ``working_hours``.
         """
-        if schedule_mode not in ("weekly", "monthly"):
-            raise ValueError(f"schedule_mode must be 'weekly' or 'monthly', got: {schedule_mode!r}")
+        self._validate_schedule_mode(schedule_mode)
 
         now = as_utc(now or datetime.now(UTC))
-        settings = await self._repos.master_settings.get_by_master(
-            master_user_id=master_user_id,
-        )
-        if settings is None:
-            settings = self._default_settings(master_user_id)
-
+        settings = await self._load_settings(master_user_id=master_user_id)
         zone = ZoneInfo(settings.timezone)
         start_day = now.astimezone(zone).date()
         end_day = start_day + timedelta(days=settings.booking_horizon_days)
@@ -189,8 +197,125 @@ class AvailabilityService:
 
         return sorted(months)
 
+    async def _load_settings(self, *, master_user_id: int) -> MasterSettings:
+        settings = await self._repos.master_settings.get_by_master(
+            master_user_id=master_user_id,
+        )
+        if settings is None:
+            return self.default_settings(master_user_id)
+        return settings
+
+    async def _load_work_intervals(
+        self,
+        *,
+        master_user_id: int,
+        schedule_mode: str,
+        start_day: date,
+        end_day: date,
+    ) -> tuple[dict[int, list], dict[date, list]]:
+        by_weekday: dict[int, list] = {}
+        by_date: dict[date, list] = {}
+        if schedule_mode == "monthly":
+            work_dates = await self._repos.work_dates.list_by_master(
+                master_user_id=master_user_id,
+                from_date=start_day,
+                to_date=end_day,
+            )
+            for work_date in work_dates:
+                by_date.setdefault(work_date.work_date, []).append(work_date)
+        else:
+            working = await self._repos.working_hours.list_by_master(
+                master_user_id=master_user_id,
+            )
+            for hours in working:
+                by_weekday.setdefault(hours.weekday, []).append(hours)
+        return by_weekday, by_date
+
+    async def _load_busy(
+        self,
+        *,
+        master_user_id: int,
+        settings: MasterSettings,
+        zone: ZoneInfo,
+        start_day: date,
+        end_day: date,
+        exclude_appointment_id: int | None,
+    ) -> list[tuple[datetime, datetime]]:
+        range_from = datetime.combine(start_day, time.min, tzinfo=zone)
+        range_to = datetime.combine(end_day, time.min, tzinfo=zone)
+        time_offs = await self._repos.time_off.list_by_master(
+            master_user_id=master_user_id,
+            from_dt=range_from,
+            to_dt=range_to,
+        )
+        appointments = await self._repos.appointments.list_by_master(
+            master_user_id=master_user_id,
+            from_dt=range_from,
+            to_dt=range_to,
+        )
+        busy: list[tuple[datetime, datetime]] = []
+        for block in time_offs:
+            busy.append((as_utc(block.starts_at), as_utc(block.ends_at)))
+        gap = timedelta(minutes=settings.gap_minutes)
+        for appointment in appointments:
+            if exclude_appointment_id is not None and appointment.id == exclude_appointment_id:
+                continue
+            if appointment.status not in (
+                AppointmentStatus.PENDING,
+                AppointmentStatus.CONFIRMED,
+            ):
+                continue
+            busy.append(
+                (
+                    as_utc(appointment.starts_at),
+                    as_utc(appointment.ends_at) + gap,
+                )
+            )
+        return busy
+
     @staticmethod
-    def _default_settings(master_user_id: int) -> MasterSettings:
+    def _intervals_for_day(
+        *,
+        day: date,
+        schedule_mode: str,
+        by_weekday: dict[int, list],
+        by_date: dict[date, list],
+    ) -> list:
+        if schedule_mode == "monthly":
+            return by_date.get(day, [])
+        return by_weekday.get(day.isoweekday(), [])
+
+    @classmethod
+    def _contained_in_work_day(
+        cls,
+        *,
+        local_start: datetime,
+        local_end: datetime,
+        day: date,
+        schedule_mode: str,
+        by_weekday: dict[int, list],
+        by_date: dict[date, list],
+        zone: ZoneInfo,
+    ) -> bool:
+        for interval in cls._intervals_for_day(
+            day=day,
+            schedule_mode=schedule_mode,
+            by_weekday=by_weekday,
+            by_date=by_date,
+        ):
+            day_start = datetime.combine(day, interval.starts_time, tzinfo=zone)
+            day_end = datetime.combine(day, interval.ends_time, tzinfo=zone)
+            if day_start <= local_start and local_end <= day_end:
+                return True
+        return False
+
+    @staticmethod
+    def _validate_schedule_mode(schedule_mode: str) -> None:
+        if schedule_mode not in ("weekly", "monthly"):
+            raise ValueError(f"schedule_mode must be 'weekly' or 'monthly', got: {schedule_mode!r}")
+
+    @staticmethod
+    def default_settings(master_user_id: int) -> MasterSettings:
         now = datetime.now(UTC)
         return MasterSettings(
             master_user_id=master_user_id,

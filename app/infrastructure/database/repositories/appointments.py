@@ -6,7 +6,7 @@ from psycopg import AsyncConnection
 from psycopg.errors import ExclusionViolation, UniqueViolation
 from psycopg.rows import dict_row
 
-from app.domain.enums import AppointmentStatus, ReminderKind
+from app.domain.enums import AppointmentStatus, ReminderKind, RescheduleKind
 from app.domain.enums.reminder import reminded_at_attr
 from app.domain.exceptions import InvalidAppointmentClient, TimeConflict
 from app.domain.models.appointment import Appointment
@@ -28,7 +28,8 @@ _APPOINTMENT_COLUMNS = """
     client_evening_reminded_at,
     client_hour_reminded_at,
     master_evening_reminded_at,
-    master_hour_reminded_at
+    master_hour_reminded_at,
+    rescheduled_at
 """
 
 
@@ -211,6 +212,103 @@ class AppointmentsRepository:
             status,
         )
         return Appointment.from_db_row(row) if row else None
+
+    async def reschedule(
+        self,
+        *,
+        appointment_id: int,
+        starts_at: datetime,
+        ends_at: datetime,
+        status: AppointmentStatus,
+    ) -> Appointment | None:
+        async with self._conn.cursor(row_factory=dict_row) as cursor:
+            try:
+                await cursor.execute(
+                    query=f"""
+                        UPDATE appointments
+                        SET
+                            starts_at = %(starts_at)s,
+                            ends_at = %(ends_at)s,
+                            status = %(status)s,
+                            rescheduled_at = %(rescheduled_at)s,
+                            client_evening_reminded_at = NULL,
+                            client_hour_reminded_at = NULL,
+                            master_evening_reminded_at = NULL,
+                            master_hour_reminded_at = NULL
+                        WHERE id = %(appointment_id)s
+                        RETURNING
+                            {_APPOINTMENT_COLUMNS};
+                    """,
+                    params={
+                        "appointment_id": appointment_id,
+                        "starts_at": starts_at,
+                        "ends_at": ends_at,
+                        "status": status,
+                        "rescheduled_at": datetime.now(UTC),
+                    },
+                )
+            except (UniqueViolation, ExclusionViolation) as e:
+                raise TimeConflict from e
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        logger.info(
+            "Rescheduled appointment %d to %s status=%s",
+            appointment_id,
+            starts_at.isoformat(),
+            status,
+        )
+        return Appointment.from_db_row(row)
+
+    async def add_reschedule_log(
+        self,
+        *,
+        appointment_id: int,
+        actor_user_id: int,
+        kind: RescheduleKind,
+        old_starts_at: datetime,
+        old_ends_at: datetime,
+        new_starts_at: datetime,
+        new_ends_at: datetime,
+    ) -> None:
+        async with self._conn.cursor() as cursor:
+            await cursor.execute(
+                query="""
+                    INSERT INTO appointment_reschedules(
+                        appointment_id,
+                        actor_user_id,
+                        kind,
+                        old_starts_at,
+                        old_ends_at,
+                        new_starts_at,
+                        new_ends_at
+                    )
+                    VALUES(
+                        %(appointment_id)s,
+                        %(actor_user_id)s,
+                        %(kind)s,
+                        %(old_starts_at)s,
+                        %(old_ends_at)s,
+                        %(new_starts_at)s,
+                        %(new_ends_at)s
+                    );
+                """,
+                params={
+                    "appointment_id": appointment_id,
+                    "actor_user_id": actor_user_id,
+                    "kind": kind,
+                    "old_starts_at": old_starts_at,
+                    "old_ends_at": old_ends_at,
+                    "new_starts_at": new_starts_at,
+                    "new_ends_at": new_ends_at,
+                },
+            )
+        logger.info(
+            "Logged reschedule kind=%s appointment=%d actor=%d",
+            kind,
+            appointment_id,
+            actor_user_id,
+        )
 
     async def set_master_notify_message_id(
         self,

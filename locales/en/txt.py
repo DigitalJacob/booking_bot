@@ -706,6 +706,53 @@ EN: dict[str, str] = {
         "You are booked for {title}.\n\n"
         "Date and time: {when}"
     ),
+    "reschedule_button": "Reschedule",
+    "master_late_button": "Running late",
+    "master_shift_15_button": "+15 min",
+    "master_shift_30_button": "+30 min",
+    "master_late_prompt": (
+        "How far should we shift this appointment?\n\n"
+        "The new time must still fit the working day "
+        "and must not overlap other bookings."
+    ),
+    "reschedule_old_line": "Was: {when}",
+    "reschedule_confirm": (
+        "Reschedule this appointment?\n\n"
+        "Service: {title}\n"
+        "New time: {when}\n"
+        "Duration: {duration} min"
+    ),
+    "reschedule_confirm_button": "Reschedule",
+    "reschedule_no_windows": "No other free times available to reschedule to.",
+    "client_reschedule_too_late": (
+        "You can reschedule no later than {minutes} min before the start."
+    ),
+    "master_shift_unavailable": (
+        "Cannot shift: it does not fit working hours "
+        "or overlaps the next booking. Use Reschedule instead."
+    ),
+    "master_rescheduled_ok": "Appointment rescheduled.",
+    "client_rescheduled_ok": (
+        "Appointment rescheduled. Waiting for the specialist to confirm."
+    ),
+    "client_booking_rescheduled": (
+        "Your appointment for {title} was moved:\n"
+        "{old_when} → {when}"
+    ),
+    "client_booking_shifted": (
+        "Your appointment for {title} was shifted due to a delay:\n"
+        "{old_when} → {when}"
+    ),
+    "master_booking_rescheduled": (
+        "The client rescheduled {title}.\n\n"
+        "Was: {old_when}\n"
+        "Now: {when}\n"
+        "Client: {client_name}, {client_phone}"
+    ),
+    "master_push_rescheduled": (
+        "The client rescheduled this booking. Expect a new notification."
+    ),
+    "card_rescheduled_mark": "↻ rescheduled",
     "hub_schedule_section_button": "Schedule",
     "hub_profile_section_button": "Profile",
     "hub_settings_section_button": "Settings",

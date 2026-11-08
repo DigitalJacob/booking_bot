@@ -18,10 +18,29 @@ from app.bot.keyboards.work_days import month_label
 from app.bot.utils.format import format_dt, to_local
 from app.bot.utils.format import format_price as _format_price
 from app.domain.models import Service, TimeWindow
+from app.domain.time_range import as_utc
+
+RESCHEDULE_APPOINTMENT_ID_KEY = "reschedule_appointment_id"
+RESCHEDULE_ORIGINAL_STARTS_AT_KEY = "reschedule_original_starts_at"
 
 
 def format_price(price: Decimal | None, i18n: dict[str, str]) -> str:
     return _format_price(price, i18n, empty_key="book_price_empty")
+
+
+def filter_reschedule_windows(
+    windows: list[TimeWindow],
+    fsm_data: dict,
+) -> list[TimeWindow]:
+    """Drop the appointment's current start so it is not offered again."""
+    original = fsm_data.get(RESCHEDULE_ORIGINAL_STARTS_AT_KEY)
+    if not original:
+        return windows
+    if isinstance(original, str):
+        original_dt = as_utc(datetime.fromisoformat(original))
+    else:
+        original_dt = as_utc(original)
+    return [window for window in windows if as_utc(window.starts_at) != original_dt]
 
 
 def unique_days(windows: list[TimeWindow], bot_timezone: str) -> list[date]:
@@ -124,11 +143,12 @@ async def show_confirm(
     header: str | None = None,
     reply_markup: InlineKeyboardMarkup | None = None,
     confirm_key: str = "book_confirm",
+    duration: int | None = None,
 ) -> None:
     text = i18n.get(confirm_key).format(
         title=service.title,
         when=format_dt(starts_at, bot_timezone),
-        duration=service.duration_minutes,
+        duration=service.duration_minutes if duration is None else duration,
         price=format_price(service.price, i18n),
     )
     if header:

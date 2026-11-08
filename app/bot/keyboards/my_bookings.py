@@ -5,7 +5,7 @@ from app.domain.models.appointment import Appointment
 
 
 class ClientAppointmentCallback(CallbackData, prefix="capt"):
-    action: str  # open | cancel | back | close
+    action: str  # open | cancel | reschedule | back | close
     appointment_id: int = 0
 
 
@@ -48,12 +48,19 @@ def get_my_booking_card_kb(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
+                    text=i18n.get("reschedule_button"),
+                    callback_data=ClientAppointmentCallback(
+                        action="reschedule",
+                        appointment_id=appointment.id,
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
                     text=i18n.get("my_bookings_cancel_button"),
                     callback_data=ClientAppointmentCallback(
                         action="cancel",
                         appointment_id=appointment.id,
                     ).pack(),
-                )
+                ),
             ],
             [
                 InlineKeyboardButton(

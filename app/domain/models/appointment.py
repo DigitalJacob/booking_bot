@@ -7,6 +7,13 @@ from app.domain.enums import AppointmentStatus
 
 
 @dataclass(frozen=True, slots=True)
+class RescheduleResult:
+    appointment: "Appointment"
+    old_starts_at: datetime
+    old_ends_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class Appointment:
     id: int
     client_user_id: int | None
@@ -23,6 +30,7 @@ class Appointment:
     client_hour_reminded_at: datetime | None = None
     master_evening_reminded_at: datetime | None = None
     master_hour_reminded_at: datetime | None = None
+    rescheduled_at: datetime | None = None
 
     @classmethod
     def from_db_row(cls, row: dict[str, Any]) -> "Appointment":
@@ -42,4 +50,5 @@ class Appointment:
             client_hour_reminded_at=row.get("client_hour_reminded_at"),
             master_evening_reminded_at=row.get("master_evening_reminded_at"),
             master_hour_reminded_at=row.get("master_hour_reminded_at"),
+            rescheduled_at=row.get("rescheduled_at"),
         )
