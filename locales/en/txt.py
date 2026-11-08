@@ -586,10 +586,12 @@ EN: dict[str, str] = {
     "work_days_choose_month": "Choose a month:",
     "work_days_choose_days": "Select work days for {month}:",
     "work_days_enter_starts": (
+        "Days: {dates}\n\n"
         "Enter start time as HH:MM\n"
         "Example: 09:00"
     ),
     "work_days_enter_ends": (
+        "Days: {dates}\n\n"
         "Enter end time as HH:MM\n"
         "Example: 18:00"
     ),
