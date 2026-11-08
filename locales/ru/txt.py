@@ -586,10 +586,12 @@ RU: dict[str, str] = {
     "work_days_choose_month": "Выберите месяц:",
     "work_days_choose_days": "Выберите рабочие дни на {month}:",
     "work_days_enter_starts": (
+        "Дни: {dates}\n\n"
         "Введите время начала работы в формате ЧЧ:ММ\n"
         "Например: 09:00"
     ),
     "work_days_enter_ends": (
+        "Дни: {dates}\n\n"
         "Введите время окончания работы в формате ЧЧ:ММ\n"
         "Например: 18:00"
     ),

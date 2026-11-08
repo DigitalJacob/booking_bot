@@ -33,6 +33,13 @@ from app.domain.services.schedule_conflicts import ScheduleConflictsService
 from app.infrastructure.database.repositories import Repositories
 
 
+async def _hours_prompt_dates(state: FSMContext) -> str:
+    """Newly opened days that will receive the hours being entered."""
+    data = await state.get_data()
+    _, _, _, added = day_sets(data)
+    return format_day_list(added)
+
+
 async def _show_starts_prompt(
     *,
     message: Message,
@@ -43,7 +50,9 @@ async def _show_starts_prompt(
     await show_hub_prompt(
         message=message,
         state=state,
-        text=i18n.get("work_days_enter_starts"),
+        text=i18n.get("work_days_enter_starts").format(
+            dates=await _hours_prompt_dates(state),
+        ),
         reply_markup=get_work_days_cancel_kb(i18n),
     )
 
@@ -58,7 +67,9 @@ async def _show_ends_prompt(
     await show_hub_prompt(
         message=message,
         state=state,
-        text=i18n.get("work_days_enter_ends"),
+        text=i18n.get("work_days_enter_ends").format(
+            dates=await _hours_prompt_dates(state),
+        ),
         reply_markup=get_work_days_cancel_kb(i18n),
     )
 
