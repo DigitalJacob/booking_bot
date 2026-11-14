@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily booking_bot encrypted Postgres backup
+Documentation=file:///opt/booking_bot/README.md
+
+[Timer]
+# Local timezone of the host. Persistent= catches up after downtime.
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=5m
+Unit=booking-bot-backup.service
+
+[Install]
+WantedBy=timers.target
