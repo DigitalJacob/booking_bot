@@ -359,6 +359,61 @@ python3 main.py
 
 Keep `POSTGRES_HOST=localhost` and `REDIS_HOST=localhost` in `.env` for this mode.
 
+## Backups
+
+Production personal data lives in **Postgres** (Redis FSM state is not backed up).
+Dumps are written as **age-encrypted** files under `backups/` (gitignored) — never
+commit plaintext dumps or age identity keys. Encrypting backups at rest is the ops
+control for a stolen disk/dump; the live bot still needs readable contacts to work
+(depersonalization hashes belong in separate analytics/dev copies, not in this
+operational schema).
+
+### 1. Install `age` and create a keypair
+
+On the host that runs Compose:
+
+```bash
+# macOS: brew install age
+# Debian/Ubuntu: apt install age
+mkdir -p ~/.config/booking-bot
+age-keygen -o ~/.config/booking-bot/backup.agekey
+```
+
+Put the printed `age1…` **public** key into `.env` as `BACKUP_AGE_RECIPIENT`. Keep the
+identity file on the host (and an offline copy). Set `BACKUP_AGE_IDENTITY` to that
+path for restores. Optionally set `BACKUP_DIR` and `BACKUP_KEEP_DAYS` (see
+`.env.example`).
+
+### 2. Take a backup
+
+With the `postgres` Compose service running:
+
+```bash
+./scripts/backup_postgres.sh
+```
+
+Creates `backups/booking_bot_<UTC>.dump.age`. If `BACKUP_KEEP_DAYS` is set, older
+`*.dump.age` files are pruned afterward (`./scripts/prune_backups.sh` also works
+alone).
+
+### 3. Restore drill (non-primary DB)
+
+Default target is `${POSTGRES_DB}_restore` so a drill does not wipe production:
+
+```bash
+CONFIRM_RESTORE=1 \
+  BACKUP_AGE_IDENTITY=~/.config/booking-bot/backup.agekey \
+  ./scripts/restore_postgres.sh backups/booking_bot_….dump.age
+```
+
+Restoring into the primary database requires `ALLOW_RESTORE_TO_PRIMARY=1` as well.
+
+### 4. Schedule
+
+Run `./scripts/backup_postgres.sh` daily on the VPS (cron, or a systemd timer under
+`deploy/` when you install the unit examples). Keep a second copy of the age identity
+**off** the same machine that stores the dumps.
+
 ## Configuration
 
 All settings come from `.env`. Start from `.env.example`.
@@ -380,6 +435,10 @@ All settings come from `.env`. Start from `.env.example`.
 | `LOG_FORMAT`                                                          | Python logging format string                                                                                                  |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`                 | Database credentials                                                                                                          |
 | `POSTGRES_HOST` / `POSTGRES_PORT`                                     | `postgres` / `5432` inside Compose                                                                                            |
+| `BACKUP_AGE_RECIPIENT`                                                | age public key (`age1…`) for `scripts/backup_postgres.sh`                                                                     |
+| `BACKUP_AGE_IDENTITY`                                                 | Path to age private key for restores (host path; never commit)                                                                |
+| `BACKUP_DIR`                                                          | Directory for `*.dump.age` files (default `./backups`)                                                                        |
+| `BACKUP_KEEP_DAYS`                                                    | If set, prune encrypted dumps older than this many days after backup                                                          |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_DATABASE`                        | Redis connection for FSM storage                                                                                              |
 | `REDIS_USERNAME` / `REDIS_PASSWORD`                                   | Password required; username usually empty (Compose `--requirepass` → user `default`)                                          |
 | `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` / `PGADMIN_PORT` | pgAdmin access                                                                                                                |
@@ -618,6 +677,7 @@ booking_bot/
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
 ├── migrations/             # Versioned SQL migrations and runner
+├── scripts/                # Encrypted Postgres backup / restore / prune
 ├── tests/                  # Unit tests (FakeRepositories) + integration/ (Postgres)
 ├── .github/workflows/      # CI (ruff, mypy, pytest + Postgres)
 ├── docker-compose.yml
@@ -634,6 +694,8 @@ booking_bot/
 - Multi-master support, letting clients pick a master first
 - Per-language service titles set by the master
 - Fetching appointment details in a single joined query to remove N+1 reads
+- Optional offsite copy of `*.dump.age` (rclone / private object storage)
+
 
 ## Feedback
 
