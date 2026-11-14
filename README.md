@@ -410,8 +410,20 @@ Restoring into the primary database requires `ALLOW_RESTORE_TO_PRIMARY=1` as wel
 
 ### 4. Schedule
 
-Run `./scripts/backup_postgres.sh` daily on the VPS (cron, or a systemd timer under
-`deploy/` when you install the unit examples). Keep a second copy of the age identity
+Run `./scripts/backup_postgres.sh` daily on the VPS. Example **systemd** units live in
+`deploy/` (`booking-bot-backup.service` + `.timer`). Edit `User`, `WorkingDirectory`,
+`EnvironmentFile`, and `ExecStart` paths to match the host, then:
+
+```bash
+sudo cp deploy/booking-bot-backup.service deploy/booking-bot-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now booking-bot-backup.timer
+systemctl list-timers booking-bot-backup.timer
+journalctl -u booking-bot-backup.service -n 50
+```
+
+The timer defaults to **03:15** host-local time (`Persistent=true`, small random delay).
+A plain cron line works too if you prefer. Keep a second copy of the age identity
 **off** the same machine that stores the dumps.
 
 ## Configuration
@@ -678,6 +690,7 @@ booking_bot/
 ├── locales/                # ru / en message dictionaries
 ├── migrations/             # Versioned SQL migrations and runner
 ├── scripts/                # Encrypted Postgres backup / restore / prune
+├── deploy/                 # Optional systemd timer units for scheduled backups
 ├── tests/                  # Unit tests (FakeRepositories) + integration/ (Postgres)
 ├── .github/workflows/      # CI (ruff, mypy, pytest + Postgres)
 ├── docker-compose.yml

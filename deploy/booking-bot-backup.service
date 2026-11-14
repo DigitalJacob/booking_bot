@@ -1,0 +1,26 @@
+[Unit]
+Description=booking_bot encrypted Postgres backup (age)
+Documentation=file:///opt/booking_bot/README.md
+After=docker.service
+Wants=docker.service
+RequiresMountsFor=/opt/booking_bot
+
+[Service]
+Type=oneshot
+# Adjust User and WorkingDirectory to your VPS layout.
+User=deploy
+Group=deploy
+WorkingDirectory=/opt/booking_bot
+EnvironmentFile=/opt/booking_bot/.env
+# Ensure docker + age are on PATH for non-login services.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/booking_bot/scripts/backup_postgres.sh
+
+# Do not restart on failure — the timer will try again next calendar tick.
+Nice=10
+# Harden lightly; dump still needs Docker socket + read .env.
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
