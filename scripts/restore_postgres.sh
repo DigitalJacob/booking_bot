@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Decrypt an age-encrypted Postgres dump and restore into a non-prod database.
+# Decrypt streams into pg_restore — no plaintext dump on disk.
 #
 # Required (from environment or repo-root .env):
-#   POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+#   POSTGRES_USER, POSTGRES_DB
 #   BACKUP_AGE_IDENTITY   — path to age private key (never commit)
 #   CONFIRM_RESTORE=1     — explicit acknowledgement
 # Optional:
@@ -10,19 +11,21 @@
 #   ALLOW_RESTORE_TO_PRIMARY=1 — required if RESTORE_TARGET_DB == POSTGRES_DB
 #   COMPOSE_FILE          — default: docker-compose.yml in repo root
 #
+# Auth: local-socket trust inside the official postgres image (no PGPASSWORD).
+#
 # Usage:
 #   CONFIRM_RESTORE=1 ./scripts/restore_postgres.sh backups/booking_bot_….dump.age
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=_lib.sh
+source "$ROOT/scripts/_lib.sh"
 
-if [[ -f .env ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env
-  set +a
-fi
+dotenv_fill "$ROOT/.env" \
+  POSTGRES_USER POSTGRES_DB \
+  BACKUP_AGE_IDENTITY BACKUP_DIR RESTORE_TARGET_DB \
+  ALLOW_RESTORE_TO_PRIMARY COMPOSE_FILE
 
 usage() {
   echo "usage: CONFIRM_RESTORE=1 $0 <path-to.dump.age>" >&2
@@ -39,7 +42,6 @@ if [[ ! -f "$encrypted" ]]; then
 fi
 
 : "${POSTGRES_USER:?POSTGRES_USER is required}"
-: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
 : "${POSTGRES_DB:?POSTGRES_DB is required}"
 : "${BACKUP_AGE_IDENTITY:?BACKUP_AGE_IDENTITY is required (path to age private key)}"
 
@@ -66,38 +68,20 @@ if [[ ! "$RESTORE_TARGET_DB" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
   exit 1
 fi
 
-COMPOSE=(docker compose)
-if [[ -n "${COMPOSE_FILE:-}" ]]; then
-  COMPOSE=(docker compose -f "$COMPOSE_FILE")
-fi
-
 if ! command -v age >/dev/null 2>&1; then
   echo "error: age not found in PATH (install https://github.com/FiloSottile/age)" >&2
   exit 1
 fi
 
-if ! "${COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -qx postgres; then
+if ! postgres_running; then
   echo "error: postgres service is not running (docker compose up -d postgres)" >&2
   exit 1
 fi
 
 psql_exec() {
-  "${COMPOSE[@]}" exec -T \
-    -e "PGPASSWORD=${POSTGRES_PASSWORD}" \
-    postgres \
+  compose_cmd exec -T postgres \
     psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 "$@"
 }
-
-plain="$(mktemp "${TMPDIR:-/tmp}/booking_bot_restore.XXXXXX.dump")"
-cleanup() {
-  if [[ -n "${plain:-}" && -f "$plain" ]]; then
-    rm -f "$plain"
-  fi
-}
-trap cleanup EXIT
-
-echo "decrypting ${encrypted}..."
-age -d -i "$BACKUP_AGE_IDENTITY" -o "$plain" "$encrypted"
 
 exists="$(
   psql_exec -tAc "SELECT 1 FROM pg_database WHERE datname='${RESTORE_TARGET_DB}'" \
@@ -108,14 +92,13 @@ if [[ "$exists" != "1" ]]; then
   psql_exec -c "CREATE DATABASE ${RESTORE_TARGET_DB}"
 fi
 
-echo "restoring into ${RESTORE_TARGET_DB} (pg_restore --clean --if-exists)..."
-"${COMPOSE[@]}" exec -T \
-  -e "PGPASSWORD=${POSTGRES_PASSWORD}" \
-  postgres \
-  pg_restore -U "$POSTGRES_USER" -d "$RESTORE_TARGET_DB" --clean --if-exists \
-  <"$plain"
+if [[ "$RESTORE_TARGET_DB" == "$POSTGRES_DB" ]]; then
+  echo "warning: restoring into primary DB — stop the bot first (docker compose stop bot)" >&2
+fi
 
-rm -f "$plain"
-plain=""
+echo "decrypting ${encrypted} and restoring → ${RESTORE_TARGET_DB}..."
+age -d -i "$BACKUP_AGE_IDENTITY" "$encrypted" \
+  | compose_cmd exec -T postgres \
+    pg_restore -U "$POSTGRES_USER" -d "$RESTORE_TARGET_DB" --clean --if-exists
 
 echo "ok: restored ${encrypted} → database ${RESTORE_TARGET_DB}"

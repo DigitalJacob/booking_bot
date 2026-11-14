@@ -12,13 +12,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=_lib.sh
+source "$ROOT/scripts/_lib.sh"
 
-if [[ -f .env ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env
-  set +a
-fi
+dotenv_fill "$ROOT/.env" BACKUP_KEEP_DAYS BACKUP_DIR
 
 : "${BACKUP_KEEP_DAYS:?BACKUP_KEEP_DAYS is required (positive integer)}"
 

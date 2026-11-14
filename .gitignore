@@ -16,6 +16,7 @@ __pycache__/
 backups/
 *.dump
 *.dump.age
+*.dump.age.partial
 *.age
 
 # Editors / OS

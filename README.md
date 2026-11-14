@@ -362,9 +362,10 @@ Keep `POSTGRES_HOST=localhost` and `REDIS_HOST=localhost` in `.env` for this mod
 ## Backups
 
 Production personal data lives in **Postgres** (Redis FSM state is not backed up).
-Dumps are written as **age-encrypted** files under `backups/` (gitignored) — never
-commit plaintext dumps or age identity keys. Encrypting backups at rest is the ops
-control for a stolen disk/dump; the live bot still needs readable contacts to work
+`pg_dump` is **piped straight into `age`** (no plaintext dump on disk) and written
+atomically under `backups/` as `*.dump.age` (gitignored) — never commit ciphertext
+dumps or age identity keys. Encrypting backups at rest is the ops control for a
+stolen disk/dump; the live bot still needs readable contacts to work
 (depersonalization hashes belong in separate analytics/dev copies, not in this
 operational schema).
 
@@ -406,13 +407,15 @@ CONFIRM_RESTORE=1 \
   ./scripts/restore_postgres.sh backups/booking_bot_….dump.age
 ```
 
-Restoring into the primary database requires `ALLOW_RESTORE_TO_PRIMARY=1` as well.
+Restoring into the primary database requires `ALLOW_RESTORE_TO_PRIMARY=1` as well —
+**stop the bot first** (`docker compose stop bot`) so `--clean` is not fighting live
+connections. Prefer drills into `${POSTGRES_DB}_restore`.
 
 ### 4. Schedule
 
 Run `./scripts/backup_postgres.sh` daily on the VPS. Example **systemd** units live in
 `deploy/` (`booking-bot-backup.service` + `.timer`). Edit `User`, `WorkingDirectory`,
-`EnvironmentFile`, and `ExecStart` paths to match the host, then:
+and `ExecStart` paths to match the host (the script loads `.env` itself), then:
 
 ```bash
 sudo cp deploy/booking-bot-backup.service deploy/booking-bot-backup.timer /etc/systemd/system/
@@ -689,7 +692,7 @@ booking_bot/
 ├── config/                 # Typed settings from .env
 ├── locales/                # ru / en message dictionaries
 ├── migrations/             # Versioned SQL migrations and runner
-├── scripts/                # Encrypted Postgres backup / restore / prune
+├── scripts/                # Encrypted Postgres backup / restore / prune (+ _lib.sh)
 ├── deploy/                 # Optional systemd timer units for scheduled backups
 ├── tests/                  # Unit tests (FakeRepositories) + integration/ (Postgres)
 ├── .github/workflows/      # CI (ruff, mypy, pytest + Postgres)

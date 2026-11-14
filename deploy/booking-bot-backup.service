@@ -7,11 +7,12 @@ RequiresMountsFor=/opt/booking_bot
 
 [Service]
 Type=oneshot
-# Adjust User and WorkingDirectory to your VPS layout.
+# Adjust User, WorkingDirectory, and ExecStart to your VPS layout.
+# No [Install] — start only via booking-bot-backup.timer (or systemctl start).
+# Script loads .env itself (dotenv_fill); do not use EnvironmentFile= here.
 User=deploy
 Group=deploy
 WorkingDirectory=/opt/booking_bot
-EnvironmentFile=/opt/booking_bot/.env
 # Ensure docker + age are on PATH for non-login services.
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/booking_bot/scripts/backup_postgres.sh
@@ -21,6 +22,3 @@ Nice=10
 # Harden lightly; dump still needs Docker socket + read .env.
 NoNewPrivileges=true
 PrivateTmp=true
-
-[Install]
-WantedBy=multi-user.target
