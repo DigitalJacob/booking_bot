@@ -6,6 +6,7 @@
 #   BACKUP_AGE_RECIPIENT  — age public key (age1...)
 # Optional:
 #   BACKUP_DIR            — default: <repo>/backups
+#   BACKUP_KEEP_DAYS      — if set, prune older *.dump.age after a successful dump
 #   COMPOSE_FILE          — default: docker-compose.yml in repo root
 #
 # Usage (from anywhere):
@@ -69,3 +70,7 @@ plain=""
 
 bytes="$(wc -c <"$encrypted" | tr -d ' ')"
 echo "ok: wrote ${encrypted} (${bytes} bytes)"
+
+if [[ -n "${BACKUP_KEEP_DAYS:-}" ]]; then
+  "$ROOT/scripts/prune_backups.sh"
+fi
