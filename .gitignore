@@ -12,6 +12,12 @@ __pycache__/
 # Secrets
 .env
 
+# Encrypted Postgres dumps (scripts/backup_postgres.sh) — never commit
+backups/
+*.dump
+*.dump.age
+*.age
+
 # Editors / OS
 .idea/
 .vscode/
@@ -24,3 +30,4 @@ __pycache__/
 
 # Logs
 *.log
+
