@@ -717,6 +717,10 @@ booking_bot/
 
 Have ideas or found a bug? Open a GitHub Issue.
 
+Contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md).  
+Security reports: [SECURITY.md](SECURITY.md) (private advisories — not public issues).
+
+
 ## License
 
 MIT License — free to use, modify, and distribute. See [LICENSE](LICENSE).
