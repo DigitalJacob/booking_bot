@@ -1,0 +1,59 @@
+name: Bug report
+description: Something does not work as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Do not** paste bot tokens, `.env` values, or database dumps.
+        Security issues → [Security Advisories](https://github.com/DigitalJacob/booking_bot/security/advisories/new).
+  - type: dropdown
+    id: role
+    attributes:
+      label: Role / surface
+      description: Where you saw the problem
+      options:
+        - Client
+        - Master
+        - Admin
+        - Setup / Docker / ops
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Actual behavior
+      placeholder: Briefly describe what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps; redact secrets from logs
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: input
+    id: schedule-mode
+    attributes:
+      label: SCHEDULE_MODE (if relevant)
+      placeholder: weekly / monthly / n/a
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Optional. Strip tokens and personal data (names, phones) before pasting.

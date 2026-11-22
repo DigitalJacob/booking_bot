@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an improvement or new capability
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem first; concrete API/UI ideas are welcome after that.
+  - type: dropdown
+    id: role
+    attributes:
+      label: Primary role affected
+      options:
+        - Client
+        - Master
+        - Admin
+        - Operator / deploy
+        - All / unsure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or missing today?
+      placeholder: As a … I need … because …
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed direction
+      description: Optional sketch of behavior or UX
+      placeholder: Rough idea of how it could work.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: Workarounds or other approaches you tried.
